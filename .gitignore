@@ -1,0 +1,12 @@
+bin/
+*.exe
+*.test
+coverage.out
+node_modules/
+dist/
+target/
+.dawg/
+*.dawg
+.DS_Store
+Thumbs.db
+.vscode/

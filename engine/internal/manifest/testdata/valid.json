@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "0.1.0",
+  "id": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "createdAt": "2026-09-01T12:00:00Z",
+  "title": "checkout-negative-total-with-coupon",
+  "source": {
+    "reporter": "qa@example.com",
+    "environment": "staging",
+    "repoCommit": "a1b2c3d"
+  },
+  "layers": [
+    {
+      "mediaType": "application/vnd.dawg.env.lockfile+tar",
+      "digest": "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+      "size": 2048
+    }
+  ],
+  "sanitize": {
+    "policyVersion": "1.2.0",
+    "fieldsRedacted": 14,
+    "reviewedBy": "manual"
+  },
+  "determinism": {
+    "clockFrozenAt": "2026-09-01T11:58:00Z",
+    "randomSeed": 42
+  },
+  "expectedOutcome": {
+    "type": "assertion",
+    "description": "total price should be non-negative",
+    "assertionFile": "assertions/checkout.spec.json"
+  }
+}
