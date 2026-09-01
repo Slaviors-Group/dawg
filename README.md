@@ -4,7 +4,7 @@ DAWG (Digs Any Web-app Glitch) packages a sanitized web-app bug reproduction int
 
 ## P0 status
 
-This repository currently contains the engine and schema foundation. Capture, sanitization, packaging, replay, registry, verification, and the desktop shell are implemented in later P0 tasks.
+The engine foundation, capture components, sanitizer, local OCI packager, artifact inspection, registry client, and replay sandbox preflight are implemented. The end-to-end capture-to-artifact workflow, registry authentication/round-trip testing, replay execution, verification, and desktop shell remain in progress.
 
 ## Repository layout
 
@@ -49,4 +49,4 @@ An active capture daemon is stopped through its restricted local control state:
 .\dawg.exe capture stop
 ```
 
-Architectural decisions are recorded in `DECISIONS.md`. Product and implementation planning documents live in the sibling `agent/` directory.
+`dawg capture` currently requires Node.js with Playwright/Chromium and mitmproxy. Replay is supported only on Linux or WSL2 with rootless Docker; bare Windows refuses replay to preserve the sandbox requirement.
