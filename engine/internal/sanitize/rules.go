@@ -1,5 +1,4 @@
 // Package sanitize implements PRD §6.2 redaction and export gating for captured data.
-// It sanitizes captured files but does not capture, package, or publish artifacts.
 package sanitize
 
 import (

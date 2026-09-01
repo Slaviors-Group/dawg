@@ -1,5 +1,3 @@
-// Package capture implements PRD §6.1 session recording and environment snapshots.
-// It produces capture data but does not sanitize, package, or replay it.
 package capture
 
 import (

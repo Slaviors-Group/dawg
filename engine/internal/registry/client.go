@@ -1,5 +1,4 @@
 // Package registry implements PRD §6.4 OCI artifact push and pull.
-// It transfers packaged artifacts but does not construct or inspect their contents.
 package registry
 
 import (

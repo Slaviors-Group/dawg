@@ -1,3 +1,4 @@
+// Package capture implements PRD §6.1 session recording and environment snapshots.
 package capture
 
 import (
@@ -28,6 +29,7 @@ type SessionOptions struct {
 }
 
 // Session orchestrates capture source startup and shutdown for PRD §6.1.
+// A session deliberately does not merge source streams: each source preserves its own ordering and timestamps.
 type Session struct {
 	options SessionOptions
 
@@ -98,7 +100,6 @@ func (session *Session) Stop() error {
 	return metadataErr
 }
 
-// A session deliberately does not merge source streams: each source preserves its own ordering and timestamps.
 func (session *Session) stopStartedLocked() error {
 	var stopErr error
 	for index := len(session.started) - 1; index >= 0; index-- {

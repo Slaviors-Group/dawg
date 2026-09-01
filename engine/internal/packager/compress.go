@@ -1,5 +1,4 @@
 // Package packager implements PRD §6.3 OCI artifact construction for sanitized capture output.
-// It does not sanitize data, push artifacts, or execute replay.
 package packager
 
 import (

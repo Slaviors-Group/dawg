@@ -1,5 +1,4 @@
 // Package replay implements PRD §6.5 sandboxed deterministic artifact replay.
-// It starts only isolated replay infrastructure and does not capture or compare outcomes.
 package replay
 
 import (
