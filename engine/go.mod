@@ -1,4 +1,4 @@
-module github.com/dawg-placeholder/dawg/engine
+module github.com/Slaviors-Group/dawg/engine
 
 go 1.25.1
 

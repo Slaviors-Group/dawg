@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/dawg-placeholder/dawg/engine/internal/capture"
-	"github.com/dawg-placeholder/dawg/engine/internal/dawgtypes"
+	"github.com/Slaviors-Group/dawg/engine/internal/capture"
+	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
 	"github.com/spf13/cobra"
 )
 

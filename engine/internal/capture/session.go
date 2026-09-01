@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dawg-placeholder/dawg/engine/internal/dawgtypes"
+	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
 )
 
 // SessionComponent owns one capture source lifecycle within a session.

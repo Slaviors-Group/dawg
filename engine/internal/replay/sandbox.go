@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dawg-placeholder/dawg/engine/internal/dawgtypes"
+	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
 	"gopkg.in/yaml.v3"
 )
 
