@@ -1,0 +1,10 @@
+{
+  "name": "dawg-engine-scripts",
+  "private": true,
+  "version": "0.1.0",
+  "type": "commonjs",
+  "dependencies": {
+    "playwright": "1.55.1",
+    "rrweb": "2.0.0-alpha.18"
+  }
+}
