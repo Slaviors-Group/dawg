@@ -1,9 +1,8 @@
+import { invoke } from "@tauri-apps/api/core";
+
 /**
  * Typed IPC bridge for DAWG Engine CLI subprocess invocations.
  * Implements IPC contract table from architecture.md §Desktop ↔ Engine IPC Contract.
- *
- * Note: Subprocess execution is explicitly deferred (T0.2 / T2.1 foundation phase).
- * All methods throw "not implemented" error until CLI subprocess invocation is wired.
  */
 
 export interface StartCaptureOptions {
@@ -53,25 +52,71 @@ export interface VerifyResult {
   diff: Record<string, unknown>;
 }
 
+export interface CommandOutput<T = unknown> {
+  status: "success" | "error";
+  payload: T;
+}
+
 export class EngineBridge {
-  async startCapture(_options: StartCaptureOptions): Promise<StartCaptureResult> {
-    throw new Error("EngineBridge.startCapture is not implemented");
+  async startCapture(options: StartCaptureOptions): Promise<StartCaptureResult> {
+    try {
+      const res = await invoke<CommandOutput<StartCaptureResult>>("start_capture", {
+        url: options.url,
+      });
+      return res.payload;
+    } catch (err) {
+      console.warn("Tauri engine IPC fallback:", err);
+      throw new Error(`Engine startCapture failed: ${String(err)}`);
+    }
   }
 
-  async stopCapture(_options?: StopCaptureOptions): Promise<StopCaptureResult> {
-    throw new Error("EngineBridge.stopCapture is not implemented");
+  async stopCapture(options?: StopCaptureOptions): Promise<StopCaptureResult> {
+    try {
+      const res = await invoke<CommandOutput<StopCaptureResult>>("stop_capture", {
+        controlFile: options?.controlFile,
+      });
+      return res.payload;
+    } catch (err) {
+      console.warn("Tauri engine IPC fallback:", err);
+      throw new Error(`Engine stopCapture failed: ${String(err)}`);
+    }
   }
 
-  async inspectArtifact(_options: InspectOptions): Promise<InspectResult> {
-    throw new Error("EngineBridge.inspectArtifact is not implemented");
+  async inspectArtifact(options: InspectOptions): Promise<InspectResult> {
+    try {
+      const res = await invoke<CommandOutput<InspectResult>>("inspect_artifact", {
+        path: options.path,
+      });
+      return res.payload;
+    } catch (err) {
+      console.warn("Tauri engine IPC fallback:", err);
+      throw new Error(`Engine inspectArtifact failed: ${String(err)}`);
+    }
   }
 
-  async runReplay(_options: RunReplayOptions): Promise<RunReplayResult> {
-    throw new Error("EngineBridge.runReplay is not implemented");
+  async runReplay(options: RunReplayOptions): Promise<RunReplayResult> {
+    try {
+      const res = await invoke<CommandOutput<RunReplayResult>>("run_replay", {
+        artifact: options.artifact,
+      });
+      return res.payload;
+    } catch (err) {
+      console.warn("Tauri engine IPC fallback:", err);
+      throw new Error(`Engine runReplay failed: ${String(err)}`);
+    }
   }
 
-  async verifyResult(_options: VerifyOptions): Promise<VerifyResult> {
-    throw new Error("EngineBridge.verifyResult is not implemented");
+  async verifyResult(options: VerifyOptions): Promise<VerifyResult> {
+    try {
+      const res = await invoke<CommandOutput<VerifyResult>>("verify_result", {
+        artifact: options.artifact,
+        against: options.against,
+      });
+      return res.payload;
+    } catch (err) {
+      console.warn("Tauri engine IPC fallback:", err);
+      throw new Error(`Engine verifyResult failed: ${String(err)}`);
+    }
   }
 }
 
