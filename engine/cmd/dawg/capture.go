@@ -108,7 +108,7 @@ func launchCaptureDaemon(ctx context.Context, request captureStartRequest) (capt
 	if err := process.Start(); err != nil {
 		return captureStartResult{}, fmt.Errorf("capture: start daemon: %w", err)
 	}
-	controlPath := filepath.Join(absoluteSessionPath, "control.json")
+	controlPath := defaultCaptureControlFile
 	if err := waitForControlFile(ctx, controlPath, 20*time.Second); err != nil {
 		return captureStartResult{}, err
 	}
@@ -138,7 +138,7 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 	if err != nil {
 		return err
 	}
-	return capture.RunControlledSession(ctx, session, filepath.Join(request.SessionDirectory, "control.json"))
+	return capture.RunControlledSession(ctx, session, defaultCaptureControlFile)
 }
 
 type browserComponent struct {

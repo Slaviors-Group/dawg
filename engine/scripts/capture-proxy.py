@@ -11,7 +11,8 @@ from mitmproxy import http
 class DawgCapture:
     def __init__(self):
         self.output_dir = Path(os.environ["DAWG_SESSION_DIR"])
-        self.internal_hosts = set(json.loads(os.environ.get("DAWG_INTERNAL_HOSTS", "[]")))
+        hosts = json.loads(os.environ.get("DAWG_INTERNAL_HOSTS", "[]"))
+        self.internal_hosts = set(hosts) if hosts else set()
         self.ordinals = defaultdict(int)
 
     def running(self):

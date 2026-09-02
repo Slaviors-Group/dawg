@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -166,14 +167,16 @@ func watchCaptureProcess(command *exec.Cmd, stdout io.Reader, stderr io.Reader, 
 		stderrDone <- contents
 	}()
 	readyReported := false
+	var stdoutLog []string
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
+		line := scanner.Text()
 		var status struct {
 			Status string `json:"status"`
 		}
-		if err := json.Unmarshal(scanner.Bytes(), &status); err != nil {
-			if !readyReported {
-				ready <- fmt.Errorf("capture: decode %s status: %w", name, err)
+		if err := json.Unmarshal([]byte(line), &status); err != nil {
+			if len(stdoutLog) < 20 {
+				stdoutLog = append(stdoutLog, line)
 			}
 			continue
 		}
@@ -193,6 +196,8 @@ func watchCaptureProcess(command *exec.Cmd, stdout io.Reader, stderr io.Reader, 
 	if !readyReported {
 		if err == nil {
 			err = fmt.Errorf("capture: %s exited before readiness", name)
+		} else if len(stdoutLog) > 0 {
+			err = fmt.Errorf("%w\nStdout log:\n%s", err, strings.Join(stdoutLog, "\n"))
 		}
 		ready <- err
 	}

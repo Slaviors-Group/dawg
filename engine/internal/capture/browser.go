@@ -137,8 +137,7 @@ func (recorder *BrowserRecorder) watch(command *exec.Cmd, cancel context.CancelF
 			Status string `json:"status"`
 		}
 		if err := json.Unmarshal(scanner.Bytes(), &status); err != nil {
-			ready <- fmt.Errorf("capture: decode Playwright status: %w", err)
-			break
+			continue
 		}
 		if status.Status == "capturing" {
 			ready <- nil
