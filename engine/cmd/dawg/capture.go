@@ -13,6 +13,8 @@ import (
 
 	"github.com/Slaviors-Group/dawg/engine/internal/capture"
 	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
+	"github.com/Slaviors-Group/dawg/engine/internal/packager"
+	"github.com/Slaviors-Group/dawg/engine/internal/sanitize"
 	"github.com/spf13/cobra"
 )
 
@@ -36,6 +38,10 @@ func newCaptureCommand() *cobra.Command {
 	var proxyAddon string
 	var proxyPort int
 	var internalHosts []string
+	var composeFile string
+	var dbDiffFile string
+	var logFile string
+	var policyFile string
 	var daemon bool
 
 	command := &cobra.Command{
@@ -49,6 +55,10 @@ func newCaptureCommand() *cobra.Command {
 				ProxyAddon:       proxyAddon,
 				ProxyPort:        proxyPort,
 				InternalHosts:    internalHosts,
+				ComposeFile:      composeFile,
+				DBDiffFile:       dbDiffFile,
+				LogFile:          logFile,
+				PolicyFile:       policyFile,
 			}
 			if daemon {
 				return runCaptureDaemon(command.Context(), request)
@@ -66,6 +76,10 @@ func newCaptureCommand() *cobra.Command {
 	command.Flags().StringVar(&proxyAddon, "proxy-addon", defaultEngineScript("capture-proxy.py"), "mitmproxy capture addon")
 	command.Flags().IntVar(&proxyPort, "proxy-port", 8081, "mitmproxy listen port")
 	command.Flags().StringSliceVar(&internalHosts, "internal-host", nil, "Internal host captured as backend traffic")
+	command.Flags().StringVar(&composeFile, "compose-file", "", "Path to docker-compose file for environment snapshot")
+	command.Flags().StringVar(&dbDiffFile, "db-diff-file", "", "Path to DB diff stream or file")
+	command.Flags().StringVar(&logFile, "log-file", "", "Path to structured application log file")
+	command.Flags().StringVar(&policyFile, "policy-file", "schema/policies/default.rego", "Path to OPA sanitization policy")
 	command.Flags().BoolVar(&daemon, "daemon", false, "Run the capture owner process")
 	_ = command.MarkFlagRequired("url")
 	command.AddCommand(newCaptureStopCommand())
@@ -79,6 +93,10 @@ type captureStartRequest struct {
 	ProxyAddon       string
 	ProxyPort        int
 	InternalHosts    []string
+	ComposeFile      string
+	DBDiffFile       string
+	LogFile          string
+	PolicyFile       string
 }
 
 func launchCaptureDaemon(ctx context.Context, request captureStartRequest) (captureStartResult, error) {
@@ -123,6 +141,21 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 		return fmt.Errorf("capture: browser script and proxy addon are required")
 	}
 	sessionID := filepath.Base(request.SessionDirectory)
+	
+	components := []capture.SessionComponent{
+		&browserComponent{recorder: &capture.BrowserRecorder{ScriptPath: request.BrowserScript}, targetURL: request.TargetURL},
+		&proxyComponent{manager: &capture.ProxyManager{AddonPath: request.ProxyAddon}, port: request.ProxyPort, internalHosts: request.InternalHosts},
+	}
+	if request.ComposeFile != "" {
+		components = append(components, &envComponent{runner: capture.ExecRunner{}, composeFile: request.ComposeFile})
+	}
+	if request.DBDiffFile != "" {
+		components = append(components, &dbComponent{sourcePath: request.DBDiffFile})
+	}
+	if request.LogFile != "" {
+		components = append(components, &logComponent{sourcePath: request.LogFile})
+	}
+
 	session, err := capture.NewSession(capture.SessionOptions{
 		Directory: request.SessionDirectory,
 		Metadata: dawgtypes.CaptureMetadata{
@@ -130,15 +163,40 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 			TargetURL:   request.TargetURL,
 			ActionTrace: &dawgtypes.ActionTrace{Path: "actions/browser.jsonl", Version: "0.1.0"},
 		},
-		Components: []capture.SessionComponent{
-			&browserComponent{recorder: &capture.BrowserRecorder{ScriptPath: request.BrowserScript}, targetURL: request.TargetURL},
-			&proxyComponent{manager: &capture.ProxyManager{AddonPath: request.ProxyAddon}, port: request.ProxyPort, internalHosts: request.InternalHosts},
-		},
+		Components: components,
 	})
 	if err != nil {
 		return err
 	}
-	return capture.RunControlledSession(ctx, session, defaultCaptureControlFile)
+	
+	if err := capture.RunControlledSession(ctx, session, defaultCaptureControlFile); err != nil {
+		return err
+	}
+	
+	// Pipeline stage 2: Sanitize
+	_, err = sanitize.SanitizeDirectory(ctx, request.SessionDirectory, request.PolicyFile, "1.0.0")
+	if err != nil {
+		return err // ErrExportBlocked is naturally propagated here
+	}
+	
+	// Pipeline stage 3: Package
+	packageRequest := dawgtypes.PackageRequest{
+		SessionDirectory: request.SessionDirectory,
+		OutputDirectory:  filepath.Join(".dawg", "artifacts", sessionID),
+		Title:            "Captured Session " + sessionID,
+		Source: dawgtypes.ManifestSource{
+			Reporter:    "local",
+			Environment: "dev",
+			RepoCommit:  "unknown",
+		},
+		ExpectedOutcome: dawgtypes.ExpectedOutcome{
+			Type:          "manual",
+			Description:   "Manual reproduction",
+			AssertionFile: "none",
+		},
+	}
+	_, err = packager.Package(packageRequest)
+	return err
 }
 
 type browserComponent struct {
@@ -164,10 +222,101 @@ func (component *proxyComponent) Start(ctx context.Context, directory string) er
 }
 func (component *proxyComponent) Stop() error { return component.manager.Stop() }
 
+type envComponent struct {
+	runner      capture.CommandRunner
+	composeFile string
+}
+
+func (c *envComponent) Name() string { return "environment" }
+func (c *envComponent) Start(ctx context.Context, directory string) error {
+	_, err := capture.SnapshotEnvironment(ctx, c.runner, capture.EnvironmentSnapshotRequest{
+		ComposeFile:      c.composeFile,
+		SessionDirectory: directory,
+	})
+	return err
+}
+func (c *envComponent) Stop() error { return nil }
+
+type dbComponent struct {
+	sourcePath string
+	file       *os.File
+	cancel     context.CancelFunc
+	done       chan struct{}
+}
+
+func (c *dbComponent) Name() string { return "db" }
+func (c *dbComponent) Start(ctx context.Context, directory string) error {
+	file, err := os.Open(c.sourcePath)
+	if err != nil {
+		return fmt.Errorf("capture: open DB diff source: %w", err)
+	}
+	c.file = file
+	componentCtx, cancel := context.WithCancel(ctx)
+	c.cancel = cancel
+	c.done = make(chan struct{})
+	go func() {
+		defer close(c.done)
+		_, _ = capture.CaptureDBDiffs(componentCtx, file, directory, nil)
+	}()
+	return nil
+}
+func (c *dbComponent) Stop() error {
+	var closeErr error
+	if c.file != nil {
+		closeErr = c.file.Close()
+	}
+	if c.cancel != nil {
+		c.cancel()
+	}
+	if c.done != nil {
+		<-c.done
+	}
+	return closeErr
+}
+
+type logComponent struct {
+	sourcePath string
+	cancel     context.CancelFunc
+	done       chan struct{}
+}
+
+func (c *logComponent) Name() string { return "logs" }
+func (c *logComponent) Start(ctx context.Context, directory string) error {
+	componentCtx, cancel := context.WithCancel(ctx)
+	c.cancel = cancel
+	c.done = make(chan struct{})
+	go func() {
+		defer close(c.done)
+		_, _ = capture.TailStructuredLogFile(componentCtx, c.sourcePath, directory, 0, nil)
+	}()
+	return nil
+}
+func (c *logComponent) Stop() error {
+	if c.cancel != nil {
+		c.cancel()
+	}
+	if c.done != nil {
+		<-c.done
+	}
+	return nil
+}
+
 func daemonArguments(request captureStartRequest, sessionPath string) []string {
 	arguments := []string{"capture", "--daemon", "--url", request.TargetURL, "--session-dir", sessionPath, "--browser-script", request.BrowserScript, "--proxy-addon", request.ProxyAddon, "--proxy-port", fmt.Sprintf("%d", request.ProxyPort)}
 	for _, host := range request.InternalHosts {
 		arguments = append(arguments, "--internal-host", host)
+	}
+	if request.ComposeFile != "" {
+		arguments = append(arguments, "--compose-file", request.ComposeFile)
+	}
+	if request.DBDiffFile != "" {
+		arguments = append(arguments, "--db-diff-file", request.DBDiffFile)
+	}
+	if request.LogFile != "" {
+		arguments = append(arguments, "--log-file", request.LogFile)
+	}
+	if request.PolicyFile != "" {
+		arguments = append(arguments, "--policy-file", request.PolicyFile)
 	}
 	return arguments
 }
