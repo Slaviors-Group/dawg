@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -42,6 +43,7 @@ func newCaptureCommand() *cobra.Command {
 	var dbDiffFile string
 	var logFile string
 	var policyFile string
+	var unsafeSkipSanitize bool
 	var daemon bool
 
 	command := &cobra.Command{
@@ -55,10 +57,21 @@ func newCaptureCommand() *cobra.Command {
 				ProxyAddon:       proxyAddon,
 				ProxyPort:        proxyPort,
 				InternalHosts:    internalHosts,
-				ComposeFile:      composeFile,
-				DBDiffFile:       dbDiffFile,
-				LogFile:          logFile,
-				PolicyFile:       policyFile,
+				ComposeFile:        composeFile,
+				DBDiffFile:         dbDiffFile,
+				LogFile:            logFile,
+				PolicyFile:         policyFile,
+				UnsafeSkipSanitize: unsafeSkipSanitize,
+			}
+			if unsafeSkipSanitize {
+				parsedURL, err := url.Parse(targetURL)
+				if err != nil {
+					return fmt.Errorf("capture: invalid target URL: %w", err)
+				}
+				hostname := parsedURL.Hostname()
+				if hostname != "localhost" && hostname != "127.0.0.1" && hostname != "[::1]" {
+					return fmt.Errorf("capture: --unsafe-skip-sanitize is only allowed for localhost targets")
+				}
 			}
 			if daemon {
 				return runCaptureDaemon(command.Context(), request)
@@ -80,6 +93,7 @@ func newCaptureCommand() *cobra.Command {
 	command.Flags().StringVar(&dbDiffFile, "db-diff-file", "", "Path to DB diff stream or file")
 	command.Flags().StringVar(&logFile, "log-file", "", "Path to structured application log file")
 	command.Flags().StringVar(&policyFile, "policy-file", "schema/policies/default.rego", "Path to OPA sanitization policy")
+	command.Flags().BoolVar(&unsafeSkipSanitize, "unsafe-skip-sanitize", false, "Skip sanitization (only allowed for localhost targets)")
 	command.Flags().BoolVar(&daemon, "daemon", false, "Run the capture owner process")
 	_ = command.MarkFlagRequired("url")
 	command.AddCommand(newCaptureStopCommand())
@@ -93,10 +107,11 @@ type captureStartRequest struct {
 	ProxyAddon       string
 	ProxyPort        int
 	InternalHosts    []string
-	ComposeFile      string
-	DBDiffFile       string
-	LogFile          string
-	PolicyFile       string
+	ComposeFile        string
+	DBDiffFile         string
+	LogFile            string
+	PolicyFile         string
+	UnsafeSkipSanitize bool
 }
 
 func launchCaptureDaemon(ctx context.Context, request captureStartRequest) (captureStartResult, error) {
@@ -174,9 +189,26 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 	}
 	
 	// Pipeline stage 2: Sanitize
-	_, err = sanitize.SanitizeDirectory(ctx, request.SessionDirectory, request.PolicyFile, "1.0.0")
-	if err != nil {
-		return err // ErrExportBlocked is naturally propagated here
+	if !request.UnsafeSkipSanitize {
+		_, err = sanitize.SanitizeDirectory(ctx, request.SessionDirectory, request.PolicyFile, "1.0.0")
+		if err != nil {
+			return err // ErrExportBlocked is naturally propagated here
+		}
+	} else {
+		// Write dummy report to satisfy the packager
+		dummyReport := dawgtypes.SanitizeReport{
+			PolicyVersion:  "skipped",
+			PolicyFile:     "skipped",
+			OPAResult:      "allow",
+			ExportAllowed:  true,
+			FieldsScanned:  0,
+			FieldsRedacted: 0,
+			Redactions:     []dawgtypes.Redaction{},
+			BlockedFields:  []string{},
+		}
+		reportPath := filepath.Join(request.SessionDirectory, "sanitize-report.json")
+		reportBytes, _ := json.MarshalIndent(dummyReport, "", "  ")
+		_ = os.WriteFile(reportPath, append(reportBytes, '\n'), 0o600)
 	}
 	
 	// Pipeline stage 3: Package
@@ -317,6 +349,9 @@ func daemonArguments(request captureStartRequest, sessionPath string) []string {
 	}
 	if request.PolicyFile != "" {
 		arguments = append(arguments, "--policy-file", request.PolicyFile)
+	}
+	if request.UnsafeSkipSanitize {
+		arguments = append(arguments, "--unsafe-skip-sanitize")
 	}
 	return arguments
 }

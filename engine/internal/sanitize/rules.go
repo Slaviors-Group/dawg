@@ -22,7 +22,7 @@ func classify(field, value string) (classification, bool) {
 	field = strings.ToLower(field)
 	value = strings.TrimSpace(value)
 
-	if isSecretField(field) || strings.HasPrefix(strings.ToLower(value), "bearer ") || jwtPattern.MatchString(value) {
+	if isSecretField(field) || strings.HasPrefix(strings.ToLower(value), "bearer ") || jwtPattern.MatchString(value) || matchesSecretPattern(value) {
 		return classification{reason: "secret:token"}, true
 	}
 	if strings.Contains(field, "email") || emailPattern.MatchString(value) {
