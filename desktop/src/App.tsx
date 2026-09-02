@@ -12,44 +12,64 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
 
   return (
-    <div className="layout">
-      <header className="navbar">
-        <div className="brand">
-          <span className="brand-name">DAWG</span>
-          <span className="brand-subtitle">Desktop Shell</span>
+    <div className="flex flex-col h-screen bg-slate-900 text-slate-100 font-sans">
+      <header className="flex justify-between items-center px-6 py-3 bg-slate-800 border-b border-slate-700">
+        <div className="flex items-baseline gap-2">
+          <span className="font-bold text-xl text-sky-400">DAWG</span>
+          <span className="text-xs text-slate-400">Desktop Shell</span>
         </div>
-        <nav className="nav-tabs">
+        <nav className="flex gap-2">
           <button
             type="button"
-            className={`tab-btn ${activeTab === "dashboard" ? "active" : ""}`}
+            className={`px-4 py-2 rounded-md text-sm transition-all border ${
+              activeTab === "dashboard"
+                ? "bg-slate-700 border-sky-400 text-slate-100"
+                : "bg-transparent border-transparent text-slate-400 hover:text-slate-100 hover:bg-slate-800/50"
+            }`}
             onClick={() => setActiveTab("dashboard")}
           >
             Dashboard
           </button>
           <button
             type="button"
-            className={`tab-btn ${activeTab === "capture" ? "active" : ""}`}
+            className={`px-4 py-2 rounded-md text-sm transition-all border ${
+              activeTab === "capture"
+                ? "bg-slate-700 border-sky-400 text-slate-100"
+                : "bg-transparent border-transparent text-slate-400 hover:text-slate-100 hover:bg-slate-800/50"
+            }`}
             onClick={() => setActiveTab("capture")}
           >
             Capture
           </button>
           <button
             type="button"
-            className={`tab-btn ${activeTab === "replay" ? "active" : ""}`}
+            className={`px-4 py-2 rounded-md text-sm transition-all border ${
+              activeTab === "replay"
+                ? "bg-slate-700 border-sky-400 text-slate-100"
+                : "bg-transparent border-transparent text-slate-400 hover:text-slate-100 hover:bg-slate-800/50"
+            }`}
             onClick={() => setActiveTab("replay")}
           >
             Replay
           </button>
           <button
             type="button"
-            className={`tab-btn ${activeTab === "diff" ? "active" : ""}`}
+            className={`px-4 py-2 rounded-md text-sm transition-all border ${
+              activeTab === "diff"
+                ? "bg-slate-700 border-sky-400 text-slate-100"
+                : "bg-transparent border-transparent text-slate-400 hover:text-slate-100 hover:bg-slate-800/50"
+            }`}
             onClick={() => setActiveTab("diff")}
           >
             Diff &amp; Verify
           </button>
           <button
             type="button"
-            className={`tab-btn ${activeTab === "policy" ? "active" : ""}`}
+            className={`px-4 py-2 rounded-md text-sm transition-all border ${
+              activeTab === "policy"
+                ? "bg-slate-700 border-sky-400 text-slate-100"
+                : "bg-transparent border-transparent text-slate-400 hover:text-slate-100 hover:bg-slate-800/50"
+            }`}
             onClick={() => setActiveTab("policy")}
           >
             Sanitizer Policy
@@ -57,7 +77,7 @@ function App() {
         </nav>
       </header>
 
-      <main className="content">
+      <main className="flex-1 p-6 overflow-y-auto">
         {activeTab === "dashboard" && <Dashboard />}
         {activeTab === "capture" && <CaptureControls />}
         {activeTab === "replay" && <ReplayViewer />}
