@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dawg-placeholder/dawg/engine/internal/dawgtypes"
+	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
 )
 
 // DBDiffCaptureResult records whether an ORM adapter supplied any database changes.

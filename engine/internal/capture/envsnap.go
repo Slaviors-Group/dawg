@@ -1,5 +1,3 @@
-// Package capture implements PRD §6.1 session recording and environment snapshots.
-// It produces capture data but does not sanitize, package, or replay it.
 package capture
 
 import (
@@ -13,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dawg-placeholder/dawg/engine/internal/dawgtypes"
+	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
 	"gopkg.in/yaml.v3"
 )
 

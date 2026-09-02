@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dawg-placeholder/dawg/engine/internal/dawgtypes"
-	"github.com/dawg-placeholder/dawg/engine/internal/manifest"
+	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
+	"github.com/Slaviors-Group/dawg/engine/internal/manifest"
 )
 
 func TestPackageCreatesValidOCIImageLayout(t *testing.T) {

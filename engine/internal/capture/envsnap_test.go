@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/dawg-placeholder/dawg/engine/internal/dawgtypes"
+	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
 )
 
 func TestSnapshotEnvironmentPinsComposeImagesAndWritesLockfile(t *testing.T) {

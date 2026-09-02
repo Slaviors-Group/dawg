@@ -7,7 +7,7 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/dawg-placeholder/dawg/engine/internal/registry"
+	"github.com/Slaviors-Group/dawg/engine/internal/registry"
 	"github.com/spf13/cobra"
 )
 

@@ -59,7 +59,7 @@ func RunControlledSession(ctx context.Context, session *Session, controlPath str
 	case <-ctx.Done():
 	case <-stop:
 	}
-	_ = server.Close()
+	_ = server.Shutdown(context.Background())
 	return session.Stop()
 }
 

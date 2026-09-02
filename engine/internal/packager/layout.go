@@ -8,8 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/dawg-placeholder/dawg/engine/internal/dawgtypes"
-	"github.com/dawg-placeholder/dawg/engine/internal/manifest"
+	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
+	"github.com/Slaviors-Group/dawg/engine/internal/manifest"
 )
 
 const (

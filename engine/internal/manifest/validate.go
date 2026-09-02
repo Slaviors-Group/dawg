@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dawg-placeholder/dawg/engine/internal/dawgtypes"
+	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 

@@ -1,5 +1,4 @@
 // Package replay implements PRD §6.5 sandboxed deterministic artifact replay.
-// It starts only isolated replay infrastructure and does not capture or compare outcomes.
 package replay
 
 import (
@@ -11,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dawg-placeholder/dawg/engine/internal/dawgtypes"
+	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
 	"gopkg.in/yaml.v3"
 )
 
