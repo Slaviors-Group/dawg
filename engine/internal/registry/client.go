@@ -52,6 +52,7 @@ func (Client) Pull(ctx context.Context, ref, destination string) error {
 	return nil
 }
 
+
 func indexedManifestDigest(layoutDirectory string) (string, error) {
 	contents, err := os.ReadFile(filepath.Join(layoutDirectory, "index.json"))
 	if err != nil {

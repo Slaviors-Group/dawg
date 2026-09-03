@@ -48,7 +48,7 @@ func inspectArtifact(directory string) (manifest.Manifest, error) {
 	return value, nil
 }
 
-func writeInspectedManifest(writer io.Writer, format string, value manifest.Manifest) error {
+func writeInspectedManifest(writer io.Writer, _ string, value manifest.Manifest) error {
 	contents, err := json.MarshalIndent(value, "", "  ")
 	if err != nil {
 		return fmt.Errorf("inspect: serialize artifact manifest: %w", err)

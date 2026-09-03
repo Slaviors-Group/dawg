@@ -2,9 +2,11 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/spf13/cobra"
 )
@@ -15,7 +17,19 @@ func main() {
 	rootCommand := newRootCommand()
 	if err := rootCommand.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		pauseIfStandalone()
 		os.Exit(2)
+	}
+
+	if len(os.Args) == 1 {
+		pauseIfStandalone()
+	}
+}
+
+func pauseIfStandalone() {
+	if runtime.GOOS == "windows" && len(os.Args) <= 1 {
+		fmt.Println("\nPress Enter to exit...")
+		bufio.NewReader(os.Stdin).ReadBytes('\n')
 	}
 }
 
@@ -45,9 +59,12 @@ func newRootCommand() *cobra.Command {
 	}
 	command.AddCommand(newInitCommand())
 	command.AddCommand(newCaptureCommand())
-	command.AddCommand(newInspectCommand())
 	command.AddCommand(newPushCommand())
-
+	command.AddCommand(newPullCommand())
+	command.AddCommand(newInspectCommand())
+	command.AddCommand(newRunCommand())
+	command.AddCommand(newVerifyCommand())
+	
 	return command
 }
 
