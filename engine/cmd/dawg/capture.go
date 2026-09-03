@@ -37,6 +37,7 @@ func newCaptureCommand() *cobra.Command {
 	var sessionDirectory string
 	var browserScript string
 	var proxyAddon string
+	var mitmproxyPath string
 	var proxyPort int
 	var internalHosts []string
 	var composeFile string
@@ -55,6 +56,7 @@ func newCaptureCommand() *cobra.Command {
 				SessionDirectory: sessionDirectory,
 				BrowserScript:    browserScript,
 				ProxyAddon:       proxyAddon,
+				MitmproxyPath:    mitmproxyPath,
 				ProxyPort:        proxyPort,
 				InternalHosts:    internalHosts,
 				ComposeFile:        composeFile,
@@ -87,6 +89,7 @@ func newCaptureCommand() *cobra.Command {
 	command.Flags().StringVar(&sessionDirectory, "session-dir", ".dawg/captures", "Directory containing capture sessions")
 	command.Flags().StringVar(&browserScript, "browser-script", defaultEngineScript("capture-browser.cjs"), "Playwright capture script")
 	command.Flags().StringVar(&proxyAddon, "proxy-addon", defaultEngineScript("capture-proxy.py"), "mitmproxy capture addon")
+	command.Flags().StringVar(&mitmproxyPath, "mitmproxy-path", "mitmdump", "Path to the mitmdump executable")
 	command.Flags().IntVar(&proxyPort, "proxy-port", 8081, "mitmproxy listen port")
 	command.Flags().StringSliceVar(&internalHosts, "internal-host", nil, "Internal host captured as backend traffic")
 	command.Flags().StringVar(&composeFile, "compose-file", "", "Path to docker-compose file for environment snapshot")
@@ -105,6 +108,7 @@ type captureStartRequest struct {
 	SessionDirectory string
 	BrowserScript    string
 	ProxyAddon       string
+	MitmproxyPath    string
 	ProxyPort        int
 	InternalHosts    []string
 	ComposeFile        string
@@ -170,7 +174,7 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 	
 	components := []capture.SessionComponent{
 		&browserComponent{recorder: &capture.BrowserRecorder{ScriptPath: request.BrowserScript}, targetURL: request.TargetURL},
-		&proxyComponent{manager: &capture.ProxyManager{AddonPath: request.ProxyAddon}, port: request.ProxyPort, internalHosts: request.InternalHosts},
+		&proxyComponent{manager: &capture.ProxyManager{Executable: request.MitmproxyPath, AddonPath: request.ProxyAddon}, port: request.ProxyPort, internalHosts: request.InternalHosts},
 	}
 	if request.ComposeFile != "" {
 		components = append(components, &envComponent{runner: capture.ExecRunner{}, composeFile: request.ComposeFile})
@@ -345,7 +349,7 @@ func (c *logComponent) Stop() error {
 }
 
 func daemonArguments(request captureStartRequest, sessionPath string) []string {
-	arguments := []string{"capture", "--daemon", "--url", request.TargetURL, "--session-dir", sessionPath, "--browser-script", request.BrowserScript, "--proxy-addon", request.ProxyAddon, "--proxy-port", fmt.Sprintf("%d", request.ProxyPort)}
+	arguments := []string{"capture", "--daemon", "--url", request.TargetURL, "--session-dir", sessionPath, "--browser-script", request.BrowserScript, "--proxy-addon", request.ProxyAddon, "--mitmproxy-path", request.MitmproxyPath, "--proxy-port", fmt.Sprintf("%d", request.ProxyPort)}
 	for _, host := range request.InternalHosts {
 		arguments = append(arguments, "--internal-host", host)
 	}

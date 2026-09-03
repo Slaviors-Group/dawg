@@ -55,6 +55,38 @@ func TestSanitizeFilesRedactsHeadersAndJSONBodies(t *testing.T) {
 	}
 }
 
+func TestSanitizeFilesPreservesRRWebStructuralNames(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "traces", "rrweb.jsonl")
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatalf("create capture directory: %v", err)
+	}
+	contents := []byte(`{"type":2,"data":{"node":{"tagName":"User 7DF37326","nodeName":"DIV","localName":"div"},"name":"Ada"},"timestamp":1}` + "\n")
+	if err := os.WriteFile(path, contents, 0o600); err != nil {
+		t.Fatalf("write rrweb capture: %v", err)
+	}
+
+	if _, err := SanitizeFiles(directory, "policy.rego", "1.2.0"); err != nil {
+		t.Fatalf("sanitize rrweb capture: %v", err)
+	}
+	actual, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read sanitized rrweb capture: %v", err)
+	}
+	var document map[string]any
+	if err := json.Unmarshal(actual, &document); err != nil {
+		t.Fatalf("decode sanitized rrweb capture: %v", err)
+	}
+	data := document["data"].(map[string]any)
+	node := data["node"].(map[string]any)
+	if node["tagName"] != "User 7DF37326" || node["nodeName"] != "DIV" || node["localName"] != "div" {
+		t.Fatalf("rrweb structural names were modified: %#v", node)
+	}
+	if data["name"] == "Ada" {
+		t.Fatal("PII name was not replaced")
+	}
+}
+
 func TestSanitizeFilesPreservesOriginalOnInvalidJSONL(t *testing.T) {
 	directory := t.TempDir()
 	path := filepath.Join(directory, "logs", "structured.jsonl")
