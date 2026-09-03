@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"net/http"
 
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/oci"
 	"oras.land/oras-go/v2/registry/remote"
+	"oras.land/oras-go/v2/registry/remote/auth"
 )
 
 // Client transfers OCI layouts through an OCI registry.
@@ -30,6 +32,24 @@ func (Client) Push(ctx context.Context, layoutDirectory, ref string) error {
 	if err != nil {
 		return fmt.Errorf("registry: invalid reference %s: %w", ref, err)
 	}
+
+	username, password, authErr := GetCredentials(target.Reference.Registry)
+	if authErr != nil {
+		return fmt.Errorf("registry: check credentials: %w", authErr)
+	}
+	if username != "" && password != "" {
+		target.Client = &auth.Client{
+			Client: http.DefaultClient,
+			Cache:  auth.DefaultCache,
+			Credential: func(ctx context.Context, s string) (auth.Credential, error) {
+				return auth.Credential{
+					Username: username,
+					Password: password,
+				}, nil
+			},
+		}
+	}
+
 	if _, err := oras.Copy(ctx, source, digest, target, ref, oras.DefaultCopyOptions); err != nil {
 		return fmt.Errorf("registry: push %s: %w", ref, err)
 	}
@@ -42,6 +62,24 @@ func (Client) Pull(ctx context.Context, ref, destination string) error {
 	if err != nil {
 		return fmt.Errorf("registry: invalid reference %s: %w", ref, err)
 	}
+
+	username, password, authErr := GetCredentials(source.Reference.Registry)
+	if authErr != nil {
+		return fmt.Errorf("registry: check credentials: %w", authErr)
+	}
+	if username != "" && password != "" {
+		source.Client = &auth.Client{
+			Client: http.DefaultClient,
+			Cache:  auth.DefaultCache,
+			Credential: func(ctx context.Context, s string) (auth.Credential, error) {
+				return auth.Credential{
+					Username: username,
+					Password: password,
+				}, nil
+			},
+		}
+	}
+
 	target, err := oci.New(destination)
 	if err != nil {
 		return fmt.Errorf("registry: create OCI layout: %w", err)

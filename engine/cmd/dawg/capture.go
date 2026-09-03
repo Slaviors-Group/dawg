@@ -92,7 +92,7 @@ func newCaptureCommand() *cobra.Command {
 	command.Flags().StringVar(&composeFile, "compose-file", "", "Path to docker-compose file for environment snapshot")
 	command.Flags().StringVar(&dbDiffFile, "db-diff-file", "", "Path to DB diff stream or file")
 	command.Flags().StringVar(&logFile, "log-file", "", "Path to structured application log file")
-	command.Flags().StringVar(&policyFile, "policy-file", "schema/policies/default.rego", "Path to OPA sanitization policy")
+	command.Flags().StringVar(&policyFile, "policy-file", defaultEnginePolicy(), "Path to OPA sanitization policy")
 	command.Flags().BoolVar(&unsafeSkipSanitize, "unsafe-skip-sanitize", false, "Skip sanitization (only allowed for localhost targets)")
 	command.Flags().BoolVar(&daemon, "daemon", false, "Run the capture owner process")
 	_ = command.MarkFlagRequired("url")
@@ -135,11 +135,22 @@ func launchCaptureDaemon(ctx context.Context, request captureStartRequest) (capt
 		return captureStartResult{}, fmt.Errorf("capture: locate executable: %w", err)
 	}
 	arguments := daemonArguments(request, absoluteSessionPath)
-	process := exec.CommandContext(ctx, executable, arguments...)
-	process.Stdout = io.Discard
-	process.Stderr = io.Discard
+	process := exec.Command(executable, arguments...)
+	
+	logFile, err := os.Create(filepath.Join(absoluteSessionPath, "daemon.log"))
+	if err == nil {
+		process.Stdout = logFile
+		process.Stderr = logFile
+	}
+
 	if err := process.Start(); err != nil {
+		if logFile != nil {
+			_ = logFile.Close()
+		}
 		return captureStartResult{}, fmt.Errorf("capture: start daemon: %w", err)
+	}
+	if logFile != nil {
+		_ = logFile.Close()
 	}
 	controlPath := defaultCaptureControlFile
 	if err := waitForControlFile(ctx, controlPath, 20*time.Second); err != nil {
@@ -222,7 +233,7 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 			RepoCommit:  "unknown",
 		},
 		ExpectedOutcome: dawgtypes.ExpectedOutcome{
-			Type:          "manual",
+			Type:          "assertion",
 			Description:   "Manual reproduction",
 			AssertionFile: "none",
 		},
@@ -392,6 +403,17 @@ func newSessionID() (string, error) {
 		return "", fmt.Errorf("capture: generate session ID: %w", err)
 	}
 	return fmt.Sprintf("%x", bytes), nil
+}
+
+func defaultEnginePolicy() string {
+	if _, err := os.Stat("schema/policies/default.rego"); err == nil {
+		return "schema/policies/default.rego"
+	}
+	executable, err := os.Executable()
+	if err != nil {
+		return "schema/policies/default.rego"
+	}
+	return filepath.Join(filepath.Dir(executable), "schema", "policies", "default.rego")
 }
 
 func defaultEngineScript(name string) string {

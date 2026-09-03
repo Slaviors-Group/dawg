@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"time"
@@ -99,10 +100,12 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string) (dawgtypes.Rep
 	containerName := projectName + "-db-1"
 	out.Sandbox.ContainerID = containerName
 	fixturePath := filepath.Join(tmpDir, "db", "fixture.sql")
-	if _, err := os.Stat(fixturePath); err == nil {
-		dbRestorer := replay.NewDBRestorer(sandbox.Runner, "postgres")
-		if err := dbRestorer.Restore(ctx, containerName, fixturePath); err != nil {
-			return out, err
+	if runtime.GOOS != "windows" {
+		if _, err := os.Stat(fixturePath); err == nil {
+			dbRestorer := replay.NewDBRestorer(sandbox.Runner, "postgres")
+			if err := dbRestorer.Restore(ctx, containerName, fixturePath); err != nil {
+				return out, err
+			}
 		}
 	}
 
@@ -117,7 +120,7 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string) (dawgtypes.Rep
 
 	executable, _ := os.Executable()
 	player := &replay.EventPlayer{
-		ScriptPath: filepath.Join(filepath.Dir(executable), "..", "scripts", "replay-browser.cjs"),
+		ScriptPath: filepath.Join(filepath.Dir(executable), "scripts", "replay-browser.cjs"),
 	}
 	
 	if _, err := os.Stat(player.ScriptPath); err != nil {
