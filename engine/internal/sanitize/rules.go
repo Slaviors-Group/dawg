@@ -21,6 +21,9 @@ type classification struct {
 func classify(field, value string) (classification, bool) {
 	field = strings.ToLower(field)
 	value = strings.TrimSpace(value)
+	if strings.HasSuffix(field, "tagname") || strings.HasSuffix(field, "nodename") || strings.HasSuffix(field, "localname") {
+		return classification{}, false
+	}
 
 	if isSecretField(field) || strings.HasPrefix(strings.ToLower(value), "bearer ") || jwtPattern.MatchString(value) || matchesSecretPattern(value) {
 		return classification{reason: "secret:token"}, true

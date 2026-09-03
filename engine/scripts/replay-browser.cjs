@@ -20,7 +20,7 @@ async function main() {
 
     const rrwebRoot = path.dirname(require.resolve("rrweb"));
     const rrwebBundle = fs.readFileSync(path.join(rrwebRoot, "rrweb.umd.cjs"), "utf8");
-    
+
     // Read and parse JSONL events
     const rawEvents = fs.readFileSync(options["rrweb-input"], "utf8");
     const events = rawEvents
@@ -45,23 +45,23 @@ async function main() {
         });
     });
 
-    await page.addInitScript({ content: rrwebBundle });
     await page.setContent('<!DOCTYPE html><html><head><style>body { margin: 0; padding: 0; }</style></head><body></body></html>');
+    await page.addScriptTag({ content: rrwebBundle });
 
     await page.evaluate(async () => {
         const response = await fetch("http://dawg-replay.local/events.json");
         const events = await response.json();
-        
+
         const replayer = new rrweb.Replayer(events, {
             root: document.body,
             unpackFn: rrweb.unpack,
         });
-        
+
         // Seek to the end of the recording to render the final state
         const firstTimestamp = events[0].timestamp;
         const lastTimestamp = events[events.length - 1].timestamp;
         replayer.pause(lastTimestamp - firstTimestamp);
-        
+
         // Give the DOM a tiny bit of time to settle just in case there are images loading
         await new Promise(resolve => setTimeout(resolve, 500));
     });
