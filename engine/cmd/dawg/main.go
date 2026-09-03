@@ -60,6 +60,7 @@ func newRootCommand() *cobra.Command {
 	command.AddCommand(newInitCommand())
 	command.AddCommand(newCaptureCommand())
 	command.AddCommand(newPushCommand())
+	command.AddCommand(newPullCommand())
 	command.AddCommand(newInspectCommand())
 	command.AddCommand(newRunCommand())
 	command.AddCommand(newVerifyCommand())
