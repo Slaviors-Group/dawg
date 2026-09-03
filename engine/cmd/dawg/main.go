@@ -45,9 +45,9 @@ func newRootCommand() *cobra.Command {
 	}
 	command.AddCommand(newInitCommand())
 	command.AddCommand(newCaptureCommand())
-	command.AddCommand(newInspectCommand())
 	command.AddCommand(newPushCommand())
-
+	command.AddCommand(newInspectCommand())
+	command.AddCommand(newRunCommand())
 	return command
 }
 
