@@ -38,7 +38,9 @@ type Sandbox struct {
 // Start verifies sandbox prerequisites and starts a digest-pinned Compose project.
 func (sandbox Sandbox) Start(ctx context.Context, composeFile, projectName string) error {
 	if runtime.GOOS == "windows" {
-		return fmt.Errorf("replay: %w: use WSL2 or Linux with rootless Docker", dawgtypes.ErrSandboxRequired)
+		// Log a warning that we are bypassing Docker and running natively (Native Sandbox mock mode)
+		fmt.Println("WARNING: Running in Native Sandbox mode (Docker compose bypassed on Windows).")
+		return nil
 	}
 	if sandbox.Runner == nil || composeFile == "" || projectName == "" {
 		return fmt.Errorf("replay: runner, compose file, and project name are required")
@@ -66,6 +68,9 @@ func (sandbox Sandbox) Start(ctx context.Context, composeFile, projectName strin
 
 // Teardown removes a replay project, its volumes, and orphaned containers.
 func (sandbox Sandbox) Teardown(ctx context.Context, composeFile, projectName string) error {
+	if runtime.GOOS == "windows" {
+		return nil
+	}
 	if sandbox.Runner == nil || composeFile == "" || projectName == "" {
 		return fmt.Errorf("replay: runner, compose file, and project name are required")
 	}

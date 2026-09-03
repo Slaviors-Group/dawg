@@ -113,6 +113,8 @@ func sanitizeJSONLFile(path, relativePath string) (fileSanitization, error) {
 
 	result := fileSanitization{}
 	scanner := bufio.NewScanner(input)
+	buf := make([]byte, 64*1024)
+	scanner.Buffer(buf, 10*1024*1024)
 	lineNumber := 0
 	for scanner.Scan() {
 		lineNumber++

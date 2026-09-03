@@ -61,6 +61,8 @@ func loadHTTPPairs(path string) ([]dawgtypes.HTTPPair, error) {
 
 	var pairs []dawgtypes.HTTPPair
 	scanner := bufio.NewScanner(file)
+	buf := make([]byte, 64*1024)
+	scanner.Buffer(buf, 10*1024*1024)
 	for scanner.Scan() {
 		var pair dawgtypes.HTTPPair
 		if err := json.Unmarshal(scanner.Bytes(), &pair); err != nil {

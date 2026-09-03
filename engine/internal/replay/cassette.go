@@ -12,6 +12,7 @@ type CassetteReplayer struct {
 	Runner CommandRunner
 	cmd    *exec.Cmd
 	done   chan error
+	job    *ReplayJob
 }
 
 // NewCassetteReplayer creates a new CassetteReplayer.
@@ -42,6 +43,12 @@ func (c *CassetteReplayer) Start(ctx context.Context, listenPort int, cassetteFi
 	if err := c.cmd.Start(); err != nil {
 		return fmt.Errorf("replay: failed to start mitmdump: %w", err)
 	}
+	
+	job, err := NewReplayJob()
+	if err == nil && job != nil {
+		c.job = job
+		_ = c.job.AssignProcess(c.cmd)
+	}
 
 	go func() {
 		c.done <- c.cmd.Wait()
@@ -53,6 +60,9 @@ func (c *CassetteReplayer) Start(ctx context.Context, listenPort int, cassetteFi
 
 // Stop gracefully shuts down the mitmdump instance.
 func (c *CassetteReplayer) Stop() error {
+	if c.job != nil {
+		defer c.job.Close()
+	}
 	if c.cmd == nil || c.cmd.Process == nil {
 		return nil
 	}
@@ -66,3 +76,4 @@ func (c *CassetteReplayer) Stop() error {
 	<-c.done
 	return nil
 }
+

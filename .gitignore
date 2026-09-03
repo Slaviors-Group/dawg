@@ -14,3 +14,4 @@ docs/
 .agents/
 dawg.config.yaml
 __pycache__/
+test/

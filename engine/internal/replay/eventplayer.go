@@ -1,6 +1,7 @@
 package replay
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os/exec"
@@ -51,7 +52,23 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 		"--screenshot-output", screenshotOutput,
 	)
 
-	output, err := cmd.CombinedOutput()
+	var outputBuf bytes.Buffer
+	cmd.Stdout = &outputBuf
+	cmd.Stderr = &outputBuf
+
+	if err := cmd.Start(); err != nil {
+		return ReplayOutcome{}, fmt.Errorf("replay: failed to start browser replay: %w", err)
+	}
+
+	job, jobErr := NewReplayJob()
+	if jobErr == nil && job != nil {
+		_ = job.AssignProcess(cmd)
+		defer job.Close()
+	}
+
+	err := cmd.Wait()
+	output := outputBuf.Bytes()
+
 	if err != nil {
 		if replayContext.Err() == context.DeadlineExceeded {
 			return ReplayOutcome{}, fmt.Errorf("replay: browser replay timed out after %s: %s", timeout, string(output))

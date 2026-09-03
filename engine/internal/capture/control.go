@@ -65,9 +65,23 @@ func RunControlledSession(ctx context.Context, session *Session, controlPath str
 
 // StopControlledSession authenticates and requests shutdown of a local capture daemon.
 func StopControlledSession(ctx context.Context, controlPath string) error {
-	contents, err := os.ReadFile(controlPath)
-	if err != nil {
-		return fmt.Errorf("capture: read control state %s: %w", controlPath, err)
+	deadline := time.Now().Add(10 * time.Second)
+	var contents []byte
+	var err error
+
+	for {
+		contents, err = os.ReadFile(controlPath)
+		if err == nil {
+			break
+		}
+		if !os.IsNotExist(err) || time.Now().After(deadline) {
+			return fmt.Errorf("capture: read control state %s: %w", controlPath, err)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(100 * time.Millisecond):
+		}
 	}
 	var state ControlState
 	if err := json.Unmarshal(contents, &state); err != nil {
