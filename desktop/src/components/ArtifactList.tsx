@@ -1,10 +1,11 @@
 import { useEngine } from "../context/EngineContext";
 
 export function ArtifactList() {
-  const { artifacts, addLogLine } = useEngine();
+  const { artifacts, addLogLine, openInspectModal } = useEngine();
 
-  const handleInspect = (id: string, path: string) => {
-    addLogLine(`Inspecting artifact ID ${id} at path ${path}...`);
+  const handleInspect = (art: Parameters<typeof openInspectModal>[0]) => {
+    addLogLine(`Inspecting artifact ID ${art.id} at path ${art.path}...`);
+    openInspectModal(art);
   };
 
   const handleReplay = (id: string) => {
@@ -39,7 +40,9 @@ export function ArtifactList() {
             </div>
             <div className="text-xs text-slate-400 font-mono truncate max-w-md">{art.path}</div>
             <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
-              <span>Target: <strong className="text-slate-300">{art.targetUrl}</strong></span>
+              <span>
+                Target: <strong className="text-slate-300">{art.targetUrl}</strong>
+              </span>
               <span>•</span>
               <span>{new Date(art.createdAt).toLocaleString()}</span>
             </div>
@@ -48,8 +51,8 @@ export function ArtifactList() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => handleInspect(art.id, art.path)}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded text-xs transition-colors"
+              onClick={() => handleInspect(art)}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded text-xs font-medium transition-colors"
             >
               Inspect
             </button>

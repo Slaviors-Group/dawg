@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { type ReactNode, createContext, useContext, useState } from "react";
 import { type EngineStatusInfo, useEngineStatus } from "../hooks/useEngineStatus";
 import { engine } from "../lib/engine";
 
@@ -20,6 +20,9 @@ interface EngineContextType {
   setTargetUrl: (url: string) => void;
   logs: string[];
   artifacts: ArtifactItem[];
+  inspectedArtifact: ArtifactItem | null;
+  openInspectModal: (artifact: ArtifactItem) => void;
+  closeInspectModal: () => void;
   startCaptureSession: (url: string) => Promise<void>;
   stopCaptureSession: () => Promise<void>;
   addLogLine: (line: string) => void;
@@ -29,10 +32,15 @@ interface EngineContextType {
 const EngineContext = createContext<EngineContextType | undefined>(undefined);
 
 export function EngineProvider({ children }: { children: ReactNode }) {
-  const { status: engineStatus, isChecking: isCheckingEngine, refetch: refetchEngineStatus } = useEngineStatus();
+  const {
+    status: engineStatus,
+    isChecking: isCheckingEngine,
+    refetch: refetchEngineStatus,
+  } = useEngineStatus();
   const [isCapturing, setIsCapturing] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [targetUrl, setTargetUrl] = useState("http://localhost:3000");
+  const [inspectedArtifact, setInspectedArtifact] = useState<ArtifactItem | null>(null);
   const [logs, setLogs] = useState<string[]>([
     "[SYSTEM] DAWG Desktop Shell initialized.",
     "[SYSTEM] Engine bridge initialized in passive mode.",
@@ -46,6 +54,14 @@ export function EngineProvider({ children }: { children: ReactNode }) {
 
   const clearLogs = () => {
     setLogs([]);
+  };
+
+  const openInspectModal = (artifact: ArtifactItem) => {
+    setInspectedArtifact(artifact);
+  };
+
+  const closeInspectModal = () => {
+    setInspectedArtifact(null);
   };
 
   const startCaptureSession = async (url: string) => {
@@ -67,7 +83,7 @@ export function EngineProvider({ children }: { children: ReactNode }) {
       const res = await engine.stopCapture();
       addLogLine(`Capture stopped. Artifact created at: ${res.artifactPath}`);
       setIsCapturing(false);
-      
+
       if (activeSessionId) {
         setArtifacts((prev) => [
           {
@@ -98,6 +114,9 @@ export function EngineProvider({ children }: { children: ReactNode }) {
         setTargetUrl,
         logs,
         artifacts,
+        inspectedArtifact,
+        openInspectModal,
+        closeInspectModal,
         startCaptureSession,
         stopCaptureSession,
         addLogLine,
