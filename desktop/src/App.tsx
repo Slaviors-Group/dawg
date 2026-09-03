@@ -38,16 +38,16 @@ function ShellContent() {
                   isCheckingEngine
                     ? "bg-slate-400 animate-pulse"
                     : engineStatus.installed
-                    ? "bg-emerald-400"
-                    : "bg-amber-400"
+                      ? "bg-emerald-400"
+                      : "bg-amber-400"
                 }`}
               />
               <span>
                 {isCheckingEngine
                   ? "Probing Engine..."
                   : engineStatus.installed
-                  ? `Engine ${engineStatus.version || "Ready"}`
-                  : "CLI Not Detected"}
+                    ? `Engine ${engineStatus.version || "Ready"}`
+                    : "CLI Not Detected"}
               </span>
             </button>
           </div>

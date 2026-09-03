@@ -10,7 +10,9 @@ export const DiffReport: React.FC = () => {
 
   const handleRunVerify = () => {
     if (!selectedArtifact) return;
-    addLogLine(`Running verify diff for artifact ${selectedArtifact} against branch ${targetBranch}...`);
+    addLogLine(
+      `Running verify diff for artifact ${selectedArtifact} against branch ${targetBranch}...`,
+    );
   };
 
   return (

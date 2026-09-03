@@ -7,15 +7,14 @@ export function LogStreamer() {
   const [autoScroll, setAutoScroll] = useState(true);
   const logContainerRef = useRef<HTMLDivElement>(null);
 
-  const filteredLogs = logs.filter((log) =>
-    log.toLowerCase().includes(filter.toLowerCase())
-  );
+  const filteredLogs = logs.filter((log) => log.toLowerCase().includes(filter.toLowerCase()));
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: auto scroll on log updates
   useEffect(() => {
     if (autoScroll && logContainerRef.current) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
-  }, [logs, autoScroll]);
+  }, [logs.length, autoScroll]);
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(logs.join("\n"));
@@ -80,7 +79,11 @@ export function LogStreamer() {
               <div
                 key={`${index}-${log.slice(0, 10)}`}
                 className={`leading-relaxed ${
-                  isError ? "text-rose-400 font-semibold" : isSystem ? "text-sky-300" : "text-slate-300"
+                  isError
+                    ? "text-rose-400 font-semibold"
+                    : isSystem
+                      ? "text-sky-300"
+                      : "text-slate-300"
                 }`}
               >
                 {log}
