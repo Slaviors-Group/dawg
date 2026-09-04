@@ -1,5 +1,7 @@
+use std::path::PathBuf;
 use std::process::Command;
 use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Manager};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CommandOutput {
@@ -12,19 +14,122 @@ pub struct EngineStatusInfo {
     pub installed: bool,
     pub version: Option<String>,
     pub path: Option<String>,
+    pub bundled: bool,
     pub error: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ComponentStatus {
+    pub name: String,
+    pub installed: bool,
+    pub path: Option<String>,
+    pub version: Option<String>,
+    pub bundled: bool,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DoctorReport {
+    pub status: String,
+    #[serde(rename = "enginePath")]
+    pub engine_path: String,
+    #[serde(rename = "resourceDir")]
+    pub resource_dir: String,
+    #[serde(rename = "isBundled")]
+    pub is_bundled: bool,
+    pub components: Vec<ComponentStatus>,
+    #[serde(rename = "generatedAt")]
+    pub generated_at: String,
+}
+
+/// Resolves the engine executable path and resource directory:
+/// 1. Bundled Tauri resource directory (`<resource_dir>/binaries/dawg.exe`)
+/// 2. Current executable sibling (`<exe_dir>/binaries/dawg.exe` or `<exe_dir>/dawg.exe`)
+/// 3. Monorepo development build (`<workspace>/bin/dawg.exe`)
+/// 4. Fallback to system PATH (`dawg`)
+fn resolve_engine_binary(app: &AppHandle) -> (PathBuf, Option<PathBuf>, bool) {
+    let exe_name = if cfg!(windows) { "dawg.exe" } else { "dawg" };
+
+    // 1. Check Tauri Resource directory
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        let bundled_engine = resource_dir.join("binaries").join(exe_name);
+        if bundled_engine.exists() {
+            return (bundled_engine, Some(resource_dir), true);
+        }
+        let direct_bundled = resource_dir.join(exe_name);
+        if direct_bundled.exists() {
+            return (direct_bundled, Some(resource_dir), true);
+        }
+    }
+
+    // 2. Check sibling of current desktop executable
+    if let Ok(current_exe) = std::env::current_exe() {
+        if let Some(parent) = current_exe.parent() {
+            let sibling_engine = parent.join("binaries").join(exe_name);
+            if sibling_engine.exists() {
+                let res_dir = parent.join("resources");
+                return (sibling_engine, if res_dir.exists() { Some(res_dir) } else { Some(parent.to_path_buf()) }, true);
+            }
+            let direct_sibling = parent.join(exe_name);
+            if direct_sibling.exists() {
+                return (direct_sibling, Some(parent.to_path_buf()), false);
+            }
+        }
+    }
+
+    // 3. Check monorepo development paths (e.g. ../bin/dawg.exe or ./bin/dawg.exe)
+    let dev_candidates = [
+        PathBuf::from("../bin").join(exe_name),
+        PathBuf::from("../../bin").join(exe_name),
+        PathBuf::from("bin").join(exe_name),
+    ];
+    for dev_path in &dev_candidates {
+        if dev_path.exists() {
+            if let Ok(abs) = dev_path.canonicalize() {
+                let res_dir = abs.parent().map(|p| p.to_path_buf());
+                return (abs, res_dir, false);
+            }
+        }
+    }
+
+    // 4. Fallback to system PATH
+    (PathBuf::from(exe_name), None, false)
+}
+
+fn build_engine_command(app: &AppHandle, subcommand: &str, args: &[String]) -> Command {
+    let (engine_path, resource_dir, _) = resolve_engine_binary(app);
+    let mut cmd = Command::new(&engine_path);
+    cmd.arg(subcommand);
+    for arg in args {
+        cmd.arg(arg);
+    }
+    cmd.arg("--output").arg("json");
+
+    if let Some(res_dir) = resource_dir {
+        cmd.env("DAWG_RESOURCES_DIR", res_dir);
+    }
+
+    cmd
+}
+
 #[tauri::command]
-async fn check_engine_installed() -> Result<EngineStatusInfo, String> {
-    match Command::new("dawg").arg("--version").output() {
+async fn check_engine_installed(app: AppHandle) -> Result<EngineStatusInfo, String> {
+    let (engine_path, resource_dir, is_bundled) = resolve_engine_binary(&app);
+    let mut cmd = Command::new(&engine_path);
+    cmd.arg("--version");
+    if let Some(ref res_dir) = resource_dir {
+        cmd.env("DAWG_RESOURCES_DIR", res_dir);
+    }
+
+    match cmd.output() {
         Ok(output) => {
             if output.status.success() {
                 let ver_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
                 Ok(EngineStatusInfo {
                     installed: true,
                     version: Some(ver_str),
-                    path: Some("dawg".to_string()),
+                    path: Some(engine_path.to_string_lossy().to_string()),
+                    bundled: is_bundled,
                     error: None,
                 })
             } else {
@@ -32,7 +137,8 @@ async fn check_engine_installed() -> Result<EngineStatusInfo, String> {
                 Ok(EngineStatusInfo {
                     installed: false,
                     version: None,
-                    path: None,
+                    path: Some(engine_path.to_string_lossy().to_string()),
+                    bundled: is_bundled,
                     error: Some(err_str),
                 })
             }
@@ -40,20 +146,32 @@ async fn check_engine_installed() -> Result<EngineStatusInfo, String> {
         Err(err) => Ok(EngineStatusInfo {
             installed: false,
             version: None,
-            path: None,
-            error: Some(format!("'dawg' binary not found on PATH: {}", err)),
+            path: Some(engine_path.to_string_lossy().to_string()),
+            bundled: is_bundled,
+            error: Some(format!("Failed to execute 'dawg' engine: {}", err)),
         }),
     }
 }
 
 #[tauri::command]
-async fn execute_engine_cmd(subcommand: String, args: Vec<String>) -> Result<CommandOutput, String> {
-    let mut cmd = Command::new("dawg");
-    cmd.arg(&subcommand);
-    for arg in args {
-        cmd.arg(arg);
+async fn get_doctor_report(app: AppHandle) -> Result<DoctorReport, String> {
+    let mut cmd = build_engine_command(&app, "doctor", &[]);
+    let output = cmd.output().map_err(|e| format!("Failed to run 'dawg doctor': {}", e))?;
+    let stdout_str = String::from_utf8_lossy(&output.stdout);
+
+    if output.status.success() {
+        let report: DoctorReport = serde_json::from_str(&stdout_str)
+            .map_err(|e| format!("Failed to decode doctor report: {}. Output: {}", e, stdout_str))?;
+        Ok(report)
+    } else {
+        let stderr_str = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Doctor check failed: {}", stderr_str.trim()))
     }
-    cmd.arg("--output").arg("json");
+}
+
+#[tauri::command]
+async fn execute_engine_cmd(app: AppHandle, subcommand: String, args: Vec<String>) -> Result<CommandOutput, String> {
+    let mut cmd = build_engine_command(&app, &subcommand, &args);
 
     match cmd.output() {
         Ok(output) => {
@@ -70,38 +188,38 @@ async fn execute_engine_cmd(subcommand: String, args: Vec<String>) -> Result<Com
                 Err(format!("Engine command failed: {}", stderr_str.trim()))
             }
         }
-        Err(err) => Err(format!("Failed to execute 'dawg' binary: {}", err)),
+        Err(err) => Err(format!("Failed to execute engine: {}", err)),
     }
 }
 
 #[tauri::command]
-async fn start_capture(url: String) -> Result<CommandOutput, String> {
-    execute_engine_cmd("capture".to_string(), vec!["--url".to_string(), url]).await
+async fn start_capture(app: AppHandle, url: String) -> Result<CommandOutput, String> {
+    execute_engine_cmd(app, "capture".to_string(), vec!["--url".to_string(), url]).await
 }
 
 #[tauri::command]
-async fn stop_capture(control_file: Option<String>) -> Result<CommandOutput, String> {
+async fn stop_capture(app: AppHandle, control_file: Option<String>) -> Result<CommandOutput, String> {
     let mut args = vec!["stop".to_string()];
     if let Some(cf) = control_file {
         args.push("--control-file".to_string());
         args.push(cf);
     }
-    execute_engine_cmd("capture".to_string(), args).await
+    execute_engine_cmd(app, "capture".to_string(), args).await
 }
 
 #[tauri::command]
-async fn inspect_artifact(path: String) -> Result<CommandOutput, String> {
-    execute_engine_cmd("inspect".to_string(), vec![path]).await
+async fn inspect_artifact(app: AppHandle, path: String) -> Result<CommandOutput, String> {
+    execute_engine_cmd(app, "inspect".to_string(), vec![path]).await
 }
 
 #[tauri::command]
-async fn run_replay(artifact: String) -> Result<CommandOutput, String> {
-    execute_engine_cmd("run".to_string(), vec![artifact]).await
+async fn run_replay(app: AppHandle, artifact: String) -> Result<CommandOutput, String> {
+    execute_engine_cmd(app, "run".to_string(), vec![artifact]).await
 }
 
 #[tauri::command]
-async fn verify_result(artifact: String, against: String) -> Result<CommandOutput, String> {
-    execute_engine_cmd("verify".to_string(), vec![artifact, "--against".to_string(), against]).await
+async fn verify_result(app: AppHandle, artifact: String, against: String) -> Result<CommandOutput, String> {
+    execute_engine_cmd(app, "verify".to_string(), vec![artifact, "--against".to_string(), against]).await
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -110,6 +228,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             check_engine_installed,
+            get_doctor_report,
             start_capture,
             stop_capture,
             inspect_artifact,

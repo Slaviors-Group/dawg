@@ -11,6 +11,7 @@ import (
 
 	"time"
 
+	"github.com/Slaviors-Group/dawg/engine/internal/dawgenv"
 	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
 	"github.com/Slaviors-Group/dawg/engine/internal/manifest"
 	"github.com/Slaviors-Group/dawg/engine/internal/packager"
@@ -118,13 +119,9 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string) (dawgtypes.Rep
 		defer replayer.Stop()
 	}
 
-	executable, _ := os.Executable()
 	player := &replay.EventPlayer{
-		ScriptPath: filepath.Join(filepath.Dir(executable), "scripts", "replay-browser.cjs"),
-	}
-	
-	if _, err := os.Stat(player.ScriptPath); err != nil {
-		player.ScriptPath = filepath.Join("scripts", "replay-browser.cjs")
+		NodeBinary: dawgenv.ResolveNode(),
+		ScriptPath: dawgenv.ResolveScript("replay-browser.cjs"),
 	}
 
 	outcome, err := player.Replay(ctx, tmpDir)
