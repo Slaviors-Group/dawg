@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Slaviors-Group/dawg/engine/internal/capture"
+	"github.com/Slaviors-Group/dawg/engine/internal/dawgenv"
 	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
 	"github.com/Slaviors-Group/dawg/engine/internal/packager"
 	"github.com/Slaviors-Group/dawg/engine/internal/sanitize"
@@ -89,7 +90,7 @@ func newCaptureCommand() *cobra.Command {
 	command.Flags().StringVar(&sessionDirectory, "session-dir", ".dawg/captures", "Directory containing capture sessions")
 	command.Flags().StringVar(&browserScript, "browser-script", defaultEngineScript("capture-browser.cjs"), "Playwright capture script")
 	command.Flags().StringVar(&proxyAddon, "proxy-addon", defaultEngineScript("capture-proxy.py"), "mitmproxy capture addon")
-	command.Flags().StringVar(&mitmproxyPath, "mitmproxy-path", "mitmdump", "Path to the mitmdump executable")
+	command.Flags().StringVar(&mitmproxyPath, "mitmproxy-path", defaultMitmdumpPath(), "Path to the mitmdump executable")
 	command.Flags().IntVar(&proxyPort, "proxy-port", 8081, "mitmproxy listen port")
 	command.Flags().StringSliceVar(&internalHosts, "internal-host", nil, "Internal host captured as backend traffic")
 	command.Flags().StringVar(&composeFile, "compose-file", "", "Path to docker-compose file for environment snapshot")
@@ -173,7 +174,7 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 	sessionID := filepath.Base(request.SessionDirectory)
 	
 	components := []capture.SessionComponent{
-		&browserComponent{recorder: &capture.BrowserRecorder{ScriptPath: request.BrowserScript}, targetURL: request.TargetURL},
+		&browserComponent{recorder: &capture.BrowserRecorder{NodeBinary: dawgenv.ResolveNode(), ScriptPath: request.BrowserScript}, targetURL: request.TargetURL},
 		&proxyComponent{manager: &capture.ProxyManager{Executable: request.MitmproxyPath, AddonPath: request.ProxyAddon}, port: request.ProxyPort, internalHosts: request.InternalHosts},
 	}
 	if request.ComposeFile != "" {
@@ -191,7 +192,7 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 		Metadata: dawgtypes.CaptureMetadata{
 			SessionID:   sessionID,
 			TargetURL:   request.TargetURL,
-			ActionTrace: &dawgtypes.ActionTrace{Path: "actions/browser.jsonl", Version: "0.1.0"},
+			ActionTrace: &dawgtypes.ActionTrace{Path: "actions/browser.jsonl", Version: "0.1.0-alpha"},
 		},
 		Components: components,
 	})
@@ -409,23 +410,16 @@ func newSessionID() (string, error) {
 	return fmt.Sprintf("%x", bytes), nil
 }
 
+func defaultMitmdumpPath() string {
+	return dawgenv.ResolveMitmdump()
+}
+
 func defaultEnginePolicy() string {
-	if _, err := os.Stat("schema/policies/default.rego"); err == nil {
-		return "schema/policies/default.rego"
-	}
-	executable, err := os.Executable()
-	if err != nil {
-		return "schema/policies/default.rego"
-	}
-	return filepath.Join(filepath.Dir(executable), "schema", "policies", "default.rego")
+	return dawgenv.ResolvePolicy()
 }
 
 func defaultEngineScript(name string) string {
-	executable, err := os.Executable()
-	if err != nil {
-		return filepath.Join("scripts", name)
-	}
-	return filepath.Join(filepath.Dir(executable), "scripts", name)
+	return dawgenv.ResolveScript(name)
 }
 
 func newCaptureStopCommand() *cobra.Command {

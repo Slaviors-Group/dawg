@@ -13,13 +13,13 @@ import (
 	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
 )
 
-func TestSandboxRejectsBareWindows(t *testing.T) {
+func TestSandboxWindowsNativeMode(t *testing.T) {
 	if runtime.GOOS != "windows" {
-		t.Skip("Windows-specific security boundary")
+		t.Skip("Windows-specific native sandbox test")
 	}
 	err := (Sandbox{Runner: scriptedRunner{}}).Start(context.Background(), "unused", "project")
-	if !errors.Is(err, dawgtypes.ErrSandboxRequired) {
-		t.Fatalf("expected sandbox requirement error, got %v", err)
+	if err != nil {
+		t.Fatalf("expected nil error on Windows native mode, got %v", err)
 	}
 }
 

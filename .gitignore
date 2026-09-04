@@ -15,3 +15,5 @@ docs/
 dawg.config.yaml
 __pycache__/
 test/
+.cache/
+resources/

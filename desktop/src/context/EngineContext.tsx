@@ -1,5 +1,5 @@
 import { type ReactNode, createContext, useContext, useState } from "react";
-import { type EngineStatusInfo, useEngineStatus } from "../hooks/useEngineStatus";
+import { type DoctorReport, type EngineStatusInfo, useEngineStatus } from "../hooks/useEngineStatus";
 import { engine } from "../lib/engine";
 
 export interface ArtifactItem {
@@ -12,6 +12,7 @@ export interface ArtifactItem {
 
 interface EngineContextType {
   engineStatus: EngineStatusInfo;
+  doctorReport: DoctorReport | null;
   isCheckingEngine: boolean;
   refetchEngineStatus: () => Promise<void>;
   isCapturing: boolean;
@@ -34,6 +35,7 @@ const EngineContext = createContext<EngineContextType | undefined>(undefined);
 export function EngineProvider({ children }: { children: ReactNode }) {
   const {
     status: engineStatus,
+    doctorReport,
     isChecking: isCheckingEngine,
     refetch: refetchEngineStatus,
   } = useEngineStatus();
@@ -43,7 +45,7 @@ export function EngineProvider({ children }: { children: ReactNode }) {
   const [inspectedArtifact, setInspectedArtifact] = useState<ArtifactItem | null>(null);
   const [logs, setLogs] = useState<string[]>([
     "[SYSTEM] DAWG Desktop Shell initialized.",
-    "[SYSTEM] Engine bridge initialized in passive mode.",
+    "[SYSTEM] Engine bridge initialized.",
   ]);
   const [artifacts, setArtifacts] = useState<ArtifactItem[]>([]);
 
@@ -71,6 +73,9 @@ export function EngineProvider({ children }: { children: ReactNode }) {
       const res = await engine.startCapture({ url });
       setActiveSessionId(res.sessionId);
       addLogLine(`Capture session active. Session ID: ${res.sessionId}`);
+      if (res.sessionPath) {
+        addLogLine(`Session path: ${res.sessionPath}`);
+      }
     } catch (err) {
       addLogLine(`[ERROR] Start capture failed: ${String(err)}`);
       setIsCapturing(false);
@@ -80,18 +85,21 @@ export function EngineProvider({ children }: { children: ReactNode }) {
   const stopCaptureSession = async () => {
     try {
       addLogLine("Stopping active capture session...");
+      const sessionId = activeSessionId;
       const res = await engine.stopCapture();
-      addLogLine(`Capture stopped. Artifact created at: ${res.artifactPath}`);
+      addLogLine(`Capture stop request sent: ${res.status} (control: ${res.controlFile})`);
       setIsCapturing(false);
 
-      if (activeSessionId) {
+      if (sessionId) {
+        const artifactPath = `.dawg/artifacts/${sessionId}`;
+        addLogLine(`Packaging complete. Artifact: ${artifactPath}`);
         setArtifacts((prev) => [
           {
-            id: activeSessionId,
-            path: res.artifactPath,
+            id: sessionId,
+            path: artifactPath,
             targetUrl,
             createdAt: new Date().toISOString(),
-            components: ["browser", "http", "dbDiff", "logs"],
+            components: ["browser", "http", "cassettes", "actions"],
           },
           ...prev,
         ]);
@@ -106,6 +114,7 @@ export function EngineProvider({ children }: { children: ReactNode }) {
     <EngineContext.Provider
       value={{
         engineStatus,
+        doctorReport,
         isCheckingEngine,
         refetchEngineStatus,
         isCapturing,

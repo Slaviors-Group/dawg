@@ -35,7 +35,7 @@ export function ArtifactList() {
             <div className="flex items-center gap-2">
               <span className="font-semibold text-slate-200 text-sm">{art.id}</span>
               <span className="text-xs px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">
-                .dawg v0.1.0
+                .dawg v0.1.0-alpha
               </span>
             </div>
             <div className="text-xs text-slate-400 font-mono truncate max-w-md">{art.path}</div>

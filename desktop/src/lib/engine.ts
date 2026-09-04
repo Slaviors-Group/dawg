@@ -5,6 +5,32 @@ import { invoke } from "@tauri-apps/api/core";
  * Implements IPC contract table from architecture.md §Desktop ↔ Engine IPC Contract.
  */
 
+export interface ComponentStatus {
+  name: string;
+  installed: boolean;
+  path?: string;
+  version?: string;
+  bundled: boolean;
+  error?: string;
+}
+
+export interface DoctorReport {
+  status: "ready" | "degraded";
+  enginePath: string;
+  resourceDir: string;
+  isBundled: boolean;
+  components: ComponentStatus[];
+  generatedAt: string;
+}
+
+export interface EngineStatusInfo {
+  installed: boolean;
+  version?: string;
+  path?: string;
+  bundled: boolean;
+  error?: string;
+}
+
 export interface StartCaptureOptions {
   url: string;
 }
@@ -12,6 +38,7 @@ export interface StartCaptureOptions {
 export interface StartCaptureResult {
   status: "capturing";
   sessionId: string;
+  sessionPath: string;
 }
 
 export interface StopCaptureOptions {
@@ -19,8 +46,8 @@ export interface StopCaptureOptions {
 }
 
 export interface StopCaptureResult {
-  status: "done";
-  artifactPath: string;
+  status: "stopping";
+  controlFile: string;
 }
 
 export interface InspectOptions {
@@ -30,6 +57,13 @@ export interface InspectOptions {
 export interface InspectResult {
   id?: string;
   version?: string;
+  schemaVersion?: string;
+  title?: string;
+  source?: Record<string, unknown>;
+  layers?: Array<Record<string, unknown>>;
+  sanitize?: Record<string, unknown>;
+  determinism?: Record<string, unknown>;
+  expectedOutcome?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -38,8 +72,19 @@ export interface RunReplayOptions {
 }
 
 export interface RunReplayResult {
-  status: "pass" | "fail";
-  report: Record<string, unknown>;
+  artifact_id: string;
+  status: "started" | "completed" | "failed";
+  replayed_at: string;
+  sandbox?: {
+    compose_project: string;
+    container_id: string;
+  };
+  outcomes?: {
+    exit_code: number;
+    screenshots?: string[];
+    http_responses?: string;
+  };
+  [key: string]: unknown;
 }
 
 export interface VerifyOptions {
@@ -47,9 +92,22 @@ export interface VerifyOptions {
   against: string;
 }
 
+export interface VerifyCheck {
+  type: string;
+  passed: boolean;
+  expected: unknown;
+  actual: unknown;
+  diff_pixels?: number;
+  threshold?: number;
+}
+
 export interface VerifyResult {
-  status: "pass" | "fail";
-  diff: Record<string, unknown>;
+  artifact_id: string;
+  verified_against: string;
+  result: "pass" | "fail";
+  summary: string;
+  checks: VerifyCheck[];
+  [key: string]: unknown;
 }
 
 export interface CommandOutput<T = unknown> {
@@ -58,6 +116,14 @@ export interface CommandOutput<T = unknown> {
 }
 
 export class EngineBridge {
+  async checkInstalled(): Promise<EngineStatusInfo> {
+    return invoke<EngineStatusInfo>("check_engine_installed");
+  }
+
+  async getDoctorReport(): Promise<DoctorReport> {
+    return invoke<DoctorReport>("get_doctor_report");
+  }
+
   async startCapture(options: StartCaptureOptions): Promise<StartCaptureResult> {
     try {
       const res = await invoke<CommandOutput<StartCaptureResult>>("start_capture", {

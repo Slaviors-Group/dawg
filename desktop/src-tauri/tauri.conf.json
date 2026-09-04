@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "desktop",
+  "productName": "DAWG",
   "version": "0.1.0",
-  "identifier": "com.asus-vivobook.desktop",
+  "identifier": "com.slaviors.dawg",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,9 +12,11 @@
   "app": {
     "windows": [
       {
-        "title": "desktop",
-        "width": 800,
-        "height": 600
+        "title": "DAWG - Digs Any Web-App Glitch",
+        "width": 1100,
+        "height": 750,
+        "minWidth": 900,
+        "minHeight": 600
       }
     ],
     "security": {
@@ -30,6 +32,9 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
+    ],
+    "resources": [
+      "resources/**/*"
     ]
   }
 }
