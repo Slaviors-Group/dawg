@@ -61,7 +61,7 @@ func TestResolveScript(t *testing.T) {
 
 func TestDoctorReport(t *testing.T) {
 	ctx := context.Background()
-	report := RunDoctor(ctx, "0.1.0-test")
+	report := RunDoctor(ctx, "0.1.1-test")
 
 	if report.EnginePath == "" {
 		t.Errorf("expected non-empty EnginePath")

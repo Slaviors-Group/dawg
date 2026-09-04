@@ -42,11 +42,13 @@ The desktop application is distributed as a **monolithic standalone bundle** (ze
 ## Quick Start: Engine CLI
 
 ### Prerequisites for Standalone CLI Development
+
 - **Go 1.22+**
 - **Node.js 20+** (with Playwright)
 - **mitmproxy** (`mitmdump` on PATH, or bundled via `dawg doctor`)
 
 ### Verification & Diagnostics
+
 Run the built-in diagnostic tool to inspect your environment:
 
 ```powershell
@@ -54,17 +56,17 @@ dawg doctor
 ```
 
 ```text
-DAWG Engine Doctor Diagnostics (v0.1.0-alpha)
+DAWG Engine Doctor Diagnostics (v0.1.1-alpha)
 Resource Root: D:\Next Project\pandi-petualang\dawg\bin (Bundled: false)
 
-✅ dawg-engine          (v0.1.0-alpha) -> D:\...\bin\dawg.exe
+✅ dawg-engine          (v0.1.1-alpha) -> D:\...\bin\dawg.exe
 ✅ mitmdump             (vMitmproxy: 12.2.3) -> ...\mitmdump.exe
 ✅ node                 (vv22.14.0) -> ...\node.exe
 ✅ script:capture-browser.cjs [bundled] -> ...\scripts\capture-browser.cjs
 ✅ script:capture-proxy.py [bundled] -> ...\scripts\capture-proxy.py
 ✅ script:replay-browser.cjs [bundled] -> ...\scripts\replay-browser.cjs
 ✅ policy:default.rego  -> ...\schema\policies\default.rego
-✅ schema:manifest      (v0.1.0-alpha)
+✅ schema:manifest      (v0.1.1-alpha)
 
 All required runtime components are healthy and ready! 🚀
 ```
@@ -100,27 +102,31 @@ dawg verify .dawg/artifacts/<session-id> --against local
 To compile the Go engine, stage all standalone runtimes (`mitmdump`, `node`, `playwright`), and build the final desktop installer:
 
 - **Windows (PowerShell)**:
+
   ```powershell
   .\desktop\build-bundle.ps1 -SkipDownload
   ```
-  *Output:* `desktop/src-tauri/target/release/bundle/nsis/DAWG_x64-setup.exe`
+
+  _Output:_ `desktop/src-tauri/target/release/bundle/nsis/DAWG_x64-setup.exe`
 
 - **Linux (Bash)**:
   ```bash
   chmod +x ./desktop/build-bundle.sh
   ./desktop/build-bundle.sh
   ```
-  *Output:* `desktop/src-tauri/target/release/bundle/appimage/DAWG_amd64.AppImage`
+  _Output:_ `desktop/src-tauri/target/release/bundle/appimage/DAWG_amd64.AppImage`
 
 ### 2. Development Mode
 
 #### Running the Go Engine Tests
+
 ```powershell
 cd engine
 go test ./...
 ```
 
 #### Running the Desktop App in Development
+
 ```powershell
 cd desktop
 npm install
@@ -129,6 +135,7 @@ npm run tauri dev # Runs Tauri window with live-reloading
 ```
 
 #### Running the End-to-End Smoke Test
+
 ```powershell
 .\test\smoke_test.ps1
 ```
