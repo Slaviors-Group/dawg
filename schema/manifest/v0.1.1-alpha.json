@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://dawg.dev/schema/manifest/v0.1.0-alpha.json",
+  "$id": "https://dawg.dev/schema/manifest/v0.1.1-alpha.json",
   "title": "DAWG Artifact Manifest",
   "type": "object",
   "additionalProperties": false,
@@ -16,7 +16,7 @@
     "expectedOutcome"
   ],
   "properties": {
-    "schemaVersion": { "const": "0.1.0-alpha" },
+    "schemaVersion": { "const": "0.1.1-alpha" },
     "id": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
     "createdAt": { "type": "string", "format": "date-time" },
     "title": { "type": "string", "minLength": 1 },

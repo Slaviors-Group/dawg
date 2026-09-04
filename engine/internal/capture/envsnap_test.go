@@ -46,7 +46,7 @@ func TestSnapshotEnvironmentPinsComposeImagesAndWritesLockfile(t *testing.T) {
 	if err := json.Unmarshal(contents, &lockfile); err != nil {
 		t.Fatalf("decode lockfile: %v", err)
 	}
-	if lockfile.SchemaVersion != "0.1.0-alpha" || len(lockfile.ImageDigests) != 2 {
+	if lockfile.SchemaVersion != "0.1.1-alpha" || len(lockfile.ImageDigests) != 2 {
 		t.Fatalf("unexpected lockfile: %#v", lockfile)
 	}
 	capturedCompose, err := os.ReadFile(snapshot.ComposePath)

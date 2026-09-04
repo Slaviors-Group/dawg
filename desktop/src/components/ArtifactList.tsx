@@ -19,7 +19,10 @@ export function ArtifactList() {
   if (artifacts.length === 0) {
     return (
       <div className="bg-slate-900/30 border border-dashed border-slate-700 rounded-md p-8 text-center text-slate-400 text-sm">
-        <p>No captured artifacts found. Start a capture session to generate .dawg artifacts.</p>
+        <p>
+          No captured artifacts found. Start a capture session to generate .dawg
+          artifacts.
+        </p>
       </div>
     );
   }
@@ -33,15 +36,20 @@ export function ArtifactList() {
         >
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-slate-200 text-sm">{art.id}</span>
+              <span className="font-semibold text-slate-200 text-sm">
+                {art.id}
+              </span>
               <span className="text-xs px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">
-                .dawg v0.1.0-alpha
+                .dawg v0.1.1-alpha
               </span>
             </div>
-            <div className="text-xs text-slate-400 font-mono truncate max-w-md">{art.path}</div>
+            <div className="text-xs text-slate-400 font-mono truncate max-w-md">
+              {art.path}
+            </div>
             <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
               <span>
-                Target: <strong className="text-slate-300">{art.targetUrl}</strong>
+                Target:{" "}
+                <strong className="text-slate-300">{art.targetUrl}</strong>
               </span>
               <span>•</span>
               <span>{new Date(art.createdAt).toLocaleString()}</span>

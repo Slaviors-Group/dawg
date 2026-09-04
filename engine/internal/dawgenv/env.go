@@ -362,17 +362,17 @@ func RunDoctor(ctx context.Context, engineVersion string) DoctorReport {
 	}
 	report.Components = append(report.Components, policyStatus)
 
-	if _, err := ResolveSchema("0.1.0-alpha"); err == nil {
+	if _, err := ResolveSchema("0.1.1-alpha"); err == nil {
 		report.Components = append(report.Components, ComponentStatus{
 			Name:      "schema:manifest",
 			Installed: true,
-			Version:   "0.1.0-alpha",
+			Version:   "0.1.1-alpha",
 		})
 	} else {
 		report.Components = append(report.Components, ComponentStatus{
 			Name:      "schema:manifest",
 			Installed: false,
-			Error:     "manifest schema v0.1.0-alpha not found",
+			Error:     "manifest schema v0.1.1-alpha not found",
 		})
 		report.Status = "degraded"
 	}

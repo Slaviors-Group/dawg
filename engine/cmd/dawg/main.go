@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.1.0-alpha"
+const version = "0.1.1-alpha"
 
 func main() {
 	rootCommand := newRootCommand()
