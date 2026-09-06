@@ -372,7 +372,7 @@ func RunDoctor(ctx context.Context, engineVersion string) DoctorReport {
 		report.Components = append(report.Components, ComponentStatus{
 			Name:      "schema:manifest",
 			Installed: false,
-			Error:     "manifest schema v0.1.1-alpha not found",
+			Error:     "manifest schema v0.1.2-alpha not found",
 		})
 		report.Status = "degraded"
 	}
