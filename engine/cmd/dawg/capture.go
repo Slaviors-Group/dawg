@@ -20,7 +20,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const defaultCaptureControlFile = ".dawg/capture-control.json"
+var defaultCaptureControlFile = defaultDawgDir("capture-control.json")
 
 type captureStopResult struct {
 	Status      string `json:"status"`
@@ -87,7 +87,7 @@ func newCaptureCommand() *cobra.Command {
 		},
 	}
 	command.Flags().StringVar(&targetURL, "url", "", "Target URL to capture")
-	command.Flags().StringVar(&sessionDirectory, "session-dir", ".dawg/captures", "Directory containing capture sessions")
+	command.Flags().StringVar(&sessionDirectory, "session-dir", defaultDawgDir("captures"), "Directory containing capture sessions")
 	command.Flags().StringVar(&browserScript, "browser-script", defaultEngineScript("capture-browser.cjs"), "Playwright capture script")
 	command.Flags().StringVar(&proxyAddon, "proxy-addon", defaultEngineScript("capture-proxy.py"), "mitmproxy capture addon")
 	command.Flags().StringVar(&mitmproxyPath, "mitmproxy-path", defaultMitmdumpPath(), "Path to the mitmdump executable")
@@ -230,7 +230,7 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 	// Pipeline stage 3: Package
 	packageRequest := dawgtypes.PackageRequest{
 		SessionDirectory: request.SessionDirectory,
-		OutputDirectory:  filepath.Join(".dawg", "artifacts", sessionID),
+		OutputDirectory:  defaultDawgDir("artifacts", sessionID),
 		Title:            "Captured Session " + sessionID,
 		Source: dawgtypes.ManifestSource{
 			Reporter:    "local",

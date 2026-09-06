@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/spf13/cobra"
@@ -31,6 +32,17 @@ func pauseIfStandalone() {
 		fmt.Println("\nPress Enter to exit...")
 		bufio.NewReader(os.Stdin).ReadBytes('\n')
 	}
+}
+
+// defaultDawgDir returns an absolute path in ~/.dawg/ to avoid writing to arbitrary CWDs like System32 on Windows.
+func defaultDawgDir(subpaths ...string) string {
+	home, err := os.UserHomeDir()
+	if err == nil {
+		base := []string{home, ".dawg"}
+		return filepath.Join(append(base, subpaths...)...)
+	}
+	// Fallback to relative .dawg if home directory cannot be resolved
+	return filepath.Join(append([]string{".dawg"}, subpaths...)...)
 }
 
 func newRootCommand() *cobra.Command {

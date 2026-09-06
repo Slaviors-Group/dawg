@@ -165,7 +165,7 @@ func schemaPath(t *testing.T) string {
 }
 
 func schemaPathForPackage() string {
-	return filepath.Join("..", "..", "..", "schema", "manifest", "v0.1.1-alpha.json")
+	return filepath.Join("..", "..", "..", "schema", "manifest", "v0.1.2-alpha.json")
 }
 
 func writeJSONFixture(t *testing.T, path string, value any) {

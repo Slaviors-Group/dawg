@@ -16,12 +16,17 @@ const configFileName = "dawg.config.yaml"
 
 const defaultConfig = `schemaVersion: "0.1.1-alpha"
 capture:
-  outputDir: ".dawg/captures"
+  outputDir: %q
   browser: "chromium"
 sanitize:
-  policyFile: ".dawg/policies/default.rego"
+  policyFile: %q
 replay:
   composeFile: "compose.yaml"
+`
+
+const defaultPolicy = `package dawg.sanitizer
+
+default allow = true
 `
 
 type initResult struct {
@@ -62,6 +67,15 @@ func initializeConfig(directory string, force bool) (initResult, error) {
 		return initResult{}, fmt.Errorf("init: target %s is not a directory", directory)
 	}
 
+	captureDir := defaultDawgDir("captures")
+	if err := os.MkdirAll(captureDir, 0o755); err != nil {
+		return initResult{}, fmt.Errorf("init: failed to create capture directory: %w", err)
+	}
+	policyDir := defaultDawgDir("policies")
+	if err := os.MkdirAll(policyDir, 0o755); err != nil {
+		return initResult{}, fmt.Errorf("init: failed to create policy directory: %w", err)
+	}
+
 	configPath := filepath.Join(directory, configFileName)
 	if !force {
 		file, err := os.OpenFile(configPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
@@ -72,14 +86,20 @@ func initializeConfig(directory string, force bool) (initResult, error) {
 			return initResult{}, fmt.Errorf("init: create config %s: %w", configPath, err)
 		}
 		defer file.Close()
-		if _, err := io.WriteString(file, defaultConfig); err != nil {
+		if _, err := io.WriteString(file, fmt.Sprintf(defaultConfig, captureDir, defaultDawgDir("policies", "default.rego"))); err != nil {
 			return initResult{}, fmt.Errorf("init: write config %s: %w", configPath, err)
+		}
+		if err := os.WriteFile(defaultDawgDir("policies", "default.rego"), []byte(defaultPolicy), 0o644); err != nil {
+			return initResult{}, fmt.Errorf("init: write policy %s: %w", configPath, err)
 		}
 		return initResult{Status: "created", ConfigPath: configPath}, nil
 	}
 
-	if err := os.WriteFile(configPath, []byte(defaultConfig), 0o600); err != nil {
+	if err := os.WriteFile(configPath, []byte(fmt.Sprintf(defaultConfig, captureDir, defaultDawgDir("policies", "default.rego"))), 0o600); err != nil {
 		return initResult{}, fmt.Errorf("init: overwrite config %s: %w", configPath, err)
+	}
+	if err := os.WriteFile(defaultDawgDir("policies", "default.rego"), []byte(defaultPolicy), 0o644); err != nil {
+		return initResult{}, fmt.Errorf("init: overwrite policy %s: %w", configPath, err)
 	}
 	return initResult{Status: "created", ConfigPath: configPath, Overwritten: true}, nil
 }
