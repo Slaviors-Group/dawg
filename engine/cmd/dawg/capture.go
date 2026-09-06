@@ -192,7 +192,7 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 		Metadata: dawgtypes.CaptureMetadata{
 			SessionID:   sessionID,
 			TargetURL:   request.TargetURL,
-			ActionTrace: &dawgtypes.ActionTrace{Path: "actions/browser.jsonl", Version: "0.1.1-alpha"},
+			ActionTrace: &dawgtypes.ActionTrace{Path: "actions/browser.jsonl", Version: "0.1.2-alpha"},
 		},
 		Components: components,
 	})

@@ -17,7 +17,7 @@
   ],
   "properties": {
     "schemaVersion": {
-      "const": "0.1.1-alpha"
+      "const": "0.1.2-alpha"
     },
     "id": {
       "type": "string",

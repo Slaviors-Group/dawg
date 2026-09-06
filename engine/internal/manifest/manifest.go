@@ -12,7 +12,7 @@ import (
 )
 
 // SchemaVersion is the P0 DAWG manifest schema version.
-const SchemaVersion = "0.1.1-alpha"
+const SchemaVersion = "2-alpha"
 
 // Manifest is the OCI config document for a DAWG artifact.
 type Manifest struct {

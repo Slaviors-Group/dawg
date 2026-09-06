@@ -133,7 +133,7 @@ func TestInspectReturnsValidatedManifestJSON(t *testing.T) {
 	if err := json.Unmarshal(buffer.Bytes(), &value); err != nil {
 		t.Fatalf("decode inspect output: %v", err)
 	}
-	if value["schemaVersion"] != "0.1.1-alpha" || value["title"] == "" {
+	if value["schemaVersion"] != "0.1.2-alpha" || value["title"] == "" {
 		t.Fatalf("unexpected inspect output: %#v", value)
 	}
 }
