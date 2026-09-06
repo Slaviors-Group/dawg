@@ -2,6 +2,17 @@ import type React from "react";
 import { useState } from "react";
 import { useEngine } from "../context/EngineContext";
 import { LogStreamer } from "./LogStreamer";
+import { PageShell } from "./ui/PageShell";
+import { Card, CardHeader, CardTitle } from "./ui/Card";
+import { Select } from "./ui/Select";
+import { Input } from "./ui/Input";
+import { Button } from "./ui/Button";
+import { EmptyState } from "./ui/EmptyState";
+import {
+  CheckCircle,
+  GitBranch,
+  ChartBar,
+} from "@phosphor-icons/react";
 
 export const DiffReport: React.FC = () => {
   const { artifacts, addLogLine } = useEngine();
@@ -16,68 +27,78 @@ export const DiffReport: React.FC = () => {
   };
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 max-w-4xl mx-auto space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold mb-1">Diff &amp; Verification Report</h2>
-        <p className="text-slate-400 text-sm">
-          Compare replayed outcome against target branch or baseline assertions
-        </p>
-      </div>
+    <PageShell
+      title="Diff & Verify"
+      subtitle="Compare replayed outcome against target branch or baseline assertions"
+    >
+      <Card>
+        <CardHeader>
+          <CardTitle
+            title="Verification Setup"
+            subtitle="Select artifact and target branch to compare against"
+          />
+        </CardHeader>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="verify-artifact-select" className="text-xs font-medium text-slate-300">
-            Select Artifact
-          </label>
-          <select
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+          <Select
             id="verify-artifact-select"
+            label="Select Artifact"
             value={selectedArtifact}
-            onChange={(e) => setSelectedArtifact(e.target.value)}
-            className="bg-slate-900 border border-slate-700 text-slate-100 px-3 py-2 rounded-md focus:outline-none focus:border-sky-500 text-sm"
-          >
-            <option value="">Select a captured .dawg artifact...</option>
-            {artifacts.map((art) => (
-              <option key={art.id} value={art.path}>
-                {art.id} — {art.targetUrl}
-              </option>
-            ))}
-          </select>
-        </div>
+            onChange={setSelectedArtifact}
+            placeholder="Select a captured .dawg artifact..."
+            options={artifacts.map((art) => ({
+              value: art.path,
+              label: `${art.id} — ${art.targetUrl}`
+            }))}
+          />
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="target-branch" className="text-xs font-medium text-slate-300">
-            Target Branch / Baseline
-          </label>
-          <div className="flex gap-2">
-            <input
+          <div className="flex gap-2 items-end">
+            <Input
               id="target-branch"
-              type="text"
+              label="Target Branch / Baseline"
               value={targetBranch}
               onChange={(e) => setTargetBranch(e.target.value)}
-              className="flex-1 bg-slate-900 border border-slate-700 text-slate-100 px-3 py-2 rounded-md text-sm focus:outline-none focus:border-sky-500"
+              wrapperClassName="flex-1"
+              iconLeft={<GitBranch size={14} />}
             />
-            <button
+            <Button
               type="button"
+              variant="primary"
               onClick={handleRunVerify}
               disabled={!selectedArtifact}
-              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-semibold rounded-md transition-colors disabled:cursor-not-allowed text-sm"
+              iconLeft={<CheckCircle size={16} />}
             >
               Verify
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </Card>
 
-      <div className="pt-4 border-t border-slate-700">
-        <h3 className="text-lg font-medium mb-3">Verification Report</h3>
-        <div className="bg-slate-900/30 border border-dashed border-slate-700 rounded-md p-8 text-center text-slate-400 text-sm">
-          <p>No verification report generated yet. Select an artifact and run verification.</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="h-full flex flex-col">
+          <CardHeader bordered={false}>
+            <div className="flex items-center gap-2">
+              <ChartBar size={18} className="text-text-secondary" />
+              <CardTitle
+                title="Verification Report"
+                subtitle="Diff results will appear here after verification"
+              />
+            </div>
+          </CardHeader>
+
+          <div className="flex-1 flex items-center justify-center min-h-[288px]">
+            <EmptyState
+              icon={<ChartBar size={32} weight="light" />}
+              title="No Report Generated"
+              description="Select an artifact and run verification to see the diff results."
+            />
+          </div>
+        </Card>
+
+        <div className="flex flex-col h-full">
+          <LogStreamer />
         </div>
       </div>
-
-      <div className="pt-4 border-t border-slate-700">
-        <LogStreamer />
-      </div>
-    </div>
+    </PageShell>
   );
 };
