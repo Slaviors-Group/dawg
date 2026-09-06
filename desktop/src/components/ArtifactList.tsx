@@ -1,4 +1,14 @@
 import { useEngine } from "../context/EngineContext";
+import { Card } from "./ui/Card";
+import { Button } from "./ui/Button";
+import { EmptyState } from "./ui/EmptyState";
+import { Badge } from "./ui/Badge";
+import {
+  MagnifyingGlass,
+  PlayCircle,
+  CheckCircle,
+  Archive,
+} from "@phosphor-icons/react";
 
 export function ArtifactList() {
   const { artifacts, addLogLine, openInspectModal } = useEngine();
@@ -18,68 +28,71 @@ export function ArtifactList() {
 
   if (artifacts.length === 0) {
     return (
-      <div className="bg-slate-900/30 border border-dashed border-slate-700 rounded-md p-8 text-center text-slate-400 text-sm">
-        <p>
-          No captured artifacts found. Start a capture session to generate .dawg
-          artifacts.
-        </p>
-      </div>
+      <EmptyState
+        icon={<Archive size={32} weight="light" />}
+        title="No captured artifacts"
+        description="Start a capture session to generate .dawg artifacts."
+      />
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       {artifacts.map((art) => (
-        <div
+        <Card
           key={art.id}
-          className="bg-slate-900/60 border border-slate-700 hover:border-slate-600 rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all"
+          noPad
+          className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-brand-300 transition-colors"
         >
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-slate-200 text-sm">
+              <span className="font-semibold text-text-primary text-sm truncate">
                 {art.id}
               </span>
-              <span className="text-xs px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">
-                .dawg v0.1.1-alpha
-              </span>
+              <Badge variant="brand" size="sm">.dawg</Badge>
             </div>
-            <div className="text-xs text-slate-400 font-mono truncate max-w-md">
+            <div className="text-[11px] text-text-tertiary font-mono truncate max-w-md">
               {art.path}
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
+            <div className="flex items-center gap-2 text-xs text-text-secondary mt-1">
               <span>
                 Target:{" "}
-                <strong className="text-slate-300">{art.targetUrl}</strong>
+                <strong className="text-text-primary font-medium">
+                  {art.targetUrl}
+                </strong>
               </span>
-              <span>•</span>
+              <span className="text-border-strong">•</span>
               <span>{new Date(art.createdAt).toLocaleString()}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => handleInspect(art)}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded text-xs font-medium transition-colors"
+              iconLeft={<MagnifyingGlass size={14} />}
             >
               Inspect
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => handleReplay(art.id)}
-              className="px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 rounded text-xs font-semibold transition-colors"
+              iconLeft={<PlayCircle size={14} />}
             >
               Replay
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => handleVerify(art.id)}
-              className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded text-xs font-semibold transition-colors"
+              iconLeft={<CheckCircle size={14} />}
             >
               Verify
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       ))}
     </div>
   );

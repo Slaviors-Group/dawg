@@ -2,6 +2,18 @@ import type React from "react";
 import { useState } from "react";
 import { useEngine } from "../context/EngineContext";
 import { LogStreamer } from "./LogStreamer";
+import { PageShell } from "./ui/PageShell";
+import { Card, CardHeader, CardTitle } from "./ui/Card";
+import { Select } from "./ui/Select";
+import { Button } from "./ui/Button";
+import { EmptyState } from "./ui/EmptyState";
+import { Separator } from "./ui/Separator";
+import {
+  PlayCircle,
+  WarningCircle,
+  Cube,
+  Flask,
+} from "@phosphor-icons/react";
 
 export const ReplayViewer: React.FC = () => {
   const { artifacts, addLogLine } = useEngine();
@@ -13,54 +25,73 @@ export const ReplayViewer: React.FC = () => {
   };
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 max-w-4xl mx-auto space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold mb-1">Replay Engine Viewer</h2>
-        <p className="text-slate-400 text-sm">Execute deterministic sandboxed artifact replay</p>
-      </div>
+    <PageShell
+      title="Replay Engine"
+      subtitle="Execute deterministic sandboxed artifact replay"
+    >
+      <Card>
+        <CardHeader>
+          <CardTitle
+            title="Artifact Selection"
+            subtitle="Choose a captured session to replay in the sandbox"
+          />
+        </CardHeader>
 
-      <div className="flex flex-col gap-2">
-        <label htmlFor="artifact-select" className="text-sm font-medium text-slate-300">
-          Select Artifact
-        </label>
-        <div className="flex gap-2">
-          <select
-            id="artifact-select"
-            value={selectedArtifact}
-            onChange={(e) => setSelectedArtifact(e.target.value)}
-            className="flex-1 bg-slate-900 border border-slate-700 text-slate-100 px-3 py-2 rounded-md focus:outline-none focus:border-sky-500"
-          >
-            <option value="">Select a captured .dawg artifact...</option>
-            {artifacts.map((art) => (
-              <option key={art.id} value={art.path}>
-                {art.id} — {art.targetUrl} ({new Date(art.createdAt).toLocaleTimeString()})
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={handleRunReplay}
-            disabled={!selectedArtifact}
-            className="px-4 py-2 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-slate-950 font-semibold rounded-md transition-colors disabled:cursor-not-allowed"
-          >
-            Run Replay
-          </button>
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-3 items-end">
+            <Select
+              id="artifact-select"
+              label="Captured Artifact"
+              value={selectedArtifact}
+              onChange={setSelectedArtifact}
+              wrapperClassName="flex-1"
+              placeholder="Select a .dawg artifact..."
+              options={artifacts.map((art) => ({
+                value: art.path,
+                label: `${art.id} — ${art.targetUrl} (${new Date(art.createdAt).toLocaleTimeString()})`
+              }))}
+            />
+
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleRunReplay}
+              disabled={!selectedArtifact}
+              iconLeft={<PlayCircle size={16} />}
+            >
+              Run Replay
+            </Button>
+          </div>
         </div>
-      </div>
+      </Card>
 
-      <div className="pt-4 border-t border-slate-700">
-        <h3 className="text-lg font-medium mb-3">Replay Sandbox Environment</h3>
-        <div className="bg-slate-900/30 border border-dashed border-slate-700 rounded-md p-6 text-center text-slate-400 text-sm">
-          <p className="mb-1">Requires Linux / WSL2 rootless Docker sandbox.</p>
-          <p className="text-xs text-slate-500">
-            Bare Windows hosts return sandbox isolation requirement error per security architecture.
-          </p>
-        </div>
-      </div>
+      <Card>
+        <CardHeader bordered={false}>
+          <div className="flex items-center gap-2">
+            <Cube size={18} className="text-text-secondary" />
+            <CardTitle
+              title="Sandbox Environment"
+              subtitle="Replay isolation status"
+            />
+          </div>
+        </CardHeader>
+        
+        <EmptyState
+          icon={<WarningCircle size={32} weight="light" />}
+          title="Sandbox requires Linux / WSL2"
+          description="Bare Windows hosts return sandbox isolation requirement error per security architecture. Rootless Docker sandbox is needed."
+          action={
+            <Button variant="secondary" size="sm" iconLeft={<Flask size={14} />}>
+              View Setup Guide
+            </Button>
+          }
+        />
+      </Card>
 
-      <div className="pt-4 border-t border-slate-700">
+      <div className="flex flex-col gap-4 mt-2">
+        <h3 className="text-base font-bold text-text-primary">Execution Logs</h3>
         <LogStreamer />
       </div>
-    </div>
+    </PageShell>
   );
 };
