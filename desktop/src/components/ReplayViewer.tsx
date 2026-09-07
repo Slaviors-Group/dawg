@@ -1,19 +1,14 @@
+// import { Separator } from "./ui/Separator";
+import { Cube, Flask, PlayCircle, WarningCircle } from "@phosphor-icons/react";
 import type React from "react";
 import { useState } from "react";
 import { useEngine } from "../context/EngineContext";
 import { LogStreamer } from "./LogStreamer";
-import { PageShell } from "./ui/PageShell";
-import { Card, CardHeader, CardTitle } from "./ui/Card";
-import { Select } from "./ui/Select";
 import { Button } from "./ui/Button";
+import { Card, CardHeader, CardTitle } from "./ui/Card";
 import { EmptyState } from "./ui/EmptyState";
-// import { Separator } from "./ui/Separator";
-import {
-  PlayCircle,
-  WarningCircle,
-  Cube,
-  Flask,
-} from "@phosphor-icons/react";
+import { PageShell } from "./ui/PageShell";
+import { Select } from "./ui/Select";
 
 export const ReplayViewer: React.FC = () => {
   const { artifacts, addLogLine } = useEngine();
@@ -25,10 +20,7 @@ export const ReplayViewer: React.FC = () => {
   };
 
   return (
-    <PageShell
-      title="Replay Engine"
-      subtitle="Execute deterministic sandboxed artifact replay"
-    >
+    <PageShell title="Replay Engine" subtitle="Execute deterministic sandboxed artifact replay">
       <Card>
         <CardHeader>
           <CardTitle
@@ -48,7 +40,7 @@ export const ReplayViewer: React.FC = () => {
               placeholder="Select a .dawg artifact..."
               options={artifacts.map((art) => ({
                 value: art.path,
-                label: `${art.id} — ${art.targetUrl} (${new Date(art.createdAt).toLocaleTimeString()})`
+                label: `${art.id} — ${art.targetUrl} (${new Date(art.createdAt).toLocaleTimeString()})`,
               }))}
             />
 
@@ -69,13 +61,10 @@ export const ReplayViewer: React.FC = () => {
         <CardHeader bordered={false}>
           <div className="flex items-center gap-2">
             <Cube size={18} className="text-text-secondary" />
-            <CardTitle
-              title="Sandbox Environment"
-              subtitle="Replay isolation status"
-            />
+            <CardTitle title="Sandbox Environment" subtitle="Replay isolation status" />
           </div>
         </CardHeader>
-        
+
         <EmptyState
           icon={<WarningCircle size={32} weight="light" />}
           title="Sandbox requires Linux / WSL2"

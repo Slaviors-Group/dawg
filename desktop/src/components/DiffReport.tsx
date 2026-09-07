@@ -1,18 +1,14 @@
+import { ChartBar, CheckCircle, GitBranch } from "@phosphor-icons/react";
 import type React from "react";
 import { useState } from "react";
 import { useEngine } from "../context/EngineContext";
 import { LogStreamer } from "./LogStreamer";
-import { PageShell } from "./ui/PageShell";
-import { Card, CardHeader, CardTitle } from "./ui/Card";
-import { Select } from "./ui/Select";
-import { Input } from "./ui/Input";
 import { Button } from "./ui/Button";
+import { Card, CardHeader, CardTitle } from "./ui/Card";
 import { EmptyState } from "./ui/EmptyState";
-import {
-  CheckCircle,
-  GitBranch,
-  ChartBar,
-} from "@phosphor-icons/react";
+import { Input } from "./ui/Input";
+import { PageShell } from "./ui/PageShell";
+import { Select } from "./ui/Select";
 
 export const DiffReport: React.FC = () => {
   const { artifacts, addLogLine } = useEngine();
@@ -48,7 +44,7 @@ export const DiffReport: React.FC = () => {
             placeholder="Select a captured .dawg artifact..."
             options={artifacts.map((art) => ({
               value: art.path,
-              label: `${art.id} — ${art.targetUrl}`
+              label: `${art.id} — ${art.targetUrl}`,
             }))}
           />
 

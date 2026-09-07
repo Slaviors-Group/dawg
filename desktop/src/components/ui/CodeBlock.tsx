@@ -1,10 +1,10 @@
+import { Check, CopySimple } from "@phosphor-icons/react";
 /**
  * CodeBlock — monospaced read-only code/log surface.
  * Dark background regardless of theme (like a terminal).
  * Supports copy-to-clipboard action.
  */
 import { useState } from "react";
-import { CopySimple, Check } from "@phosphor-icons/react";
 
 interface CodeBlockProps {
   code: string;
@@ -49,11 +49,7 @@ export function CodeBlock({
                 : "text-[hsl(240,6%,55%)] hover:text-[hsl(240,6%,80%)] hover:bg-[hsl(240,10%,20%)]",
             ].join(" ")}
           >
-            {copied ? (
-              <Check size={10} weight="bold" />
-            ) : (
-              <CopySimple size={10} />
-            )}
+            {copied ? <Check size={10} weight="bold" /> : <CopySimple size={10} />}
             {copied ? "Copied" : "Copy"}
           </button>
         )}

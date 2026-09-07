@@ -1,3 +1,4 @@
+import { CircleNotch } from "@phosphor-icons/react";
 /**
  * Button — primary interaction primitive.
  *
@@ -6,7 +7,6 @@
  * States: default | loading | disabled
  */
 import { type ButtonHTMLAttributes, forwardRef } from "react";
-import { CircleNotch } from "@phosphor-icons/react";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
@@ -20,8 +20,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<Variant, string> = {
-  primary:
-    "bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-700 shadow-sm",
+  primary: "bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-700 shadow-sm",
   secondary:
     "bg-surface text-text-primary border border-border hover:bg-surface-hover active:bg-surface-active shadow-sm",
   ghost:
@@ -49,7 +48,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       children,
       ...props
     },
-    ref
+    ref,
   ) => {
     const isDisabled = disabled || loading;
     return (
@@ -78,11 +77,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           iconLeft && <span className="shrink-0">{iconLeft}</span>
         )}
         {children}
-        {!loading && iconRight && (
-          <span className="shrink-0">{iconRight}</span>
-        )}
+        {!loading && iconRight && <span className="shrink-0">{iconRight}</span>}
       </button>
     );
-  }
+  },
 );
 Button.displayName = "Button";

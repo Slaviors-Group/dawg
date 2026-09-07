@@ -29,7 +29,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       disabled,
       ...props
     },
-    ref
+    ref,
   ) => {
     const generatedId = useId();
     const inputId = id ?? generatedId;
@@ -37,19 +37,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className={["flex flex-col gap-1", wrapperClassName].join(" ")}>
         {label && (
-          <label
-            htmlFor={inputId}
-            className="text-xs font-medium text-text-secondary"
-          >
+          <label htmlFor={inputId} className="text-xs font-medium text-text-secondary">
             {label}
           </label>
         )}
         <div className="relative flex items-center">
           {iconLeft && (
-            <span
-              className="absolute left-2.5 text-text-tertiary pointer-events-none"
-              aria-hidden
-            >
+            <span className="absolute left-2.5 text-text-tertiary pointer-events-none" aria-hidden>
               {iconLeft}
             </span>
           )}
@@ -74,10 +68,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {iconRight && (
-            <span
-              className="absolute right-2.5 text-text-tertiary"
-              aria-hidden
-            >
+            <span className="absolute right-2.5 text-text-tertiary" aria-hidden>
               {iconRight}
             </span>
           )}
@@ -87,11 +78,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {error}
           </p>
         )}
-        {!error && hint && (
-          <p className="text-xs text-text-tertiary">{hint}</p>
-        )}
+        {!error && hint && <p className="text-xs text-text-tertiary">{hint}</p>}
       </div>
     );
-  }
+  },
 );
 Input.displayName = "Input";

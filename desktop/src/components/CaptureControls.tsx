@@ -1,22 +1,22 @@
+import {
+  ArrowsLeftRight,
+  Browser,
+  Database,
+  FileText,
+  Globe,
+  Record,
+  StopCircle,
+} from "@phosphor-icons/react";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { useEngine } from "../context/EngineContext";
 import { LogStreamer } from "./LogStreamer";
-import { PageShell } from "./ui/PageShell";
+import { Badge } from "./ui/Badge";
+import { Button } from "./ui/Button";
 import { Card, CardHeader, CardTitle } from "./ui/Card";
 import { Input } from "./ui/Input";
-import { Button } from "./ui/Button";
-import { Badge } from "./ui/Badge";
+import { PageShell } from "./ui/PageShell";
 import { Separator } from "./ui/Separator";
-import {
-  Globe,
-  Record,
-  StopCircle,
-  Browser,
-  ArrowsLeftRight,
-  Database,
-  FileText,
-} from "@phosphor-icons/react";
 
 const URL_PRESETS = [
   "http://localhost:5173",
@@ -96,7 +96,9 @@ export const CaptureControls: React.FC = () => {
       subtitle="Record browser activity, HTTP traffic, database diffs, and structured logs"
       actions={
         isCapturing ? (
-          <Badge variant="error" dot>Live session</Badge>
+          <Badge variant="error" dot>
+            Live session
+          </Badge>
         ) : undefined
       }
     >
@@ -150,12 +152,7 @@ export const CaptureControls: React.FC = () => {
           {/* Action */}
           <div className="flex items-center gap-3">
             {!isCapturing ? (
-              <Button
-                type="submit"
-                variant="primary"
-                size="md"
-                iconLeft={<Record size={14} />}
-              >
+              <Button type="submit" variant="primary" size="md" iconLeft={<Record size={14} />}>
                 Start Capture
               </Button>
             ) : (
@@ -185,15 +182,15 @@ export const CaptureControls: React.FC = () => {
             <div className="flex items-center gap-3">
               <span className="w-2.5 h-2.5 rounded-full bg-error-dot animate-ping shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-text-primary">
-                  Session Active
-                </p>
+                <p className="text-sm font-semibold text-text-primary">Session Active</p>
                 <p className="text-xs text-text-tertiary font-mono mt-0.5">
                   {activeSessionId ?? "Initializing…"}
                 </p>
               </div>
             </div>
-            <Badge variant="error" dot>Recording telemetry</Badge>
+            <Badge variant="error" dot>
+              Recording telemetry
+            </Badge>
           </div>
         </Card>
       )}
@@ -214,12 +211,8 @@ export const CaptureControls: React.FC = () => {
                 <Icon size={14} className="text-success-text" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-text-primary">
-                  {label}
-                </p>
-                <p className="text-[11px] text-text-tertiary mt-0.5">
-                  {description}
-                </p>
+                <p className="text-xs font-semibold text-text-primary">{label}</p>
+                <p className="text-[11px] text-text-tertiary mt-0.5">{description}</p>
               </div>
               <Badge variant={variant} size="sm" className="ml-auto shrink-0">
                 on

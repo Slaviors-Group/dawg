@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect, useId } from "react";
 import { CaretDown, Check } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useId, useRef, useState } from "react";
 
 export interface SelectOption {
   value: string;
@@ -56,13 +56,16 @@ export const Select = ({
   }, [isOpen]);
 
   return (
-    <div className={["flex flex-col gap-1 relative", wrapperClassName].join(" ")} ref={containerRef}>
+    <div
+      className={["flex flex-col gap-1 relative", wrapperClassName].join(" ")}
+      ref={containerRef}
+    >
       {label && (
         <label htmlFor={selectId} className="text-xs font-medium text-text-secondary">
           {label}
         </label>
       )}
-      
+
       <button
         type="button"
         id={selectId}
@@ -74,7 +77,11 @@ export const Select = ({
           "border transition-colors duration-[--duration-fast] cursor-pointer",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50",
           "disabled:opacity-50 disabled:cursor-not-allowed",
-          error ? "border-error-border" : isOpen ? "border-brand-400" : "border-border hover:border-text-tertiary",
+          error
+            ? "border-error-border"
+            : isOpen
+              ? "border-brand-400"
+              : "border-border hover:border-text-tertiary",
           !selectedOption ? "text-text-tertiary" : "text-text-primary",
           className,
         ].join(" ")}
@@ -83,7 +90,10 @@ export const Select = ({
         <CaretDown
           size={12}
           weight="bold"
-          className={["text-text-tertiary transition-transform duration-200", isOpen ? "rotate-180" : ""].join(" ")}
+          className={[
+            "text-text-tertiary transition-transform duration-200",
+            isOpen ? "rotate-180" : "",
+          ].join(" ")}
           aria-hidden
         />
       </button>
@@ -106,19 +116,26 @@ export const Select = ({
                 options.map((option) => {
                   const isSelected = option.value === value;
                   return (
-                    <li
-                      key={option.value}
-                      onClick={() => {
-                        onChange(option.value);
-                        setIsOpen(false);
-                      }}
-                      className={[
-                        "flex items-center justify-between px-3 py-2 text-sm cursor-pointer transition-colors duration-fast",
-                        isSelected ? "bg-brand-500/10 text-brand-600 font-medium" : "text-text-primary hover:bg-surface-hover",
-                      ].join(" ")}
-                    >
-                      <span className="truncate">{option.label}</span>
-                      {isSelected && <Check size={14} weight="bold" className="text-brand-500 shrink-0 ml-2" />}
+                    <li key={option.value}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onChange(option.value);
+                          setIsOpen(false);
+                        }}
+                        aria-pressed={isSelected}
+                        className={[
+                          "flex w-full items-center justify-between px-3 py-2 text-sm cursor-pointer transition-colors duration-fast",
+                          isSelected
+                            ? "bg-brand-500/10 text-brand-600 font-medium"
+                            : "text-text-primary hover:bg-surface-hover",
+                        ].join(" ")}
+                      >
+                        <span className="truncate">{option.label}</span>
+                        {isSelected && (
+                          <Check size={14} weight="bold" className="text-brand-500 shrink-0 ml-2" />
+                        )}
+                      </button>
                     </li>
                   );
                 })
@@ -133,9 +150,7 @@ export const Select = ({
           {error}
         </p>
       )}
-      {!error && hint && (
-        <p className="text-xs text-text-tertiary mt-0.5">{hint}</p>
-      )}
+      {!error && hint && <p className="text-xs text-text-tertiary mt-0.5">{hint}</p>}
     </div>
   );
 };

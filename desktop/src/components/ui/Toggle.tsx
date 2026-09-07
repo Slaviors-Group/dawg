@@ -13,14 +13,7 @@ interface ToggleProps {
   id?: string;
 }
 
-export function Toggle({
-  checked,
-  onChange,
-  label,
-  hint,
-  disabled = false,
-  id,
-}: ToggleProps) {
+export function Toggle({ checked, onChange, label, hint, disabled = false, id }: ToggleProps) {
   const generatedId = useId();
   const toggleId = id ?? generatedId;
 
@@ -38,9 +31,7 @@ export function Toggle({
           "transition-colors duration-[--duration-base] shrink-0",
           "focus-visible:outline-2 focus-visible:outline-[--color-brand-500] focus-visible:outline-offset-2",
           "disabled:opacity-50 disabled:cursor-not-allowed",
-          checked
-            ? "bg-brand-500"
-            : "bg-border-strong",
+          checked ? "bg-brand-500" : "bg-border-strong",
         ].join(" ")}
       >
         <span
@@ -53,16 +44,8 @@ export function Toggle({
       </button>
       {(label || hint) && (
         <label htmlFor={toggleId} className="cursor-pointer">
-          {label && (
-            <span className="text-sm font-medium text-text-primary block">
-              {label}
-            </span>
-          )}
-          {hint && (
-            <span className="text-xs text-text-tertiary block">
-              {hint}
-            </span>
-          )}
+          {label && <span className="text-sm font-medium text-text-primary block">{label}</span>}
+          {hint && <span className="text-xs text-text-tertiary block">{hint}</span>}
         </label>
       )}
     </div>

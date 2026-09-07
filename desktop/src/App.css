@@ -64,7 +64,7 @@
 
   /* Shadows */
   --shadow-card: 0 4px 20px -2px hsl(240 15% 12% / 0.05), 0 0 3px hsl(240 15% 12% / 0.02);
-  --shadow-modal: 0 24px 60px -12px hsl(258 50% 20% / 0.20), 0 12px 24px -8px hsl(258 50% 20% / 0.10);
+  --shadow-modal: 0 24px 60px -12px hsl(258 50% 20% / 0.2), 0 12px 24px -8px hsl(258 50% 20% / 0.1);
   --shadow-dropdown: 0 10px 24px -4px hsl(240 15% 12% / 0.1);
 
   /* Border radius */
@@ -131,12 +131,14 @@ html.dark {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
   *::-webkit-scrollbar {
     display: none;
   }
-  
-  html, body, #root {
+
+  html,
+  body,
+  #root {
     height: 100%;
     width: 100%;
   }
@@ -183,15 +185,13 @@ html[data-motion="reduced"] ::view-transition-new(root) {
 
 @layer utilities {
   .bg-grid-pattern {
-    background-image: 
-      linear-gradient(to right, hsl(240 10% 90% / 0.5) 1px, transparent 1px),
+    background-image: linear-gradient(to right, hsl(240 10% 90% / 0.5) 1px, transparent 1px),
       linear-gradient(to bottom, hsl(240 10% 90% / 0.5) 1px, transparent 1px);
     background-size: 32px 32px;
   }
-  
+
   html.dark .bg-grid-pattern {
-    background-image: 
-      linear-gradient(to right, hsl(240 10% 20% / 0.5) 1px, transparent 1px),
+    background-image: linear-gradient(to right, hsl(240 10% 20% / 0.5) 1px, transparent 1px),
       linear-gradient(to bottom, hsl(240 10% 20% / 0.5) 1px, transparent 1px);
   }
 
@@ -206,7 +206,7 @@ html[data-motion="reduced"] ::view-transition-new(root) {
     pointer-events: none;
     z-index: 0;
   }
-  
+
   .glow-orb-cyan {
     background: radial-gradient(circle, hsl(180 80% 50%) 0%, transparent 60%);
     opacity: 0.12;

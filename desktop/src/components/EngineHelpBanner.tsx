@@ -1,8 +1,8 @@
+import { ArrowsClockwise, WarningCircle } from "@phosphor-icons/react";
 import type React from "react";
 import { useEngine } from "../context/EngineContext";
-import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
-import { WarningCircle, ArrowsClockwise } from "@phosphor-icons/react";
+import { Card } from "./ui/Card";
 
 export const EngineHelpBanner: React.FC = () => {
   const { engineStatus, refetchEngineStatus, isCheckingEngine } = useEngine();
@@ -16,11 +16,7 @@ export const EngineHelpBanner: React.FC = () => {
       <div className="flex flex-col gap-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-2">
-            <WarningCircle
-              size={24}
-              weight="fill"
-              className="text-warning-text"
-            />
+            <WarningCircle size={24} weight="fill" className="text-warning-text" />
             <h3 className="text-sm font-semibold text-warning-text">
               DAWG Engine CLI Binary Not Found on PATH
             </h3>
@@ -38,8 +34,8 @@ export const EngineHelpBanner: React.FC = () => {
         </div>
 
         <p className="text-xs text-warning-text/80 leading-relaxed">
-          The Desktop Shell uses Tauri IPC to spawn `dawg` CLI subprocesses. To build and install the
-          engine binary locally:
+          The Desktop Shell uses Tauri IPC to spawn `dawg` CLI subprocesses. To build and install
+          the engine binary locally:
         </p>
 
         <div className="bg-warning-border/30 border border-warning-border/50 p-3 rounded-md font-mono text-xs text-warning-text overflow-x-auto space-y-1">

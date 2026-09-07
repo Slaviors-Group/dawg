@@ -29,9 +29,7 @@ export function NavItem({ icon, label, active = false, badge, onClick }: NavItem
       <span
         className={[
           "shrink-0 transition-colors duration-[--duration-fast]",
-          active
-            ? "text-brand-600"
-            : "text-text-tertiary group-hover:text-text-secondary",
+          active ? "text-brand-600" : "text-text-tertiary group-hover:text-text-secondary",
         ].join(" ")}
         aria-hidden
       >

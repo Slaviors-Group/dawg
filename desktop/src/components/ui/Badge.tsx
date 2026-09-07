@@ -18,27 +18,21 @@ interface BadgeProps {
 }
 
 const variantClasses: Record<Variant, string> = {
-  default:
-    "bg-canvas-subtle text-text-secondary border-border",
-  brand:
-    "bg-brand-100 text-brand-700 border-brand-200",
-  success:
-    "bg-success-bg text-success-text border-success-border",
-  warning:
-    "bg-warning-bg text-warning-text border-warning-border",
-  error:
-    "bg-error-bg text-error-text border-error-border",
-  info:
-    "bg-info-bg text-info-text border-info-border",
+  default: "bg-canvas-subtle text-text-secondary border-border",
+  brand: "bg-brand-100 text-brand-700 border-brand-200",
+  success: "bg-success-bg text-success-text border-success-border",
+  warning: "bg-warning-bg text-warning-text border-warning-border",
+  error: "bg-error-bg text-error-text border-error-border",
+  info: "bg-info-bg text-info-text border-info-border",
 };
 
 const dotClasses: Record<Variant, string> = {
   default: "bg-text-tertiary",
-  brand:   "bg-brand-500",
+  brand: "bg-brand-500",
   success: "bg-success-dot",
   warning: "bg-warning-dot",
-  error:   "bg-error-dot",
-  info:    "bg-info-dot",
+  error: "bg-error-dot",
+  info: "bg-info-dot",
 };
 
 const sizeClasses: Record<Size, string> = {
