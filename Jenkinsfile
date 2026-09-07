@@ -49,21 +49,23 @@ pipeline {
                     set -e
                     REMOTE_DIR="${REMOTE_ROOT}/dawg-${BUILD_TAG}"
                     ssh -o BatchMode=yes "${BUILD_USER}@${BUILD_SERVER}" \
-                        "cd '${REMOTE_DIR}/engine' && \
+                        "source /root/.nvm/nvm.sh && \
+                         cd '${REMOTE_DIR}/engine' && \
                          go version && \
                          node --version && \
                          npm --version && \
                          rustc --version && \
                          cargo --version && \
                          npm ci && \
-                         npx --no-install playwright install chromium && \
+                         test -x /root/.cache/ms-playwright/chromium-1193/chrome-linux/chrome && \
                          gofmt -l . > /tmp/dawg-gofmt-files && \
                          test ! -s /tmp/dawg-gofmt-files && \
                          go vet ./... && \
                          go test ./... && \
                          go build ./cmd/dawg"
                     ssh -o BatchMode=yes "${BUILD_USER}@${BUILD_SERVER}" \
-                        "cd '${REMOTE_DIR}/desktop' && \
+                        "source /root/.nvm/nvm.sh && \
+                         cd '${REMOTE_DIR}/desktop' && \
                          npm ci && \
                          npx --no-install biome check . && \
                          npm run build"

@@ -53,13 +53,13 @@ func newCaptureCommand() *cobra.Command {
 		Short: "Capture a web-app reproduction session",
 		RunE: func(command *cobra.Command, _ []string) error {
 			request := captureStartRequest{
-				TargetURL:        targetURL,
-				SessionDirectory: sessionDirectory,
-				BrowserScript:    browserScript,
-				ProxyAddon:       proxyAddon,
-				MitmproxyPath:    mitmproxyPath,
-				ProxyPort:        proxyPort,
-				InternalHosts:    internalHosts,
+				TargetURL:          targetURL,
+				SessionDirectory:   sessionDirectory,
+				BrowserScript:      browserScript,
+				ProxyAddon:         proxyAddon,
+				MitmproxyPath:      mitmproxyPath,
+				ProxyPort:          proxyPort,
+				InternalHosts:      internalHosts,
 				ComposeFile:        composeFile,
 				DBDiffFile:         dbDiffFile,
 				LogFile:            logFile,
@@ -105,13 +105,13 @@ func newCaptureCommand() *cobra.Command {
 }
 
 type captureStartRequest struct {
-	TargetURL        string
-	SessionDirectory string
-	BrowserScript    string
-	ProxyAddon       string
-	MitmproxyPath    string
-	ProxyPort        int
-	InternalHosts    []string
+	TargetURL          string
+	SessionDirectory   string
+	BrowserScript      string
+	ProxyAddon         string
+	MitmproxyPath      string
+	ProxyPort          int
+	InternalHosts      []string
 	ComposeFile        string
 	DBDiffFile         string
 	LogFile            string
@@ -141,7 +141,7 @@ func launchCaptureDaemon(ctx context.Context, request captureStartRequest) (capt
 	}
 	arguments := daemonArguments(request, absoluteSessionPath)
 	process := exec.Command(executable, arguments...)
-	
+
 	logFile, err := os.Create(filepath.Join(absoluteSessionPath, "daemon.log"))
 	if err == nil {
 		process.Stdout = logFile
@@ -172,7 +172,7 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 		return fmt.Errorf("capture: browser script and proxy addon are required")
 	}
 	sessionID := filepath.Base(request.SessionDirectory)
-	
+
 	components := []capture.SessionComponent{
 		&browserComponent{recorder: &capture.BrowserRecorder{NodeBinary: dawgenv.ResolveNode(), ScriptPath: request.BrowserScript}, targetURL: request.TargetURL},
 		&proxyComponent{manager: &capture.ProxyManager{Executable: request.MitmproxyPath, AddonPath: request.ProxyAddon}, port: request.ProxyPort, internalHosts: request.InternalHosts},
@@ -199,11 +199,11 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 	if err != nil {
 		return err
 	}
-	
+
 	if err := capture.RunControlledSession(ctx, session, defaultCaptureControlFile); err != nil {
 		return err
 	}
-	
+
 	// Pipeline stage 2: Sanitize
 	if !request.UnsafeSkipSanitize {
 		_, err = sanitize.SanitizeDirectory(ctx, request.SessionDirectory, request.PolicyFile, "1.0.0")
@@ -226,7 +226,7 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 		reportBytes, _ := json.MarshalIndent(dummyReport, "", "  ")
 		_ = os.WriteFile(reportPath, append(reportBytes, '\n'), 0o600)
 	}
-	
+
 	// Pipeline stage 3: Package
 	packageRequest := dawgtypes.PackageRequest{
 		SessionDirectory: request.SessionDirectory,

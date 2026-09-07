@@ -77,7 +77,7 @@ func newRootCommand() *cobra.Command {
 	command.AddCommand(newRunCommand())
 	command.AddCommand(newVerifyCommand())
 	command.AddCommand(newDoctorCommand())
-	
+
 	return command
 }
 

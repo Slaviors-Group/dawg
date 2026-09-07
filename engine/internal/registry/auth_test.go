@@ -22,9 +22,9 @@ func TestGetCredentials(t *testing.T) {
 	if err := os.MkdirAll(dockerDir, 0o755); err != nil {
 		t.Fatalf("failed to create docker config dir: %v", err)
 	}
-	
+
 	configPath := filepath.Join(dockerDir, "config.json")
-	
+
 	// Create mock credentials
 	authPayload := base64.StdEncoding.EncodeToString([]byte("testuser:testpass123"))
 	mockConfig := DockerConfig{
@@ -32,7 +32,7 @@ func TestGetCredentials(t *testing.T) {
 			"ghcr.io": {Auth: authPayload},
 		},
 	}
-	
+
 	contents, _ := json.Marshal(mockConfig)
 	if err := os.WriteFile(configPath, contents, 0o600); err != nil {
 		t.Fatalf("failed to write mock docker config: %v", err)
@@ -55,7 +55,7 @@ func TestGetCredentials(t *testing.T) {
 	if username != "" || password != "" {
 		t.Errorf("expected empty credentials, got %s:%s", username, password)
 	}
-	
+
 	// Test 3: No config.json file should return no error (anonymous fallback)
 	os.Remove(configPath)
 	username, password, err = GetCredentials("ghcr.io")
