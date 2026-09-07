@@ -50,6 +50,8 @@ pipeline {
                     REMOTE_DIR="${REMOTE_ROOT}/dawg-${BUILD_TAG}"
                     ssh -o BatchMode=yes "${BUILD_USER}@${BUILD_SERVER}" \
                         "source /root/.nvm/nvm.sh && \
+                         export PATH=/root/.nvm/versions/node/v26.5.0/bin:/usr/local/go/bin:\$PATH && \
+                         export DAWG_CHROMIUM_EXECUTABLE_PATH=/root/.cache/ms-playwright/chromium-1193/chrome-linux/chrome && \
                          cd '${REMOTE_DIR}/engine' && \
                          go version && \
                          node --version && \
@@ -65,6 +67,8 @@ pipeline {
                          go build ./cmd/dawg"
                     ssh -o BatchMode=yes "${BUILD_USER}@${BUILD_SERVER}" \
                         "source /root/.nvm/nvm.sh && \
+                         export PATH=/root/.nvm/versions/node/v26.5.0/bin:/usr/local/go/bin:\$PATH && \
+                         export DAWG_CHROMIUM_EXECUTABLE_PATH=/root/.cache/ms-playwright/chromium-1193/chrome-linux/chrome && \
                          cd '${REMOTE_DIR}/desktop' && \
                          npm ci && \
                          npx --no-install biome check . && \

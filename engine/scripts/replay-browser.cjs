@@ -33,7 +33,9 @@ async function main() {
         throw new Error("no rrweb events found in input");
     }
 
-    const browser = await chromium.launch();
+    const browser = await chromium.launch(process.env.DAWG_CHROMIUM_EXECUTABLE_PATH
+        ? { executablePath: process.env.DAWG_CHROMIUM_EXECUTABLE_PATH }
+        : {});
     const context = await browser.newContext();
     const page = await context.newPage();
 
