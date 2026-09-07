@@ -57,7 +57,8 @@ pipeline {
                          cargo --version && \
                          npm ci && \
                          npx --no-install playwright install chromium && \
-                         test -z \"\\$(gofmt -l .)\" && \
+                         gofmt -l . > /tmp/dawg-gofmt-files && \
+                         test ! -s /tmp/dawg-gofmt-files && \
                          go vet ./... && \
                          go test ./... && \
                          go build ./cmd/dawg"
