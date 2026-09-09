@@ -15,10 +15,10 @@ interface ProgressBarProps {
 const trackHeight = { sm: "h-1", md: "h-2" };
 
 const fillColor = {
-  brand:   "bg-brand-500",
+  brand: "bg-brand-500",
   success: "bg-success-dot",
   warning: "bg-warning-dot",
-  error:   "bg-error-dot",
+  error: "bg-error-dot",
 };
 
 export function ProgressBar({
@@ -40,13 +40,13 @@ export function ProgressBar({
       )}
       <div
         role="progressbar"
+        tabIndex={0}
         aria-valuenow={clampedValue}
         aria-valuemin={0}
         aria-valuemax={100}
-        className={[
-          "w-full rounded-full bg-canvas-subtle overflow-hidden",
-          trackHeight[size],
-        ].join(" ")}
+        className={["w-full rounded-full bg-canvas-subtle overflow-hidden", trackHeight[size]].join(
+          " ",
+        )}
       >
         <div
           style={{ width: `${clampedValue}%` }}

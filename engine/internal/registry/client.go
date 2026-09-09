@@ -5,9 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
-	"net/http"
 
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/oci"
@@ -89,7 +89,6 @@ func (Client) Pull(ctx context.Context, ref, destination string) error {
 	}
 	return nil
 }
-
 
 func indexedManifestDigest(layoutDirectory string) (string, error) {
 	contents, err := os.ReadFile(filepath.Join(layoutDirectory, "index.json"))

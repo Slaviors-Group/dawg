@@ -88,7 +88,7 @@ func newVerifyCommand() *cobra.Command {
 			return nil
 		},
 	}
-	
+
 	command.Flags().StringVar(&against, "against", "local", "Branch or commit being verified against")
 	command.Flags().StringVar(&outputFormat, "output", "text", "Output format (text, json)")
 	return command

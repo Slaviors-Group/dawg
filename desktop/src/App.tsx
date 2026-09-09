@@ -1,14 +1,14 @@
-import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import {
-  SquaresFour,
-  Record,
   ArrowCounterClockwise,
-  GitDiff,
-  ShieldCheck,
   GearSix,
+  GitDiff,
   GithubLogo,
+  Record,
+  ShieldCheck,
+  SquaresFour,
 } from "@phosphor-icons/react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useState } from "react";
 
 import { CaptureControls } from "./components/CaptureControls";
 import { Dashboard } from "./components/Dashboard";
@@ -18,10 +18,10 @@ import { ReplayViewer } from "./components/ReplayViewer";
 import { NavItem } from "./components/ui/NavItem";
 import { SettingsPanel } from "./components/ui/SettingsPanel";
 
-import { EngineProvider, useEngine } from "./context/EngineContext";
-import { ThemeProvider } from "./context/ThemeContext";
-import { MotionProvider } from "./context/MotionContext";
 import { ToastProvider } from "./components/ui/Toast";
+import { EngineProvider, useEngine } from "./context/EngineContext";
+import { MotionProvider } from "./context/MotionContext";
+import { ThemeProvider } from "./context/ThemeContext";
 
 import { DoctorModal } from "./components/DoctorModal";
 import "./App.css";
@@ -33,11 +33,11 @@ const NAV_ITEMS: {
   label: string;
   icon: typeof SquaresFour;
 }[] = [
-  { id: "dashboard", label: "Dashboard",       icon: SquaresFour },
-  { id: "capture",   label: "Capture",          icon: Record },
-  { id: "replay",    label: "Replay",           icon: ArrowCounterClockwise },
-  { id: "diff",      label: "Diff & Verify",    icon: GitDiff },
-  { id: "policy",    label: "Sanitizer Policy", icon: ShieldCheck },
+  { id: "dashboard", label: "Dashboard", icon: SquaresFour },
+  { id: "capture", label: "Capture", icon: Record },
+  { id: "replay", label: "Replay", icon: ArrowCounterClockwise },
+  { id: "diff", label: "Diff & Verify", icon: GitDiff },
+  { id: "policy", label: "Sanitizer Policy", icon: ShieldCheck },
 ];
 
 function ShellContent() {
@@ -48,10 +48,8 @@ function ShellContent() {
 
   return (
     <div className="flex h-screen bg-canvas overflow-hidden">
-      
       {/* ─── Sidebar ─── */}
       <aside className="w-[260px] shrink-0 flex flex-col bg-surface border-r border-border py-4 px-4 gap-6 z-20">
-
         {/* App Logo / Top header */}
         <div className="flex items-center gap-3 p-2 mb-2">
           <img src="/paw-dawg.svg" alt="DAWG Logo" className="w-10 h-10 shrink-0" />
@@ -123,19 +121,19 @@ function ShellContent() {
         <div className="relative p-5 rounded-2xl overflow-hidden shadow-card shrink-0">
           {/* Gradient Background */}
           <div className="absolute inset-0 bg-gradient-to-br from-brand-600 to-brand-400" />
-          
+
           {/* Dot Pattern Overlay */}
-          <div 
-            className="absolute inset-0 opacity-30" 
-            style={{ 
-              backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
-              backgroundSize: '12px 12px' 
-            }} 
+          <div
+            className="absolute inset-0 opacity-30"
+            style={{
+              backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+              backgroundSize: "12px 12px",
+            }}
           />
-          
+
           {/* Glass glare effect */}
           <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white opacity-20 rounded-full blur-2xl mix-blend-overlay" />
-          
+
           <div className="relative z-10 flex flex-col items-start gap-3">
             <div className="flex items-center gap-2">
               <GithubLogo size={18} weight="fill" className="text-white" />
@@ -158,11 +156,10 @@ function ShellContent() {
 
       {/* ─── Main content ─── */}
       <main className="flex-1 relative min-w-0 overflow-y-auto bg-grid-pattern z-10">
-        
         {/* Glow Orbs in background */}
         <div className="glow-orb top-[-100px] left-[-100px]" />
         <div className="glow-orb-cyan right-[-50px] top-[150px]" />
-        
+
         <div className="relative px-10 pt-10 min-h-full flex flex-col">
           <AnimatePresence mode="wait">
             <motion.div
@@ -174,10 +171,10 @@ function ShellContent() {
               className="min-h-full flex flex-col"
             >
               {activeTab === "dashboard" && <Dashboard />}
-              {activeTab === "capture"   && <CaptureControls />}
-              {activeTab === "replay"    && <ReplayViewer />}
-              {activeTab === "diff"      && <DiffReport />}
-              {activeTab === "policy"    && <PolicyConfig />}
+              {activeTab === "capture" && <CaptureControls />}
+              {activeTab === "replay" && <ReplayViewer />}
+              {activeTab === "diff" && <DiffReport />}
+              {activeTab === "policy" && <PolicyConfig />}
             </motion.div>
           </AnimatePresence>
           {/* Explicit spacer to force scroll padding at the bottom */}

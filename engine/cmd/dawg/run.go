@@ -68,7 +68,7 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string) (dawgtypes.Rep
 	if err != nil {
 		return out, fmt.Errorf("replay: read manifest: %w", err)
 	}
-	
+
 	out.ArtifactID = m.ID
 	out.ReplayedAt = time.Now()
 	out.Status = "started"
@@ -85,10 +85,10 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string) (dawgtypes.Rep
 	sandbox := replay.Sandbox{
 		Runner: replay.ExecRunner{},
 	}
-	
-	projectName := "dawg-" + strings.ReplaceAll(m.ID[7:15], ":", "") 
+
+	projectName := "dawg-" + strings.ReplaceAll(m.ID[7:15], ":", "")
 	composeFile := filepath.Join(tmpDir, "env", "compose.yaml")
-	
+
 	out.Sandbox.ComposeProject = projectName
 
 	if _, err := os.Stat(composeFile); err == nil {
@@ -134,7 +134,7 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string) (dawgtypes.Rep
 	if outcome.ScreenshotPath != "" {
 		out.Outcomes.Screenshots = []string{outcome.ScreenshotPath}
 	}
-	
+
 	// Check if frontend HTTP responses were captured
 	httpResponsesPath := filepath.Join(tmpDir, "http", "frontend.jsonl")
 	if _, err := os.Stat(httpResponsesPath); err == nil {

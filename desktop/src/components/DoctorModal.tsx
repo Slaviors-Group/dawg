@@ -1,12 +1,12 @@
+import { ArrowsClockwise, CheckCircle, XCircle } from "@phosphor-icons/react";
 /**
  * DoctorModal — DAWG Engine diagnostics dialog.
  * Shows engine path, resource root, and component status table.
  */
 import { useEngine } from "../context/EngineContext";
-import { Modal } from "./ui/Modal";
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
-import { ArrowsClockwise, CheckCircle, XCircle } from "@phosphor-icons/react";
+import { Modal } from "./ui/Modal";
 
 interface DoctorModalProps {
   open: boolean;
@@ -40,15 +40,13 @@ export function DoctorModal({ open, onClose }: DoctorModalProps) {
         <div className="flex flex-col gap-4">
           {/* Status banner */}
           <div className="flex items-center gap-2">
-            <Badge
-              variant={doctorReport.status === "ready" ? "success" : "warning"}
-              dot
-              size="md"
-            >
+            <Badge variant={doctorReport.status === "ready" ? "success" : "warning"} dot size="md">
               {doctorReport.status === "ready" ? "System Ready" : "Degraded"}
             </Badge>
             {doctorReport.isBundled && (
-              <Badge variant="brand" size="sm">Bundled App Mode</Badge>
+              <Badge variant="brand" size="sm">
+                Bundled App Mode
+              </Badge>
             )}
           </div>
 
@@ -58,9 +56,7 @@ export function DoctorModal({ open, onClose }: DoctorModalProps) {
               <span className="block text-[10px] text-text-tertiary uppercase tracking-wider mb-0.5">
                 Engine Path
               </span>
-              <span className="font-mono text-text-brand break-all">
-                {doctorReport.enginePath}
-              </span>
+              <span className="font-mono text-text-brand break-all">{doctorReport.enginePath}</span>
             </div>
             <div>
               <span className="block text-[10px] text-text-tertiary uppercase tracking-wider mb-0.5">
@@ -74,9 +70,7 @@ export function DoctorModal({ open, onClose }: DoctorModalProps) {
 
           {/* Component list */}
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-semibold text-text-secondary">
-              Runtime Components
-            </span>
+            <span className="text-xs font-semibold text-text-secondary">Runtime Components</span>
             {doctorReport.components.map((c) => (
               <div
                 key={c.name}
@@ -91,11 +85,13 @@ export function DoctorModal({ open, onClose }: DoctorModalProps) {
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 text-sm font-medium text-text-primary">
                       <span>{c.name}</span>
-                      {c.bundled && <Badge variant="info" size="sm">bundled</Badge>}
+                      {c.bundled && (
+                        <Badge variant="info" size="sm">
+                          bundled
+                        </Badge>
+                      )}
                       {c.version && (
-                        <span className="font-mono text-xs text-text-tertiary">
-                          v{c.version}
-                        </span>
+                        <span className="font-mono text-xs text-text-tertiary">v{c.version}</span>
                       )}
                     </div>
                     {c.path && (
@@ -103,18 +99,10 @@ export function DoctorModal({ open, onClose }: DoctorModalProps) {
                         {c.path}
                       </div>
                     )}
-                    {c.error && (
-                      <div className="text-xs text-error-text mt-0.5">
-                        {c.error}
-                      </div>
-                    )}
+                    {c.error && <div className="text-xs text-error-text mt-0.5">{c.error}</div>}
                   </div>
                 </div>
-                <Badge
-                  variant={c.installed ? "success" : "error"}
-                  size="sm"
-                  dot
-                >
+                <Badge variant={c.installed ? "success" : "error"} size="sm" dot>
                   {c.installed ? "Ready" : "Missing"}
                 </Badge>
               </div>

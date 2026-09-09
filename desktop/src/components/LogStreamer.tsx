@@ -1,15 +1,9 @@
+import { Check, CopySimple, MagnifyingGlass, TerminalWindow, Trash } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { useEngine } from "../context/EngineContext";
-import { Input } from "./ui/Input";
 import { Button } from "./ui/Button";
+import { Input } from "./ui/Input";
 import { Toggle } from "./ui/Toggle";
-import {
-  MagnifyingGlass,
-  TerminalWindow,
-  CopySimple,
-  Trash,
-  Check,
-} from "@phosphor-icons/react";
 
 export function LogStreamer() {
   const { logs, clearLogs } = useEngine();
@@ -43,7 +37,7 @@ export function LogStreamer() {
             Log Console
           </span>
         </div>
-        
+
         <div className="flex items-center gap-2 shrink-0">
           <div className="w-24 sm:w-48">
             <Input
@@ -55,22 +49,28 @@ export function LogStreamer() {
               className="h-7 text-xs bg-canvas text-text-primary placeholder:text-text-disabled"
             />
           </div>
-          
+
           <div className="flex items-center gap-1 sm:gap-2 border-l border-border pl-2 sm:pl-4">
             <div className="flex items-center gap-1.5 mr-1 sm:mr-2" title="Auto-scroll">
               <span className="text-xs text-text-secondary hidden xl:inline">Auto-scroll</span>
               <Toggle checked={autoScroll} onChange={setAutoScroll} />
             </div>
-            
+
             <Button
               variant="ghost"
               size="sm"
               onClick={copyToClipboard}
-              iconLeft={copied ? <Check size={14} className="text-success-text" /> : <CopySimple size={14} />}
+              iconLeft={
+                copied ? (
+                  <Check size={14} className="text-success-text" />
+                ) : (
+                  <CopySimple size={14} />
+                )
+              }
               className="text-text-secondary hover:text-text-primary h-7 w-7 p-0 flex items-center justify-center"
               title="Copy Logs"
             />
-            
+
             <Button
               variant="ghost"
               size="sm"
@@ -84,7 +84,10 @@ export function LogStreamer() {
       </div>
 
       {/* Log view area */}
-      <div className="flex-1 p-4 overflow-y-auto font-mono text-[11px] leading-relaxed bg-surface text-text-secondary flex flex-col gap-1" ref={logContainerRef}>
+      <div
+        className="flex-1 p-4 overflow-y-auto font-mono text-[11px] leading-relaxed bg-surface text-text-secondary flex flex-col gap-1"
+        ref={logContainerRef}
+      >
         {filteredLogs.length === 0 ? (
           <div className="flex items-center justify-center h-full text-text-disabled italic">
             No log entries matching filter.

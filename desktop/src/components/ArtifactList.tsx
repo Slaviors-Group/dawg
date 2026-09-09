@@ -1,14 +1,9 @@
+import { Archive, CheckCircle, MagnifyingGlass, PlayCircle } from "@phosphor-icons/react";
 import { useEngine } from "../context/EngineContext";
-import { Card } from "./ui/Card";
-import { Button } from "./ui/Button";
-import { EmptyState } from "./ui/EmptyState";
 import { Badge } from "./ui/Badge";
-import {
-  MagnifyingGlass,
-  PlayCircle,
-  CheckCircle,
-  Archive,
-} from "@phosphor-icons/react";
+import { Button } from "./ui/Button";
+import { Card } from "./ui/Card";
+import { EmptyState } from "./ui/EmptyState";
 
 export function ArtifactList() {
   const { artifacts, addLogLine, openInspectModal } = useEngine();
@@ -46,20 +41,17 @@ export function ArtifactList() {
         >
           <div className="flex flex-col gap-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-text-primary text-sm truncate">
-                {art.id}
-              </span>
-              <Badge variant="brand" size="sm">.dawg</Badge>
+              <span className="font-semibold text-text-primary text-sm truncate">{art.id}</span>
+              <Badge variant="brand" size="sm">
+                .dawg
+              </Badge>
             </div>
             <div className="text-[11px] text-text-tertiary font-mono truncate max-w-md">
               {art.path}
             </div>
             <div className="flex items-center gap-2 text-xs text-text-secondary mt-1">
               <span>
-                Target:{" "}
-                <strong className="text-text-primary font-medium">
-                  {art.targetUrl}
-                </strong>
+                Target: <strong className="text-text-primary font-medium">{art.targetUrl}</strong>
               </span>
               <span className="text-border-strong">•</span>
               <span>{new Date(art.createdAt).toLocaleString()}</span>

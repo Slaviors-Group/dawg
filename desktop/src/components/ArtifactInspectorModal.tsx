@@ -1,8 +1,8 @@
 import type React from "react";
 import type { ArtifactItem } from "../context/EngineContext";
-import { Modal } from "./ui/Modal";
 import { Badge } from "./ui/Badge";
 import { CodeBlock } from "./ui/CodeBlock";
+import { Modal } from "./ui/Modal";
 
 interface Props {
   artifact: ArtifactItem | null;
@@ -57,17 +57,13 @@ export const ArtifactInspectorModal: React.FC<Props> = ({ artifact, onClose }) =
             <span className="block text-[10px] font-medium text-text-tertiary uppercase tracking-wider mb-1">
               Path
             </span>
-            <span className="font-mono text-text-primary break-all">
-              {artifact.path}
-            </span>
+            <span className="font-mono text-text-primary break-all">{artifact.path}</span>
           </div>
           <div>
             <span className="block text-[10px] font-medium text-text-tertiary uppercase tracking-wider mb-1">
               Target URL
             </span>
-            <span className="font-medium text-brand-600">
-              {artifact.targetUrl}
-            </span>
+            <span className="font-medium text-brand-600">{artifact.targetUrl}</span>
           </div>
           <div>
             <span className="block text-[10px] font-medium text-text-tertiary uppercase tracking-wider mb-1">
@@ -83,7 +79,9 @@ export const ArtifactInspectorModal: React.FC<Props> = ({ artifact, onClose }) =
             </span>
             <div className="flex flex-wrap gap-1 mt-0.5">
               {artifact.components.map((comp) => (
-                <Badge key={comp} size="sm">{comp}</Badge>
+                <Badge key={comp} size="sm">
+                  {comp}
+                </Badge>
               ))}
             </div>
           </div>

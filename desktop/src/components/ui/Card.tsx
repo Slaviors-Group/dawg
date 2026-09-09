@@ -30,7 +30,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
         {children}
       </div>
     );
-  }
+  },
 );
 Card.displayName = "Card";
 
@@ -67,14 +67,8 @@ export function CardTitle({
 }) {
   return (
     <div>
-      <h2 className="text-base font-semibold text-text-primary leading-tight">
-        {title}
-      </h2>
-      {subtitle && (
-        <p className="text-xs text-text-tertiary mt-0.5">
-          {subtitle}
-        </p>
-      )}
+      <h2 className="text-base font-semibold text-text-primary leading-tight">{title}</h2>
+      {subtitle && <p className="text-xs text-text-tertiary mt-0.5">{subtitle}</p>}
     </div>
   );
 }

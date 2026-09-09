@@ -14,9 +14,9 @@ import (
 // EventPlayer orchestrates the playback of a recorded browser session using Playwright.
 // Implements PRD §6.5 (Replay Engine) browser replay layer.
 type EventPlayer struct {
-	NodeBinary     string
-	ScriptPath     string
-	ReplayTimeout  time.Duration
+	NodeBinary    string
+	ScriptPath    string
+	ReplayTimeout time.Duration
 }
 
 // ReplayOutcome captures the results of a browser replay run.

@@ -1,11 +1,5 @@
-import {
-  type ReactNode,
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
 import { MotionConfig } from "framer-motion";
+import { type ReactNode, createContext, useContext, useEffect, useState } from "react";
 
 interface MotionContextType {
   /** true = animations enabled, false = reduced / disabled */
@@ -18,9 +12,7 @@ const MotionContext = createContext<MotionContextType | undefined>(undefined);
 export function MotionProvider({ children }: { children: ReactNode }) {
   const [animationsEnabled, setAnimationsState] = useState<boolean>(() => {
     // Honor OS preference first, then stored setting
-    const systemReduced = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
+    const systemReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (systemReduced) return false;
     const stored = localStorage.getItem("dawg-animations");
     return stored !== null ? stored === "true" : true;
@@ -43,9 +35,7 @@ export function MotionProvider({ children }: { children: ReactNode }) {
 
   return (
     <MotionContext.Provider value={{ animationsEnabled, setAnimationsEnabled }}>
-      <MotionConfig reducedMotion={animationsEnabled ? "never" : "always"}>
-        {children}
-      </MotionConfig>
+      <MotionConfig reducedMotion={animationsEnabled ? "never" : "always"}>{children}</MotionConfig>
     </MotionContext.Provider>
   );
 }

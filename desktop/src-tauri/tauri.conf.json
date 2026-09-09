@@ -25,11 +25,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "nsis",
-      "appimage",
-      "deb"
-    ],
+    "targets": ["nsis", "appimage", "deb"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -37,9 +33,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "resources/**/*"
-    ],
+    "resources": ["resources/**/*"],
     "windows": {
       "nsis": {
         "installerIcon": "icons/icon.ico",

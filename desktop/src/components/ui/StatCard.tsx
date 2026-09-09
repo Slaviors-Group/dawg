@@ -13,14 +13,7 @@ interface StatCardProps {
   className?: string;
 }
 
-export function StatCard({
-  label,
-  value,
-  icon,
-  badge,
-  trend,
-  className = "",
-}: StatCardProps) {
+export function StatCard({ label, value, icon, badge, trend, className = "" }: StatCardProps) {
   const trendColor =
     trend?.direction === "up"
       ? "text-success-text"
@@ -40,19 +33,13 @@ export function StatCard({
         <span className="text-xs font-medium text-text-secondary uppercase tracking-wide">
           {label}
         </span>
-        {icon && (
-          <span className="text-text-tertiary shrink-0">{icon}</span>
-        )}
+        {icon && <span className="text-text-tertiary shrink-0">{icon}</span>}
       </div>
       <div className="flex items-end justify-between gap-2">
-        <span className="text-2xl font-semibold text-text-primary leading-none">
-          {value}
-        </span>
+        <span className="text-2xl font-semibold text-text-primary leading-none">{value}</span>
         {badge}
       </div>
-      {trend && (
-        <p className={`text-xs font-medium ${trendColor}`}>{trend.label}</p>
-      )}
+      {trend && <p className={`text-xs font-medium ${trendColor}`}>{trend.label}</p>}
     </div>
   );
 }

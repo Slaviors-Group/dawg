@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -47,7 +48,8 @@ func TestInitCreatesDefaultConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read generated config: %v", err)
 	}
-	if string(contents) != defaultConfig {
+	expected := fmt.Sprintf(defaultConfig, defaultDawgDir("captures"), defaultDawgDir("policies", "default.rego"))
+	if string(contents) != expected {
 		t.Fatalf("unexpected config contents: %q", contents)
 	}
 	var result initResult
@@ -97,7 +99,8 @@ func TestInitForceOverwritesConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read overwritten config: %v", err)
 	}
-	if string(contents) != defaultConfig {
+	expected := fmt.Sprintf(defaultConfig, defaultDawgDir("captures"), defaultDawgDir("policies", "default.rego"))
+	if string(contents) != expected {
 		t.Fatalf("config was not overwritten: %q", contents)
 	}
 }

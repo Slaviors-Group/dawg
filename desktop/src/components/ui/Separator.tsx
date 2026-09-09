@@ -18,11 +18,5 @@ export function Separator({ label, className = "" }: SeparatorProps) {
       </div>
     );
   }
-  return (
-    <div
-      className={["h-px bg-border", className].join(" ")}
-      role="separator"
-      aria-hidden
-    />
-  );
+  return <div className={["h-px bg-border", className].join(" ")} aria-hidden />;
 }

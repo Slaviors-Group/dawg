@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
 import { motion } from "framer-motion";
+import type { ReactNode } from "react";
 
 interface PageShellProps {
   title: string;
@@ -14,7 +14,14 @@ interface PageShellProps {
   children: ReactNode;
 }
 
-export function PageShell({ title, titleAccent, subtitle, eyebrow, actions, children }: PageShellProps) {
+export function PageShell({
+  title,
+  titleAccent,
+  subtitle,
+  eyebrow,
+  actions,
+  children,
+}: PageShellProps) {
   return (
     <motion.div
       key={title}
@@ -32,26 +39,17 @@ export function PageShell({ title, titleAccent, subtitle, eyebrow, actions, chil
             </span>
           )}
           <h1 className="text-[2.5rem] font-bold text-text-primary leading-none tracking-tight">
-            {title}{" "}
-            {titleAccent && (
-              <span className="text-brand-500">{titleAccent}</span>
-            )}
+            {title} {titleAccent && <span className="text-brand-500">{titleAccent}</span>}
           </h1>
           {subtitle && (
-            <p className="text-sm text-text-tertiary mt-3 max-w-2xl leading-relaxed">
-              {subtitle}
-            </p>
+            <p className="text-sm text-text-tertiary mt-3 max-w-2xl leading-relaxed">{subtitle}</p>
           )}
         </div>
-        {actions && (
-          <div className="flex items-center gap-2 shrink-0">{actions}</div>
-        )}
+        {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
       </div>
 
       {/* Page body */}
-      <div className="flex flex-col gap-6">
-        {children}
-      </div>
+      <div className="flex flex-col gap-6">{children}</div>
     </motion.div>
   );
 }

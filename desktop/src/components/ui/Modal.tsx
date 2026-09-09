@@ -1,10 +1,10 @@
+import { X } from "@phosphor-icons/react";
+import { AnimatePresence, motion } from "framer-motion";
 /**
  * Modal — full-screen backdrop + centered dialog.
  * Manages focus trap and Escape key dismissal.
  */
 import { type ReactNode, useEffect } from "react";
-import { X } from "@phosphor-icons/react";
-import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "./Button";
 
 interface ModalProps {
@@ -58,15 +58,16 @@ export function Modal({
           transition={{ duration: 0.15 }}
         >
           {/* Backdrop */}
-          <div
+          <button
+            type="button"
+            aria-label="Close modal"
             className="absolute inset-0 bg-text-primary/40 backdrop-blur-sm"
             onClick={onClose}
-            aria-hidden
           />
 
           {/* Dialog */}
-          <motion.div
-            role="dialog"
+          <motion.dialog
+            open
             aria-modal
             aria-labelledby="modal-title"
             className={[
@@ -83,17 +84,10 @@ export function Modal({
             {/* Header */}
             <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-border shrink-0">
               <div>
-                <h3
-                  id="modal-title"
-                  className="text-base font-semibold text-text-primary"
-                >
+                <h3 id="modal-title" className="text-base font-semibold text-text-primary">
                   {title}
                 </h3>
-                {subtitle && (
-                  <p className="text-xs text-text-tertiary mt-0.5">
-                    {subtitle}
-                  </p>
-                )}
+                {subtitle && <p className="text-xs text-text-tertiary mt-0.5">{subtitle}</p>}
               </div>
               <button
                 type="button"
@@ -110,9 +104,7 @@ export function Modal({
 
             {/* Footer */}
             {footer !== undefined ? (
-              <div className="px-6 py-4 border-t border-border shrink-0">
-                {footer}
-              </div>
+              <div className="px-6 py-4 border-t border-border shrink-0">{footer}</div>
             ) : (
               <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-border shrink-0">
                 <div>{footerLeft}</div>
@@ -121,7 +113,7 @@ export function Modal({
                 </Button>
               </div>
             )}
-          </motion.div>
+          </motion.dialog>
         </motion.div>
       )}
     </AnimatePresence>

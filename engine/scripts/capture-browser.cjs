@@ -27,7 +27,9 @@ async function main() {
 
     const rrwebRoot = path.dirname(require.resolve("rrweb"));
     const rrwebBundle = fs.readFileSync(path.join(rrwebRoot, "rrweb.umd.cjs"), "utf8");
-    const browser = await chromium.launch();
+    const browser = await chromium.launch(process.env.DAWG_CHROMIUM_EXECUTABLE_PATH
+        ? { executablePath: process.env.DAWG_CHROMIUM_EXECUTABLE_PATH }
+        : {});
     const context = await browser.newContext();
     const page = await context.newPage();
     let stopped = false;

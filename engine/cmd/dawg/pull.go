@@ -28,12 +28,12 @@ func newPullCommand() *cobra.Command {
 			if outputDirectory == "" {
 				return fmt.Errorf("pull: --output directory is required")
 			}
-			
+
 			dest, err := filepath.Abs(outputDirectory)
 			if err != nil {
 				return fmt.Errorf("pull: resolve output directory: %w", err)
 			}
-			
+
 			if err := (registry.Client{}).Pull(context.Background(), ref, dest); err != nil {
 				return err
 			}

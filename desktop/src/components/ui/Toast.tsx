@@ -1,24 +1,11 @@
+import { CheckCircle, Info, Warning, X, XCircle } from "@phosphor-icons/react";
+import { AnimatePresence, motion } from "framer-motion";
 /**
  * Toast notification system.
  * Uses a ToastProvider + useToast() hook.
  * Toasts stack at bottom-right with Framer Motion entry/exit.
  */
-import {
-  type ReactNode,
-  createContext,
-  useCallback,
-  useContext,
-  useRef,
-  useState,
-} from "react";
-import {
-  CheckCircle,
-  Info,
-  Warning,
-  XCircle,
-  X,
-} from "@phosphor-icons/react";
-import { AnimatePresence, motion } from "framer-motion";
+import { type ReactNode, createContext, useCallback, useContext, useRef, useState } from "react";
 
 export type ToastVariant = "success" | "error" | "warning" | "info";
 
@@ -39,29 +26,24 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
-const variantStyle: Record<ToastVariant, { icon: ReactNode; classes: string }> =
-  {
-    success: {
-      icon: <CheckCircle size={16} weight="fill" />,
-      classes:
-        "bg-success-bg border-success-border text-success-text",
-    },
-    error: {
-      icon: <XCircle size={16} weight="fill" />,
-      classes:
-        "bg-error-bg border-error-border text-error-text",
-    },
-    warning: {
-      icon: <Warning size={16} weight="fill" />,
-      classes:
-        "bg-warning-bg border-warning-border text-warning-text",
-    },
-    info: {
-      icon: <Info size={16} weight="fill" />,
-      classes:
-        "bg-info-bg border-info-border text-info-text",
-    },
-  };
+const variantStyle: Record<ToastVariant, { icon: ReactNode; classes: string }> = {
+  success: {
+    icon: <CheckCircle size={16} weight="fill" />,
+    classes: "bg-success-bg border-success-border text-success-text",
+  },
+  error: {
+    icon: <XCircle size={16} weight="fill" />,
+    classes: "bg-error-bg border-error-border text-error-text",
+  },
+  warning: {
+    icon: <Warning size={16} weight="fill" />,
+    classes: "bg-warning-bg border-warning-border text-warning-text",
+  },
+  info: {
+    icon: <Info size={16} weight="fill" />,
+    classes: "bg-info-bg border-info-border text-info-text",
+  },
+};
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -81,15 +63,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       const timer = setTimeout(() => dismiss(id), 4500);
       timers.current.set(id, timer);
     },
-    [dismiss]
+    [dismiss],
   );
 
   const helpers: ToastContextType = {
     toast,
     success: (title, body) => toast({ variant: "success", title, body }),
-    error:   (title, body) => toast({ variant: "error",   title, body }),
+    error: (title, body) => toast({ variant: "error", title, body }),
     warning: (title, body) => toast({ variant: "warning", title, body }),
-    info:    (title, body) => toast({ variant: "info",    title, body }),
+    info: (title, body) => toast({ variant: "info", title, body }),
   };
 
   return (
@@ -120,14 +102,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               >
                 <span className="shrink-0 mt-0.5">{icon}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold leading-tight">
-                    {t.title}
-                  </p>
-                  {t.body && (
-                    <p className="text-xs mt-0.5 opacity-80 leading-relaxed">
-                      {t.body}
-                    </p>
-                  )}
+                  <p className="text-sm font-semibold leading-tight">{t.title}</p>
+                  {t.body && <p className="text-xs mt-0.5 opacity-80 leading-relaxed">{t.body}</p>}
                 </div>
                 <button
                   type="button"

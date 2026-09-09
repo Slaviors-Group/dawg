@@ -1,9 +1,9 @@
+import { CheckCircle } from "@phosphor-icons/react";
 import type React from "react";
 import { useState } from "react";
-import { PageShell } from "./ui/PageShell";
 import { Card, CardHeader, CardTitle } from "./ui/Card";
 import { CodeBlock } from "./ui/CodeBlock";
-import { CheckCircle } from "@phosphor-icons/react";
+import { PageShell } from "./ui/PageShell";
 
 const POLICIES = {
   "default.rego": {
@@ -102,12 +102,9 @@ export const PolicyConfig: React.FC = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle
-            title={activePolicy.name}
-            subtitle={activePolicy.description}
-          />
+          <CardTitle title={activePolicy.name} subtitle={activePolicy.description} />
         </CardHeader>
-        
+
         <CodeBlock code={activePolicy.code} language="rego" />
       </Card>
     </PageShell>

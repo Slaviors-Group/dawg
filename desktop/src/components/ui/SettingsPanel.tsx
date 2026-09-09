@@ -1,13 +1,13 @@
+import { MonitorPlay, Moon, Sun } from "@phosphor-icons/react";
+import { useMotion } from "../../context/MotionContext";
 /**
  * SettingsPanel — slide-in settings drawer triggered from the sidebar.
  * Contains theme selector, animations toggle, and app info.
  */
-import { useTheme, type ThemeValue } from "../../context/ThemeContext";
-import { useMotion } from "../../context/MotionContext";
+import { type ThemeValue, useTheme } from "../../context/ThemeContext";
 import { Modal } from "./Modal";
-import { Toggle } from "./Toggle";
 import { Separator } from "./Separator";
-import { Sun, Moon, MonitorPlay } from "@phosphor-icons/react";
+import { Toggle } from "./Toggle";
 
 interface SettingsPanelProps {
   open: boolean;
@@ -15,8 +15,8 @@ interface SettingsPanelProps {
 }
 
 const THEME_OPTIONS: { value: ThemeValue; label: string; icon: typeof Sun }[] = [
-  { value: "light",  label: "Light",  icon: Sun },
-  { value: "dark",   label: "Dark",   icon: Moon },
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
   { value: "system", label: "System", icon: MonitorPlay },
 ];
 
@@ -33,7 +33,6 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
       maxWidth="sm"
     >
       <div className="flex flex-col gap-5">
-
         {/* Theme */}
         <section className="flex flex-col gap-3">
           <h4 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">

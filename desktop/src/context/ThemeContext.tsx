@@ -1,10 +1,4 @@
-import {
-  type ReactNode,
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { type ReactNode, createContext, useContext, useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 
 export type ThemeValue = "light" | "dark" | "system";
@@ -19,9 +13,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 function getSystemTheme(): "light" | "dark" {
   if (typeof window === "undefined") return "light";
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -30,8 +22,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return saved ?? "light";
   });
 
-  const resolvedTheme: "light" | "dark" =
-    theme === "system" ? getSystemTheme() : theme;
+  const resolvedTheme: "light" | "dark" = theme === "system" ? getSystemTheme() : theme;
 
   // Apply .dark class to <html> and listen for system changes
   useEffect(() => {
@@ -47,8 +38,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (theme === "system") {
       const mq = window.matchMedia("(prefers-color-scheme: dark)");
       apply(mq.matches ? "dark" : "light");
-      const listener = (e: MediaQueryListEvent) =>
-        apply(e.matches ? "dark" : "light");
+      const listener = (e: MediaQueryListEvent) => apply(e.matches ? "dark" : "light");
       mq.addEventListener("change", listener);
       return () => mq.removeEventListener("change", listener);
     }
@@ -70,7 +60,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     };
 
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    
+
     // Check if API is supported and motion is allowed
     if (!document.startViewTransition || prefersReducedMotion) {
       applyChanges();
@@ -79,7 +69,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         applyChanges();
       });
     }
-    
+
     localStorage.setItem("dawg-theme", t);
   };
 

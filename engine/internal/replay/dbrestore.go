@@ -7,8 +7,8 @@ import (
 
 // DBRestorer provides a mechanism to restore database fixtures into a sandbox.
 type DBRestorer struct {
-	Runner  CommandRunner
-	dbName  string
+	Runner CommandRunner
+	dbName string
 }
 
 // NewDBRestorer creates a new DBRestorer for the specified database name.

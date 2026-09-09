@@ -54,13 +54,13 @@ func newCaptureCommand() *cobra.Command {
 		Short: "Capture a web-app reproduction session",
 		RunE: func(command *cobra.Command, _ []string) error {
 			request := captureStartRequest{
-				TargetURL:        targetURL,
-				SessionDirectory: sessionDirectory,
-				BrowserScript:    browserScript,
-				ProxyAddon:       proxyAddon,
-				MitmproxyPath:    mitmproxyPath,
-				ProxyPort:        proxyPort,
-				InternalHosts:    internalHosts,
+				TargetURL:          targetURL,
+				SessionDirectory:   sessionDirectory,
+				BrowserScript:      browserScript,
+				ProxyAddon:         proxyAddon,
+				MitmproxyPath:      mitmproxyPath,
+				ProxyPort:          proxyPort,
+				InternalHosts:      internalHosts,
 				ComposeFile:        composeFile,
 				DBDiffFile:         dbDiffFile,
 				LogFile:            logFile,
@@ -106,13 +106,13 @@ func newCaptureCommand() *cobra.Command {
 }
 
 type captureStartRequest struct {
-	TargetURL        string
-	SessionDirectory string
-	BrowserScript    string
-	ProxyAddon       string
-	MitmproxyPath    string
-	ProxyPort        int
-	InternalHosts    []string
+	TargetURL          string
+	SessionDirectory   string
+	BrowserScript      string
+	ProxyAddon         string
+	MitmproxyPath      string
+	ProxyPort          int
+	InternalHosts      []string
 	ComposeFile        string
 	DBDiffFile         string
 	LogFile            string
@@ -142,6 +142,7 @@ func launchCaptureDaemon(ctx context.Context, request captureStartRequest) (capt
 	}
 	arguments := daemonArguments(request, absoluteSessionPath)
 	process := exec.Command(executable, arguments...)
+  ci/jenkins-validation
 	procutil.HideWindow(process)
 
 	logFile, err := os.Create(filepath.Join(absoluteSessionPath, "daemon.log"))
