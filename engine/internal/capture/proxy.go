@@ -14,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Slaviors-Group/dawg/engine/internal/procutil"
 )
 
 const defaultProxyStartupTimeout = 15 * time.Second
@@ -79,6 +81,7 @@ func (manager *ProxyManager) Start(ctx context.Context, request ProxyCaptureRequ
 		arguments = manager.Arguments(request, manager.AddonPath)
 	}
 	command := exec.CommandContext(ctx, manager.Executable, arguments...)
+	procutil.HideWindow(command)
 	internalHosts, err := json.Marshal(request.InternalHosts)
 	if err != nil {
 		return fmt.Errorf("capture: encode proxy internal hosts: %w", err)

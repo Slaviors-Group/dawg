@@ -16,6 +16,7 @@ import (
 	"github.com/Slaviors-Group/dawg/engine/internal/dawgenv"
 	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
 	"github.com/Slaviors-Group/dawg/engine/internal/packager"
+	"github.com/Slaviors-Group/dawg/engine/internal/procutil"
 	"github.com/Slaviors-Group/dawg/engine/internal/sanitize"
 	"github.com/spf13/cobra"
 )
@@ -141,7 +142,8 @@ func launchCaptureDaemon(ctx context.Context, request captureStartRequest) (capt
 	}
 	arguments := daemonArguments(request, absoluteSessionPath)
 	process := exec.Command(executable, arguments...)
-	
+	procutil.HideWindow(process)
+
 	logFile, err := os.Create(filepath.Join(absoluteSessionPath, "daemon.log"))
 	if err == nil {
 		process.Stdout = logFile
@@ -172,7 +174,7 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 		return fmt.Errorf("capture: browser script and proxy addon are required")
 	}
 	sessionID := filepath.Base(request.SessionDirectory)
-	
+
 	components := []capture.SessionComponent{
 		&browserComponent{recorder: &capture.BrowserRecorder{NodeBinary: dawgenv.ResolveNode(), ScriptPath: request.BrowserScript}, targetURL: request.TargetURL},
 		&proxyComponent{manager: &capture.ProxyManager{Executable: request.MitmproxyPath, AddonPath: request.ProxyAddon}, port: request.ProxyPort, internalHosts: request.InternalHosts},
@@ -192,18 +194,18 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 		Metadata: dawgtypes.CaptureMetadata{
 			SessionID:   sessionID,
 			TargetURL:   request.TargetURL,
-			ActionTrace: &dawgtypes.ActionTrace{Path: "actions/browser.jsonl", Version: "0.1.2-alpha"},
+			ActionTrace: &dawgtypes.ActionTrace{Path: "actions/browser.jsonl", Version: "0.1.3-alpha"},
 		},
 		Components: components,
 	})
 	if err != nil {
 		return err
 	}
-	
+
 	if err := capture.RunControlledSession(ctx, session, defaultCaptureControlFile); err != nil {
 		return err
 	}
-	
+
 	// Pipeline stage 2: Sanitize
 	if !request.UnsafeSkipSanitize {
 		_, err = sanitize.SanitizeDirectory(ctx, request.SessionDirectory, request.PolicyFile, "1.0.0")
@@ -226,7 +228,7 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 		reportBytes, _ := json.MarshalIndent(dummyReport, "", "  ")
 		_ = os.WriteFile(reportPath, append(reportBytes, '\n'), 0o600)
 	}
-	
+
 	// Pipeline stage 3: Package
 	packageRequest := dawgtypes.PackageRequest{
 		SessionDirectory: request.SessionDirectory,

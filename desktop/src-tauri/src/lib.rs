@@ -1,7 +1,24 @@
-use std::path::{ Path, PathBuf };
+use serde::{Deserialize, Serialize};
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+use std::path::{Path, PathBuf};
 use std::process::Command;
-use serde::{ Deserialize, Serialize };
-use tauri::{ AppHandle, Manager };
+use tauri::{AppHandle, Manager};
+
+/// Windows CREATE_NO_WINDOW process creation flag. Without this, every engine
+/// subprocess invocation pops up its own visible console host window (e.g.
+/// Windows Terminal) since the Tauri desktop shell has no console of its own
+/// to inherit.
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
+/// Suppresses console window allocation for `cmd` on Windows. No-op elsewhere.
+fn suppress_console_window(cmd: &mut Command) {
+    #[cfg(windows)]
+    {
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CommandOutput {
@@ -70,9 +87,10 @@ fn infer_resource_dir(engine_path: &Path) -> Option<PathBuf> {
 
 #[cfg(windows)]
 fn query_registry_path(hive: &str, subkey: &str) -> Vec<PathBuf> {
-    let output = Command::new("reg")
-        .args(["query", &format!("{}\\{}", hive, subkey), "/v", "Path"])
-        .output();
+    let mut reg_cmd = Command::new("reg");
+    reg_cmd.args(["query", &format!("{}\\{}", hive, subkey), "/v", "Path"]);
+    suppress_console_window(&mut reg_cmd);
+    let output = reg_cmd.output();
 
     let mut paths = Vec::new();
     if let Ok(out) = output {
@@ -111,7 +129,10 @@ fn resolve_engine_binary(app: &AppHandle) -> (PathBuf, Option<PathBuf>, bool) {
     // 1. Check Tauri Resource directory (covers both flat and nested packaging)
     if let Ok(resource_dir) = app.path().resource_dir() {
         let candidates = [
-            resource_dir.join("resources").join("binaries").join(exe_name),
+            resource_dir
+                .join("resources")
+                .join("binaries")
+                .join(exe_name),
             resource_dir.join("binaries").join(exe_name),
             resource_dir.join("resources").join(exe_name),
             resource_dir.join(exe_name),
@@ -128,7 +149,11 @@ fn resolve_engine_binary(app: &AppHandle) -> (PathBuf, Option<PathBuf>, bool) {
     if let Ok(current_exe) = std::env::current_exe() {
         if let Some(parent) = current_exe.parent() {
             let candidates = [
-                parent.join("resources").join("resources").join("binaries").join(exe_name),
+                parent
+                    .join("resources")
+                    .join("resources")
+                    .join("binaries")
+                    .join(exe_name),
                 parent.join("resources").join("binaries").join(exe_name),
                 parent.join("binaries").join(exe_name),
                 parent.join("resources").join(exe_name),
@@ -191,12 +216,10 @@ fn resolve_engine_binary(app: &AppHandle) -> (PathBuf, Option<PathBuf>, bool) {
     #[cfg(windows)]
     {
         let mut reg_dirs = query_registry_path("HKCU", "Environment");
-        reg_dirs.extend(
-            query_registry_path(
-                "HKLM",
-                "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment"
-            )
-        );
+        reg_dirs.extend(query_registry_path(
+            "HKLM",
+            "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment",
+        ));
         for dir in reg_dirs {
             let target = dir.join(exe_name);
             if target.exists() {
@@ -223,6 +246,7 @@ fn resolve_engine_binary(app: &AppHandle) -> (PathBuf, Option<PathBuf>, bool) {
 fn build_engine_command(app: &AppHandle, subcommand: &str, args: &[String]) -> Command {
     let (engine_path, resource_dir, _) = resolve_engine_binary(app);
     let mut cmd = Command::new(&engine_path);
+    suppress_console_window(&mut cmd);
     cmd.arg(subcommand);
     for arg in args {
         cmd.arg(arg);
@@ -240,6 +264,7 @@ fn build_engine_command(app: &AppHandle, subcommand: &str, args: &[String]) -> C
 async fn check_engine_installed(app: AppHandle) -> Result<EngineStatusInfo, String> {
     let (engine_path, resource_dir, is_bundled) = resolve_engine_binary(&app);
     let mut cmd = Command::new(&engine_path);
+    suppress_console_window(&mut cmd);
     cmd.arg("--version");
     if let Some(ref res_dir) = resource_dir {
         cmd.env("DAWG_RESOURCES_DIR", res_dir);
@@ -267,27 +292,31 @@ async fn check_engine_installed(app: AppHandle) -> Result<EngineStatusInfo, Stri
                 })
             }
         }
-        Err(err) =>
-            Ok(EngineStatusInfo {
-                installed: false,
-                version: None,
-                path: Some(engine_path.to_string_lossy().to_string()),
-                bundled: is_bundled,
-                error: Some(format!("Failed to execute 'dawg' engine: {}", err)),
-            }),
+        Err(err) => Ok(EngineStatusInfo {
+            installed: false,
+            version: None,
+            path: Some(engine_path.to_string_lossy().to_string()),
+            bundled: is_bundled,
+            error: Some(format!("Failed to execute 'dawg' engine: {}", err)),
+        }),
     }
 }
 
 #[tauri::command]
 async fn get_doctor_report(app: AppHandle) -> Result<DoctorReport, String> {
     let mut cmd = build_engine_command(&app, "doctor", &[]);
-    let output = cmd.output().map_err(|e| format!("Failed to run 'dawg doctor': {}", e))?;
+    let output = cmd
+        .output()
+        .map_err(|e| format!("Failed to run 'dawg doctor': {}", e))?;
     let stdout_str = String::from_utf8_lossy(&output.stdout);
 
     if output.status.success() {
-        let report: DoctorReport = serde_json
-            ::from_str(&stdout_str)
-            .map_err(|e| format!("Failed to decode doctor report: {}. Output: {}", e, stdout_str))?;
+        let report: DoctorReport = serde_json::from_str(&stdout_str).map_err(|e| {
+            format!(
+                "Failed to decode doctor report: {}. Output: {}",
+                e, stdout_str
+            )
+        })?;
         Ok(report)
     } else {
         let stderr_str = String::from_utf8_lossy(&output.stderr);
@@ -299,7 +328,7 @@ async fn get_doctor_report(app: AppHandle) -> Result<DoctorReport, String> {
 async fn execute_engine_cmd(
     app: AppHandle,
     subcommand: String,
-    args: Vec<String>
+    args: Vec<String>,
 ) -> Result<CommandOutput, String> {
     let mut cmd = build_engine_command(&app, &subcommand, &args);
 
@@ -307,8 +336,7 @@ async fn execute_engine_cmd(
         Ok(output) => {
             let stdout_str = String::from_utf8_lossy(&output.stdout);
             if output.status.success() {
-                let parsed: serde_json::Value = serde_json
-                    ::from_str(&stdout_str)
+                let parsed: serde_json::Value = serde_json::from_str(&stdout_str)
                     .unwrap_or_else(|_| serde_json::json!({ "raw": stdout_str.trim() }));
                 Ok(CommandOutput {
                     status: "success".to_string(),
@@ -331,7 +359,7 @@ async fn start_capture(app: AppHandle, url: String) -> Result<CommandOutput, Str
 #[tauri::command]
 async fn stop_capture(
     app: AppHandle,
-    control_file: Option<String>
+    control_file: Option<String>,
 ) -> Result<CommandOutput, String> {
     let mut args = vec!["stop".to_string()];
     if let Some(cf) = control_file {
@@ -355,31 +383,29 @@ async fn run_replay(app: AppHandle, artifact: String) -> Result<CommandOutput, S
 async fn verify_result(
     app: AppHandle,
     artifact: String,
-    against: String
+    against: String,
 ) -> Result<CommandOutput, String> {
     execute_engine_cmd(
         app,
         "verify".to_string(),
-        vec![artifact, "--against".to_string(), against]
-    ).await
+        vec![artifact, "--against".to_string(), against],
+    )
+    .await
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder
-        ::default()
+    tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(
-            tauri::generate_handler![
-                check_engine_installed,
-                get_doctor_report,
-                start_capture,
-                stop_capture,
-                inspect_artifact,
-                run_replay,
-                verify_result
-            ]
-        )
+        .invoke_handler(tauri::generate_handler![
+            check_engine_installed,
+            get_doctor_report,
+            start_capture,
+            stop_capture,
+            inspect_artifact,
+            run_replay,
+            verify_result
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

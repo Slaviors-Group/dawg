@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
+	"github.com/Slaviors-Group/dawg/engine/internal/procutil"
 	"gopkg.in/yaml.v3"
 )
 
@@ -27,7 +28,9 @@ type ExecRunner struct{}
 
 // Run executes a command and returns its combined output.
 func (ExecRunner) Run(ctx context.Context, name string, arguments ...string) ([]byte, error) {
-	return exec.CommandContext(ctx, name, arguments...).CombinedOutput()
+	command := exec.CommandContext(ctx, name, arguments...)
+	procutil.HideWindow(command)
+	return command.CombinedOutput()
 }
 
 // EnvironmentSnapshotRequest identifies the Compose file and capture session destination.
@@ -106,7 +109,7 @@ func SnapshotEnvironment(ctx context.Context, runner CommandRunner, request Envi
 	}
 	lockfilePath := filepath.Join(environmentDirectory, "lockfile.json")
 	lockfile := EnvironmentLockfile{
-		SchemaVersion: "0.1.2-alpha",
+		SchemaVersion: "0.1.3-alpha",
 		ComposeFile:   "env/compose.yaml",
 		ImageDigests:  digests,
 	}
