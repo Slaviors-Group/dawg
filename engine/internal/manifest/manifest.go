@@ -79,7 +79,7 @@ func DefaultSchemaPath() (string, error) {
 		return configuredPath, nil
 	}
 	if resDir := os.Getenv("DAWG_RESOURCES_DIR"); resDir != "" {
-		candidate := filepath.Join(resDir, "schema", "manifest", "v0.1.2-alpha.json")
+		candidate := filepath.Join(resDir, "schema", "manifest", "v0.1.3-alpha.json")
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate, nil
 		}
@@ -94,7 +94,7 @@ func DefaultSchemaPath() (string, error) {
 	}
 	for _, start := range starts {
 		for directory := start; ; directory = filepath.Dir(directory) {
-			candidate := filepath.Join(directory, "schema", "manifest", "v0.1.2-alpha.json")
+			candidate := filepath.Join(directory, "schema", "manifest", "v0.1.3-alpha.json")
 			if _, err := os.Stat(candidate); err == nil {
 				return candidate, nil
 			}

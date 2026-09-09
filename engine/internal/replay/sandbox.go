@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
+	"github.com/Slaviors-Group/dawg/engine/internal/procutil"
 	"gopkg.in/yaml.v3"
 )
 
@@ -26,7 +27,9 @@ type ExecRunner struct{}
 
 // Run executes a command and returns combined output.
 func (ExecRunner) Run(ctx context.Context, name string, arguments ...string) ([]byte, error) {
-	return exec.CommandContext(ctx, name, arguments...).CombinedOutput()
+	command := exec.CommandContext(ctx, name, arguments...)
+	procutil.HideWindow(command)
+	return command.CombinedOutput()
 }
 
 // Sandbox starts and tears down one rootless Docker Compose replay project.

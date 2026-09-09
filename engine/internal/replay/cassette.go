@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+
+	"github.com/Slaviors-Group/dawg/engine/internal/procutil"
 )
 
 // CassetteReplayer manages the lifecycle of the mitmproxy instance used to replay third-party APIs.
@@ -33,7 +35,8 @@ func (c *CassetteReplayer) Start(ctx context.Context, listenPort int, cassetteFi
 		"--server-replay-kill-extra", // Drop requests not in cassette
 		"--ssl-insecure",             // Allow self-signed/staging certs
 	)
-	
+	procutil.HideWindow(c.cmd)
+
 	// Route output for debugging if needed, but default to discard to avoid spam
 	c.cmd.Stdout = os.Stdout
 	c.cmd.Stderr = os.Stderr
@@ -43,7 +46,7 @@ func (c *CassetteReplayer) Start(ctx context.Context, listenPort int, cassetteFi
 	if err := c.cmd.Start(); err != nil {
 		return fmt.Errorf("replay: failed to start mitmdump: %w", err)
 	}
-	
+
 	job, err := NewReplayJob()
 	if err == nil && job != nil {
 		c.job = job
@@ -76,4 +79,3 @@ func (c *CassetteReplayer) Stop() error {
 	<-c.done
 	return nil
 }
-

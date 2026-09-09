@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"github.com/Slaviors-Group/dawg/engine/internal/procutil"
 )
 
 // EventPlayer orchestrates the playback of a recorded browser session using Playwright.
@@ -27,7 +29,7 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 	if sessionDirectory == "" {
 		return ReplayOutcome{}, fmt.Errorf("replay: session directory is required")
 	}
-	
+
 	nodeBinary := player.NodeBinary
 	if nodeBinary == "" {
 		nodeBinary = "node"
@@ -51,6 +53,7 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 		"--rrweb-input", traceInput,
 		"--screenshot-output", screenshotOutput,
 	)
+	procutil.HideWindow(cmd)
 
 	var outputBuf bytes.Buffer
 	cmd.Stdout = &outputBuf
