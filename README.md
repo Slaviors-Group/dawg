@@ -56,17 +56,17 @@ dawg doctor
 ```
 
 ```text
-DAWG Engine Doctor Diagnostics (v0.1.3-alpha)
+DAWG Engine Doctor Diagnostics (v0.1.4-alpha)
 Resource Root: D:\Next Project\pandi-petualang\dawg\bin (Bundled: false)
 
-✅ dawg-engine          (v0.1.3-alpha) -> D:\...\bin\dawg.exe
+✅ dawg-engine          (v0.1.4-alpha) -> D:\...\bin\dawg.exe
 ✅ mitmdump             (vMitmproxy: 12.2.3) -> ...\mitmdump.exe
 ✅ node                 (vv22.14.0) -> ...\node.exe
 ✅ script:capture-browser.cjs [bundled] -> ...\scripts\capture-browser.cjs
 ✅ script:capture-proxy.py [bundled] -> ...\scripts\capture-proxy.py
 ✅ script:replay-browser.cjs [bundled] -> ...\scripts\replay-browser.cjs
 ✅ policy:default.rego  -> ...\schema\policies\default.rego
-✅ schema:manifest      (v0.1.3-alpha)
+✅ schema:manifest      (v0.1.4-alpha)
 
 All required runtime components are healthy and ready! 🚀
 ```

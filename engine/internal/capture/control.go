@@ -5,16 +5,23 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
+	"syscall"
 	"time"
 )
 
 const controlTokenHeader = "X-Dawg-Control-Token"
+
+// ErrSessionAlreadyStopped is returned by StopControlledSession when the
+// capture daemon is no longer running (connection refused). The caller may
+// treat this as an abnormal-but-recoverable end of session.
+var ErrSessionAlreadyStopped = errors.New("capture: session is not running")
 
 // ControlState is the restricted local handoff from a capture daemon to capture stop.
 type ControlState struct {
@@ -97,6 +104,12 @@ func StopControlledSession(ctx context.Context, controlPath string) error {
 	request.Header.Set(controlTokenHeader, state.Token)
 	response, err := (&http.Client{Timeout: 5 * time.Second}).Do(request)
 	if err != nil {
+		// ECONNREFUSED means the daemon process has already exited. Return a
+		// typed sentinel so callers can distinguish this from a genuine failure
+		// and still attempt to recover the packaging result.
+		if errors.Is(err, syscall.ECONNREFUSED) {
+			return ErrSessionAlreadyStopped
+		}
 		return fmt.Errorf("capture: request session stop: %w", err)
 	}
 	defer response.Body.Close()

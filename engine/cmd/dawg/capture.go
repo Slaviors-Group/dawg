@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -22,10 +23,25 @@ import (
 )
 
 var defaultCaptureControlFile = defaultDawgDir("capture-control.json")
+var defaultCaptureResultFile = defaultDawgDir("capture-result.json")
 
 type captureStopResult struct {
-	Status      string `json:"status"`
-	ControlFile string `json:"controlFile"`
+	Status       string `json:"status"`
+	ControlFile  string `json:"controlFile"`
+	SessionID    string `json:"sessionId,omitempty"`
+	ArtifactPath string `json:"artifactPath,omitempty"`
+}
+
+// captureResultState is written by the daemon process once the full
+// capture->sanitize->package pipeline finishes (successfully or not), so
+// that a separate `dawg capture stop` invocation - which has no handle to
+// the daemon's os/exec.Cmd - can learn the real, absolute artifact path
+// instead of guessing one.
+type captureResultState struct {
+	Status       string `json:"status"`
+	SessionID    string `json:"sessionId"`
+	ArtifactPath string `json:"artifactPath,omitempty"`
+	Error        string `json:"error,omitempty"`
 }
 
 type captureStartResult struct {
@@ -140,9 +156,12 @@ func launchCaptureDaemon(ctx context.Context, request captureStartRequest) (capt
 	if err != nil {
 		return captureStartResult{}, fmt.Errorf("capture: locate executable: %w", err)
 	}
+	// Clear any stale files from a previous session so `capture stop` can't
+	// read a leftover control address or artifact path from a different session.
+	_ = os.Remove(defaultCaptureResultFile)
+	_ = os.Remove(defaultCaptureControlFile)
 	arguments := daemonArguments(request, absoluteSessionPath)
 	process := exec.Command(executable, arguments...)
-  ci/jenkins-validation
 	procutil.HideWindow(process)
 
 	logFile, err := os.Create(filepath.Join(absoluteSessionPath, "daemon.log"))
@@ -176,6 +195,20 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 	}
 	sessionID := filepath.Base(request.SessionDirectory)
 
+	var artifactPath string
+	var pipelineErr error
+	defer func() {
+		state := captureResultState{SessionID: sessionID}
+		if pipelineErr != nil {
+			state.Status = "error"
+			state.Error = pipelineErr.Error()
+		} else {
+			state.Status = "packaged"
+			state.ArtifactPath = artifactPath
+		}
+		_ = writeCaptureResultState(defaultCaptureResultFile, state)
+	}()
+
 	components := []capture.SessionComponent{
 		&browserComponent{recorder: &capture.BrowserRecorder{NodeBinary: dawgenv.ResolveNode(), ScriptPath: request.BrowserScript}, targetURL: request.TargetURL},
 		&proxyComponent{manager: &capture.ProxyManager{Executable: request.MitmproxyPath, AddonPath: request.ProxyAddon}, port: request.ProxyPort, internalHosts: request.InternalHosts},
@@ -195,15 +228,17 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 		Metadata: dawgtypes.CaptureMetadata{
 			SessionID:   sessionID,
 			TargetURL:   request.TargetURL,
-			ActionTrace: &dawgtypes.ActionTrace{Path: "actions/browser.jsonl", Version: "0.1.3-alpha"},
+			ActionTrace: &dawgtypes.ActionTrace{Path: "actions/browser.jsonl", Version: "0.1.4-alpha"},
 		},
 		Components: components,
 	})
 	if err != nil {
+		pipelineErr = err
 		return err
 	}
 
 	if err := capture.RunControlledSession(ctx, session, defaultCaptureControlFile); err != nil {
+		pipelineErr = err
 		return err
 	}
 
@@ -211,6 +246,7 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 	if !request.UnsafeSkipSanitize {
 		_, err = sanitize.SanitizeDirectory(ctx, request.SessionDirectory, request.PolicyFile, "1.0.0")
 		if err != nil {
+			pipelineErr = err
 			return err // ErrExportBlocked is naturally propagated here
 		}
 	} else {
@@ -246,8 +282,13 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 			AssertionFile: "none",
 		},
 	}
-	_, err = packager.Package(packageRequest)
-	return err
+	artifact, err := packager.Package(packageRequest)
+	if err != nil {
+		pipelineErr = err
+		return err
+	}
+	artifactPath = artifact.Directory
+	return nil
 }
 
 type browserComponent struct {
@@ -405,6 +446,48 @@ func waitForControlFile(ctx context.Context, path string, timeout time.Duration)
 	}
 }
 
+func writeCaptureResultState(path string, state captureResultState) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("capture: create result directory: %w", err)
+	}
+	contents, err := json.Marshal(state)
+	if err != nil {
+		return fmt.Errorf("capture: serialize result state: %w", err)
+	}
+	if err := os.WriteFile(path, append(contents, '\n'), 0o600); err != nil {
+		return fmt.Errorf("capture: write result state %s: %w", path, err)
+	}
+	return nil
+}
+
+// waitForCaptureResult polls for the daemon's result file, which is only
+// written once the full capture->sanitize->package pipeline has finished.
+// This lets `capture stop` return the real, absolute artifact path instead
+// of a guessed one.
+func waitForCaptureResult(ctx context.Context, path string, timeout time.Duration) (captureResultState, error) {
+	deadline := time.NewTimer(timeout)
+	defer deadline.Stop()
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		if contents, err := os.ReadFile(path); err == nil {
+			var state captureResultState
+			if err := json.Unmarshal(contents, &state); err != nil {
+				return captureResultState{}, fmt.Errorf("capture: decode result state %s: %w", path, err)
+			}
+			_ = os.Remove(path)
+			return state, nil
+		}
+		select {
+		case <-ctx.Done():
+			return captureResultState{}, fmt.Errorf("capture: wait for packaging: %w", ctx.Err())
+		case <-deadline.C:
+			return captureResultState{}, fmt.Errorf("capture: packaging did not complete within %s", timeout)
+		case <-ticker.C:
+		}
+	}
+}
+
 func newSessionID() (string, error) {
 	bytes := make([]byte, 16)
 	if _, err := rand.Read(bytes); err != nil {
@@ -436,12 +519,35 @@ func newCaptureStopCommand() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("capture: resolve control file: %w", err)
 			}
-			if err := capture.StopControlledSession(context.Background(), absoluteControlFile); err != nil {
+			stopErr := capture.StopControlledSession(context.Background(), absoluteControlFile)
+			daemonGone := errors.Is(stopErr, capture.ErrSessionAlreadyStopped)
+			if stopErr != nil && !daemonGone {
+				return stopErr
+			}
+
+			// Block until the daemon finishes sanitizing and packaging so the
+			// caller gets back the real artifact path, not a guess.
+			// If the daemon was already dead use a short timeout — it either
+			// already wrote the result file or it never will.
+			resultTimeout := 90 * time.Second
+			if daemonGone {
+				resultTimeout = 5 * time.Second
+			}
+			state, err := waitForCaptureResult(command.Context(), defaultCaptureResultFile, resultTimeout)
+			if err != nil {
+				if daemonGone {
+					return fmt.Errorf("capture: session ended abnormally (daemon was not running)")
+				}
 				return err
 			}
+			if state.Status == "error" {
+				return fmt.Errorf("capture: packaging failed: %s", state.Error)
+			}
 			return writeCaptureStopResult(command.OutOrStdout(), outputFormat(command), captureStopResult{
-				Status:      "stopping",
-				ControlFile: absoluteControlFile,
+				Status:       "packaged",
+				ControlFile:  absoluteControlFile,
+				SessionID:    state.SessionID,
+				ArtifactPath: state.ArtifactPath,
 			})
 		},
 	}
@@ -455,6 +561,10 @@ func writeCaptureStopResult(writer io.Writer, format string, result captureStopR
 			return fmt.Errorf("capture: write JSON stop result: %w", err)
 		}
 		return nil
+	}
+	if result.ArtifactPath != "" {
+		_, err := fmt.Fprintf(writer, "Capture packaged: %s\n", result.ArtifactPath)
+		return err
 	}
 	_, err := fmt.Fprintln(writer, "Stopping capture session")
 	return err

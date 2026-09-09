@@ -20,6 +20,7 @@ interface EngineContextType {
   isCheckingEngine: boolean;
   refetchEngineStatus: () => Promise<void>;
   isCapturing: boolean;
+  isStopping: boolean;
   activeSessionId: string | null;
   targetUrl: string;
   setTargetUrl: (url: string) => void;
@@ -44,6 +45,7 @@ export function EngineProvider({ children }: { children: ReactNode }) {
     refetch: refetchEngineStatus,
   } = useEngineStatus();
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [targetUrl, setTargetUrl] = useState("http://localhost:3000");
   const [inspectedArtifact, setInspectedArtifact] = useState<ArtifactItem | null>(null);
@@ -87,30 +89,40 @@ export function EngineProvider({ children }: { children: ReactNode }) {
   };
 
   const stopCaptureSession = async () => {
+    // `capture stop` now blocks in the engine until sanitize + packaging
+    // finish, so it can hand back the real artifact path instead of a
+    // guessed one. That means this can legitimately take several seconds.
+    setIsStopping(true);
     try {
-      addLogLine("Stopping active capture session...");
-      const sessionId = activeSessionId;
+      addLogLine("Stopping active capture session and packaging artifact...");
       const res = await engine.stopCapture();
-      addLogLine(`Capture stop request sent: ${res.status} (control: ${res.controlFile})`);
       setIsCapturing(false);
 
-      if (sessionId) {
-        const artifactPath = `.dawg/artifacts/${sessionId}`;
-        addLogLine(`Packaging complete. Artifact: ${artifactPath}`);
+      const sessionId = res.sessionId ?? activeSessionId;
+      if (sessionId && res.artifactPath) {
+        addLogLine(`Packaging complete. Artifact: ${res.artifactPath}`);
         setArtifacts((prev) => [
           {
             id: sessionId,
-            path: artifactPath,
+            path: res.artifactPath as string,
             targetUrl,
             createdAt: new Date().toISOString(),
             components: ["browser", "http", "cassettes", "actions"],
           },
           ...prev,
         ]);
+      } else {
+        addLogLine("[WARN] Capture stopped but no artifact path was returned.");
       }
       setActiveSessionId(null);
     } catch (err) {
       addLogLine(`[ERROR] Stop capture failed: ${String(err)}`);
+      // Reset state so the user isn't permanently stuck — the daemon is already
+      // gone if we get ECONNREFUSED, so treat this as an abnormal session end.
+      setIsCapturing(false);
+      setActiveSessionId(null);
+    } finally {
+      setIsStopping(false);
     }
   };
 
@@ -122,6 +134,7 @@ export function EngineProvider({ children }: { children: ReactNode }) {
         isCheckingEngine,
         refetchEngineStatus,
         isCapturing,
+        isStopping,
         activeSessionId,
         targetUrl,
         setTargetUrl,

@@ -35,7 +35,6 @@ func (c *CassetteReplayer) Start(ctx context.Context, listenPort int, cassetteFi
 		"--server-replay-kill-extra", // Drop requests not in cassette
 		"--ssl-insecure",             // Allow self-signed/staging certs
 	)
-  ci/jenkins-validation
 	procutil.HideWindow(c.cmd)
 
 	// Route output for debugging if needed, but default to discard to avoid spam

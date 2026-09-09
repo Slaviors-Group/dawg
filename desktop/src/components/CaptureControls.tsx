@@ -57,6 +57,7 @@ const CAPTURE_COMPONENTS = [
 export const CaptureControls: React.FC = () => {
   const {
     isCapturing,
+    isStopping,
     targetUrl,
     setTargetUrl,
     startCaptureSession,
@@ -161,15 +162,18 @@ export const CaptureControls: React.FC = () => {
                 variant="danger"
                 size="md"
                 onClick={stopCaptureSession}
+                disabled={isStopping}
                 iconLeft={<StopCircle size={14} />}
               >
-                Stop Capture
+                {isStopping ? "Packaging..." : "Stop Capture"}
               </Button>
             )}
             <p className="text-xs text-text-tertiary">
-              {isCapturing
-                ? "Capture is running. Stop to finalize and package the artifact."
-                : "Starts the proxy, browser agent, and log tap simultaneously."}
+              {isStopping
+                ? "Sanitizing and packaging the artifact. This can take a few seconds."
+                : isCapturing
+                  ? "Capture is running. Stop to finalize and package the artifact."
+                  : "Starts the proxy, browser agent, and log tap simultaneously."}
             </p>
           </div>
         </form>

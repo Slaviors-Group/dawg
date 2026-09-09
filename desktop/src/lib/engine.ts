@@ -46,8 +46,10 @@ export interface StopCaptureOptions {
 }
 
 export interface StopCaptureResult {
-  status: "stopping";
+  status: "packaged";
   controlFile: string;
+  sessionId?: string;
+  artifactPath?: string;
 }
 
 export interface InspectOptions {
