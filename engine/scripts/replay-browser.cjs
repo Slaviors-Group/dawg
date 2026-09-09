@@ -33,13 +33,18 @@ async function main() {
         throw new Error("no rrweb events found in input");
     }
 
-    const browser = await chromium.launch(process.env.DAWG_CHROMIUM_EXECUTABLE_PATH
-        ? { executablePath: process.env.DAWG_CHROMIUM_EXECUTABLE_PATH }
-        : {});
-    const context = await browser.newContext();
+    // Launch the user's installed Chrome in isolated mode (incognito)
+    const launchOptions = { headless: false, channel: "chrome" };
+
+    if (options["proxy-server"]) {
+        launchOptions.proxy = { server: options["proxy-server"] };
+    }
+
+    const browser = await chromium.launch(launchOptions);
+    const context = await browser.newContext({ ignoreHTTPSErrors: true });
     const page = await context.newPage();
 
-    // Make the events available to the browser context via routing to avoid large evaluate payloads
+    // Make the events available to the browser context via routing
     await page.route("http://dawg-replay.local/events.json", route => {
         route.fulfill({
             contentType: "application/json",
@@ -50,23 +55,28 @@ async function main() {
     await page.setContent('<!DOCTYPE html><html><head><style>body { margin: 0; padding: 0; }</style></head><body></body></html>');
     await page.addScriptTag({ content: rrwebBundle });
 
-    await page.evaluate(async () => {
+    const replayDurationMs = await page.evaluate(async () => {
         const response = await fetch("http://dawg-replay.local/events.json");
         const events = await response.json();
+
+        const firstTimestamp = events[0].timestamp;
+        const lastTimestamp = events[events.length - 1].timestamp;
+        const duration = lastTimestamp - firstTimestamp;
 
         const replayer = new rrweb.Replayer(events, {
             root: document.body,
             unpackFn: rrweb.unpack,
         });
 
-        // Seek to the end of the recording to render the final state
-        const firstTimestamp = events[0].timestamp;
-        const lastTimestamp = events[events.length - 1].timestamp;
-        replayer.pause(lastTimestamp - firstTimestamp);
-
-        // Give the DOM a tiny bit of time to settle just in case there are images loading
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Play events in real-time instead of seeking to the end
+        replayer.play();
+        return duration;
     });
+
+    // Wait for the full replay duration plus a buffer for final rendering
+    const waitMs = replayDurationMs + 2000;
+    process.stderr.write(`Replay duration: ${Math.round(replayDurationMs / 1000)}s — waiting ${Math.round(waitMs / 1000)}s for playback...\n`);
+    await new Promise(resolve => setTimeout(resolve, waitMs));
 
     fs.mkdirSync(path.dirname(options["screenshot-output"]), { recursive: true });
     await page.screenshot({ path: options["screenshot-output"], fullPage: true });

@@ -27,10 +27,19 @@ async function main() {
 
     const rrwebRoot = path.dirname(require.resolve("rrweb"));
     const rrwebBundle = fs.readFileSync(path.join(rrwebRoot, "rrweb.umd.cjs"), "utf8");
-    const browser = await chromium.launch(process.env.DAWG_CHROMIUM_EXECUTABLE_PATH
-        ? { executablePath: process.env.DAWG_CHROMIUM_EXECUTABLE_PATH }
-        : {});
-    const context = await browser.newContext();
+    
+    // Connect to the user's existing browser via CDP to preserve RAM and session state
+    let browser;
+    try {
+        browser = await chromium.connectOverCDP("http://localhost:9222");
+    } catch (error) {
+        process.stderr.write(`Gagal menyambung ke browser via CDP. Pastikan Chrome/Edge berjalan dengan flag: --remote-debugging-port=9222\nDetail: ${error.message}\n`);
+        process.exitCode = 1;
+        return;
+    }
+    
+    // Use the first available context from the user's browser
+    const context = browser.contexts()[0];
     const page = await context.newPage();
     let stopped = false;
 
@@ -49,24 +58,41 @@ async function main() {
         }, true);
     });
 
-    await page.route("**/*", async (route) => {
-        const request = route.request();
-        const startedAt = Date.now();
-        const response = await route.fetch();
-        appendJSONL(options["http-output"], {
-            id: crypto.randomUUID(),
-            timestamp: new Date().toISOString(),
-            request: { method: request.method(), url: request.url(), headers: await request.allHeaders(), body: request.postData() || "" },
-            response: { status: response.status(), headers: response.headers(), body: await response.text() },
-            direction: "frontend-to-backend",
-            durationMs: Date.now() - startedAt
-        });
-        await route.fulfill({ response });
+    // Use non-blocking requestfinished instead of page.route to prevent hangs and crashes
+    page.on("requestfinished", async (request) => {
+        try {
+            if (request.url().startsWith("data:")) return;
+            const response = await request.response();
+            if (!response) return;
+
+            let bodyText = "";
+            try {
+                bodyText = await response.text();
+            } catch (e) {
+                bodyText = ""; // Gracefully handle binary or stream-read errors
+            }
+
+            const timing = request.timing();
+            const durationMs = timing.responseEnd > 0 ? Math.round(timing.responseEnd - timing.requestStart) : 0;
+
+            appendJSONL(options["http-output"], {
+                id: crypto.randomUUID(),
+                timestamp: new Date().toISOString(),
+                request: { method: request.method(), url: request.url(), headers: await request.allHeaders(), body: request.postData() || "" },
+                response: { status: response.status(), headers: response.headers(), body: bodyText },
+                direction: "frontend-to-backend",
+                durationMs: durationMs
+            });
+        } catch (e) {
+            // Ignore errors to prevent script crash
+        }
     });
 
     const stop = async () => {
         if (stopped) return;
         stopped = true;
+        // Only close the page we opened, and disconnect. Do not close the user's browser!
+        await page.close();
         await browser.close();
     };
     process.once("SIGTERM", () => stop().then(() => process.exit(0)));
