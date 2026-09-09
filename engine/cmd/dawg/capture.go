@@ -142,7 +142,6 @@ func launchCaptureDaemon(ctx context.Context, request captureStartRequest) (capt
 	}
 	arguments := daemonArguments(request, absoluteSessionPath)
 	process := exec.Command(executable, arguments...)
-  ci/jenkins-validation
 	procutil.HideWindow(process)
 
 	logFile, err := os.Create(filepath.Join(absoluteSessionPath, "daemon.log"))

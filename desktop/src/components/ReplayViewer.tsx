@@ -1,5 +1,4 @@
-// import { Separator } from "./ui/Separator";
-import { Cube, Flask, PlayCircle, WarningCircle } from "@phosphor-icons/react";
+import { Cube, Flask, Info, PlayCircle } from "@phosphor-icons/react";
 import type React from "react";
 import { useMemo, useState } from "react";
 import { useEngine } from "../context/EngineContext";
@@ -10,13 +9,6 @@ import { Card, CardHeader, CardTitle } from "./ui/Card";
 import { EmptyState } from "./ui/EmptyState";
 import { PageShell } from "./ui/PageShell";
 import { Select } from "./ui/Select";
-// import { Separator } from "./ui/Separator";
-import {
-  PlayCircle,
-  Info,
-  Cube,
-  Flask,
-} from "@phosphor-icons/react";
 
 // The desktop shell has no reliable IPC signal for host OS yet, so this is a
 // best-effort UI hint only. The engine itself is the source of truth: it

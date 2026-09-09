@@ -12,13 +12,15 @@ use tauri::{AppHandle, Manager};
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
-/// Suppresses console window allocation for `cmd` on Windows. No-op elsewhere.
+/// Suppresses console window allocation for `cmd` on Windows.
+#[cfg(windows)]
 fn suppress_console_window(cmd: &mut Command) {
-    #[cfg(windows)]
-    {
-        cmd.creation_flags(CREATE_NO_WINDOW);
-    }
+    cmd.creation_flags(CREATE_NO_WINDOW);
 }
+
+/// Leaves child process configuration unchanged on non-Windows platforms.
+#[cfg(not(windows))]
+fn suppress_console_window(_cmd: &mut Command) {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CommandOutput {
@@ -254,7 +256,11 @@ fn build_engine_command(app: &AppHandle, subcommand: &str, args: &[String]) -> C
     cmd.arg("--output").arg("json");
 
     if let Some(res_dir) = resource_dir {
-        cmd.env("DAWG_RESOURCES_DIR", res_dir);
+        let browsers_dir = res_dir.join("browsers");
+        cmd.env("DAWG_RESOURCES_DIR", &res_dir);
+        if browsers_dir.is_dir() {
+            cmd.env("PLAYWRIGHT_BROWSERS_PATH", browsers_dir);
+        }
     }
 
     cmd

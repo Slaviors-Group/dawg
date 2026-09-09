@@ -1,7 +1,14 @@
 {
   "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
   "files": {
-    "ignore": ["dist/**", "node_modules/**", "src-tauri/target/**", "src-tauri/gen/**"]
+    "ignore": [
+      ".cache/**",
+      "dist/**",
+      "node_modules/**",
+      "src-tauri/gen/**",
+      "src-tauri/resources/**",
+      "src-tauri/target/**"
+    ]
   },
   "organizeImports": {
     "enabled": true
