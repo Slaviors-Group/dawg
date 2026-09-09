@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/Slaviors-Group/dawg/engine/internal/procutil"
 )
 
 const defaultBrowserStartupTimeout = 20 * time.Second
@@ -67,6 +69,7 @@ func (recorder *BrowserRecorder) Start(ctx context.Context, request BrowserCaptu
 		"--http-output", filepath.Join(request.SessionDirectory, "http", "frontend.jsonl"),
 		"--actions-output", filepath.Join(request.SessionDirectory, "actions", "browser.jsonl"),
 	)
+	procutil.HideWindow(command)
 	stdout, err := command.StdoutPipe()
 	if err != nil {
 		cancel()

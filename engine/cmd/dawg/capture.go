@@ -16,6 +16,7 @@ import (
 	"github.com/Slaviors-Group/dawg/engine/internal/dawgenv"
 	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
 	"github.com/Slaviors-Group/dawg/engine/internal/packager"
+	"github.com/Slaviors-Group/dawg/engine/internal/procutil"
 	"github.com/Slaviors-Group/dawg/engine/internal/sanitize"
 	"github.com/spf13/cobra"
 )
@@ -141,6 +142,8 @@ func launchCaptureDaemon(ctx context.Context, request captureStartRequest) (capt
 	}
 	arguments := daemonArguments(request, absoluteSessionPath)
 	process := exec.Command(executable, arguments...)
+  ci/jenkins-validation
+	procutil.HideWindow(process)
 
 	logFile, err := os.Create(filepath.Join(absoluteSessionPath, "daemon.log"))
 	if err == nil {
@@ -192,7 +195,7 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 		Metadata: dawgtypes.CaptureMetadata{
 			SessionID:   sessionID,
 			TargetURL:   request.TargetURL,
-			ActionTrace: &dawgtypes.ActionTrace{Path: "actions/browser.jsonl", Version: "0.1.2-alpha"},
+			ActionTrace: &dawgtypes.ActionTrace{Path: "actions/browser.jsonl", Version: "0.1.3-alpha"},
 		},
 		Components: components,
 	})

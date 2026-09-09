@@ -10,6 +10,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/Slaviors-Group/dawg/engine/internal/procutil"
 )
 
 // ResourceDir returns the root directory containing bundled DAWG resources.
@@ -301,7 +303,9 @@ func RunDoctor(ctx context.Context, engineVersion string) DoctorReport {
 	}
 	cmdCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
-	if out, err := exec.CommandContext(cmdCtx, mitmPath, "--version").Output(); err == nil {
+	mitmCmd := exec.CommandContext(cmdCtx, mitmPath, "--version")
+	procutil.HideWindow(mitmCmd)
+	if out, err := mitmCmd.Output(); err == nil {
 		mitmStatus.Installed = true
 		lines := strings.Split(string(out), "\n")
 		if len(lines) > 0 {
@@ -322,7 +326,9 @@ func RunDoctor(ctx context.Context, engineVersion string) DoctorReport {
 	}
 	cmdCtx2, cancel2 := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel2()
-	if out, err := exec.CommandContext(cmdCtx2, nodePath, "--version").Output(); err == nil {
+	nodeCmd := exec.CommandContext(cmdCtx2, nodePath, "--version")
+	procutil.HideWindow(nodeCmd)
+	if out, err := nodeCmd.Output(); err == nil {
 		nodeStatus.Installed = true
 		nodeStatus.Version = strings.TrimSpace(string(out))
 	} else {
@@ -362,17 +368,17 @@ func RunDoctor(ctx context.Context, engineVersion string) DoctorReport {
 	}
 	report.Components = append(report.Components, policyStatus)
 
-	if _, err := ResolveSchema("0.1.2-alpha"); err == nil {
+	if _, err := ResolveSchema("0.1.3-alpha"); err == nil {
 		report.Components = append(report.Components, ComponentStatus{
 			Name:      "schema:manifest",
 			Installed: true,
-			Version:   "0.1.2-alpha",
+			Version:   "0.1.3-alpha",
 		})
 	} else {
 		report.Components = append(report.Components, ComponentStatus{
 			Name:      "schema:manifest",
 			Installed: false,
-			Error:     "manifest schema v0.1.2-alpha not found",
+			Error:     "manifest schema v0.1.3-alpha not found",
 		})
 		report.Status = "degraded"
 	}
