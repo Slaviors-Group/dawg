@@ -339,7 +339,7 @@ func RunDoctor(ctx context.Context, engineVersion string) DoctorReport {
 	report.Components = append(report.Components, nodeStatus)
 
 	// 4. Scripts
-	scripts := []string{"capture-browser.cjs", "capture-proxy.py", "replay-browser.cjs"}
+	scripts := []string{"capture-proxy.py", "replay-browser.cjs"}
 	for _, scriptName := range scripts {
 		scriptPath := ResolveScript(scriptName)
 		scriptStatus := ComponentStatus{Name: "script:" + scriptName, Path: scriptPath}

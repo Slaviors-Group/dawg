@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DAWG Capture</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div class="logo">
+        <span class="icon">🐶</span>
+        <h1>DAWG Capture</h1>
+      </div>
+      <div id="statusBadge" class="badge status-idle">Idle</div>
+    </div>
+
+    <div class="content">
+      <div class="input-group">
+        <label for="daemonAddress">DAWG Engine WS Address</label>
+        <input type="text" id="daemonAddress" value="ws://127.0.0.1:8082/ws" placeholder="ws://127.0.0.1:8082/ws">
+      </div>
+
+      <div class="info-box" id="infoBox">
+        <p>Ready to record DOM events & network traffic directly from your active browser session.</p>
+      </div>
+
+      <div class="actions">
+        <button id="btnStart" class="btn btn-primary">Start Recording</button>
+        <button id="btnStop" class="btn btn-danger hidden">Stop Recording</button>
+      </div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
+

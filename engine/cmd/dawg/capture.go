@@ -190,8 +190,8 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 	if request.TargetURL == "" {
 		return fmt.Errorf("capture: --url is required")
 	}
-	if request.BrowserScript == "" || request.ProxyAddon == "" {
-		return fmt.Errorf("capture: browser script and proxy addon are required")
+	if request.ProxyAddon == "" {
+		return fmt.Errorf("capture: proxy addon is required")
 	}
 	sessionID := filepath.Base(request.SessionDirectory)
 
@@ -210,7 +210,7 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 	}()
 
 	components := []capture.SessionComponent{
-		&browserComponent{recorder: &capture.BrowserRecorder{NodeBinary: dawgenv.ResolveNode(), ScriptPath: request.BrowserScript}, targetURL: request.TargetURL},
+		&capture.ExtensionServer{ListenAddr: "127.0.0.1:8082"},
 		&proxyComponent{manager: &capture.ProxyManager{Executable: request.MitmproxyPath, AddonPath: request.ProxyAddon}, port: request.ProxyPort, internalHosts: request.InternalHosts},
 	}
 	if request.ComposeFile != "" {
