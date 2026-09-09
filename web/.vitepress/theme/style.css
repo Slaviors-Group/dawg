@@ -1,6 +1,184 @@
 @import "tailwindcss";
 
-html {
-  font-family: Arial, Helvetica;
+@theme {
+  /* Fonts */
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Color Palette - Canvas & Surfaces */
+  --color-canvas: hsl(248 60% 97%);
+  --color-canvas-subtle: hsl(248 40% 95%);
+  --color-surface: hsl(0 0% 100%);
+  --color-surface-hover: hsl(248 40% 97%);
+  --color-surface-active: hsl(248 40% 95%);
+
+  /* Borders */
+  --color-border: hsl(248 20% 90%);
+  --color-border-strong: hsl(248 20% 80%);
+
+  /* Text Colors */
+  --color-text-primary: hsl(240 15% 12%);
+  --color-text-secondary: hsl(240 15% 35%);
+  --color-text-tertiary: hsl(240 10% 50%);
+  --color-text-disabled: hsl(240 10% 70%);
+
+  /* Brand Colors (Deep Violet) */
+  --color-brand-50: hsl(258 75% 98%);
+  --color-brand-100: hsl(258 70% 95%);
+  --color-brand-200: hsl(258 70% 90%);
+  --color-brand-300: hsl(258 65% 80%);
+  --color-brand-400: hsl(258 65% 65%);
+  --color-brand-500: hsl(258 65% 50%);
+  --color-brand-600: hsl(258 65% 45%);
+  --color-brand-700: hsl(258 65% 40%);
+  --color-brand-800: hsl(258 65% 35%);
+
+  /* Semantic Colors */
+  --color-success-bg: hsl(142 60% 95%);
+  --color-success-border: hsl(142 50% 85%);
+  --color-success-text: hsl(142 60% 30%);
+  --color-success-dot: hsl(142 60% 45%);
+
+  --color-warning-bg: hsl(38 80% 95%);
+  --color-warning-border: hsl(38 70% 85%);
+  --color-warning-text: hsl(38 80% 35%);
+  --color-warning-dot: hsl(38 80% 50%);
+
+  --color-error-bg: hsl(348 80% 96%);
+  --color-error-border: hsl(348 70% 88%);
+  --color-error-text: hsl(348 80% 40%);
+  --color-error-dot: hsl(348 80% 55%);
+
+  --color-info-bg: hsl(210 80% 96%);
+  --color-info-border: hsl(210 70% 88%);
+  --color-info-text: hsl(210 80% 40%);
+  --color-info-dot: hsl(210 80% 55%);
+
+  /* Shadows */
+  --shadow-card: 0 4px 20px -2px hsl(240 15% 12% / 0.05), 0 0 3px hsl(240 15% 12% / 0.02);
+  --shadow-modal: 0 24px 60px -12px hsl(258 50% 20% / 0.20), 0 12px 24px -8px hsl(258 50% 20% / 0.10);
+  --shadow-dropdown: 0 10px 24px -4px hsl(240 15% 12% / 0.1);
+
+  /* Border radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Transition */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 350ms;
 }
 
+/* Dark Theme Overrides */
+html.dark {
+  --color-canvas: hsl(240 18% 8%);
+  --color-canvas-subtle: hsl(240 16% 12%);
+  --color-surface: hsl(240 15% 14%);
+  --color-surface-hover: hsl(240 15% 18%);
+  --color-surface-active: hsl(240 15% 22%);
+
+  --color-border: hsl(240 15% 24%);
+  --color-border-strong: hsl(240 15% 32%);
+
+  --color-text-primary: hsl(240 10% 94%);
+  --color-text-secondary: hsl(240 10% 70%);
+  --color-text-tertiary: hsl(240 10% 50%);
+  --color-text-disabled: hsl(240 10% 35%);
+
+  /* Semantic Colors Dark Mode */
+  --color-success-bg: hsl(142 60% 10%);
+  --color-success-border: hsl(142 50% 20%);
+  --color-success-text: hsl(142 60% 55%);
+  --color-success-dot: hsl(142 60% 50%);
+
+  --color-warning-bg: hsl(38 80% 12%);
+  --color-warning-border: hsl(38 70% 22%);
+  --color-warning-text: hsl(38 80% 60%);
+  --color-warning-dot: hsl(38 80% 55%);
+
+  --color-error-bg: hsl(348 80% 12%);
+  --color-error-border: hsl(348 70% 22%);
+  --color-error-text: hsl(348 80% 65%);
+  --color-error-dot: hsl(348 80% 60%);
+
+  --color-info-bg: hsl(210 80% 12%);
+  --color-info-border: hsl(210 70% 22%);
+  --color-info-text: hsl(210 80% 65%);
+  --color-info-dot: hsl(210 80% 60%);
+
+  --shadow-card: 0 4px 20px -2px hsl(0 0% 0% / 0.4), 0 0 3px hsl(0 0% 0% / 0.2);
+  --shadow-modal: 0 24px 60px -12px hsl(0 0% 0% / 0.5), 0 12px 24px -8px hsl(0 0% 0% / 0.3);
+  --shadow-dropdown: 0 10px 24px -4px hsl(0 0% 0% / 0.6);
+}
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    height: 100%;
+    width: 100%;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-canvas);
+    color: var(--color-text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* VitePress overrides */
+  .VPContent {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .VPDoc {
+    padding: 0 !important;
+  }
+
+  .VPNav {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: hsl(0 0% 100% / 0.8) !important;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  html.dark .VPNav {
+    background: hsl(240 18% 8% / 0.8) !important;
+  }
+}
+
+@layer utilities {
+  /* Home page is fully styled via scoped CSS in Layout.vue.
+     Shared utilities below serve the docs pages. */
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
+}

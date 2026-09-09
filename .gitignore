@@ -10,7 +10,6 @@ target/
 .DS_Store
 Thumbs.db
 .vscode/
-docs/
 .agents/
 dawg.config.yaml
 __pycache__/
