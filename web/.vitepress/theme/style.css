@@ -64,10 +64,18 @@
   --duration-slow: 350ms;
 
   /* VitePress Theme Overrides */
-  --vp-c-brand-1: var(--color-brand);
-  --vp-c-brand-2: var(--color-brand);
-  --vp-c-brand-3: var(--color-brand);
-  --vp-c-brand-soft: var(--color-brand);
+  --vp-c-brand-1: #D5C4FA;
+  --vp-c-brand-2: #D5C4FA;
+  --vp-c-brand-3: #D5C4FA;
+  --vp-c-brand-soft: rgba(213, 196, 250, 0.15);
+}
+
+/* Extra specificity to beat VitePress's own :root defaults */
+html {
+  --vp-c-brand-1: #D5C4FA;
+  --vp-c-brand-2: #D5C4FA;
+  --vp-c-brand-3: #D5C4FA;
+  --vp-c-brand-soft: rgba(213, 196, 250, 0.15);
 }
 
 /* Dark Theme Overrides */
