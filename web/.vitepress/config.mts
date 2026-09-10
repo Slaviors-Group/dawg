@@ -25,6 +25,7 @@ export default defineConfig({
       },
     ],
     ["link", { rel: "icon", type: "image/svg+xml", href: "/paw-dawg.svg" }],
+    ["script", { src: "https://unpkg.com/@phosphor-icons/web" }],
   ],
 
   vite: {

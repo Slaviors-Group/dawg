@@ -22,16 +22,8 @@
   --color-text-tertiary: hsl(240 10% 50%);
   --color-text-disabled: hsl(240 10% 70%);
 
-  /* Brand Colors (Deep Violet) */
-  --color-brand-50: hsl(258 75% 98%);
-  --color-brand-100: hsl(258 70% 95%);
-  --color-brand-200: hsl(258 70% 90%);
-  --color-brand-300: hsl(258 65% 80%);
-  --color-brand-400: hsl(258 65% 65%);
-  --color-brand-500: hsl(258 65% 50%);
-  --color-brand-600: hsl(258 65% 45%);
-  --color-brand-700: hsl(258 65% 40%);
-  --color-brand-800: hsl(258 65% 35%);
+  /* Brand Color */
+  --color-brand: #D5C4FA;
 
   /* Semantic Colors */
   --color-success-bg: hsl(142 60% 95%);
@@ -56,7 +48,7 @@
 
   /* Shadows */
   --shadow-card: 0 4px 20px -2px hsl(240 15% 12% / 0.05), 0 0 3px hsl(240 15% 12% / 0.02);
-  --shadow-modal: 0 24px 60px -12px hsl(258 50% 20% / 0.20), 0 12px 24px -8px hsl(258 50% 20% / 0.10);
+  --shadow-modal: 0 24px 60px -12px hsl(260 50% 20% / 0.20), 0 12px 24px -8px hsl(260 50% 20% / 0.10);
   --shadow-dropdown: 0 10px 24px -4px hsl(240 15% 12% / 0.1);
 
   /* Border radius */
@@ -70,10 +62,16 @@
   --duration-fast: 120ms;
   --duration-base: 200ms;
   --duration-slow: 350ms;
+
+  /* VitePress Theme Overrides */
+  --vp-c-brand-1: var(--color-brand);
+  --vp-c-brand-2: var(--color-brand);
+  --vp-c-brand-3: var(--color-brand);
+  --vp-c-brand-soft: var(--color-brand);
 }
 
 /* Dark Theme Overrides */
-html.dark {
+:root.dark {
   --color-canvas: hsl(240 18% 8%);
   --color-canvas-subtle: hsl(240 16% 12%);
   --color-surface: hsl(240 15% 14%);
@@ -82,6 +80,12 @@ html.dark {
 
   --color-border: hsl(240 15% 24%);
   --color-border-strong: hsl(240 15% 32%);
+
+  /* VitePress Theme Overrides (Dark) */
+  --vp-c-brand-1: var(--color-brand);
+  --vp-c-brand-2: var(--color-brand);
+  --vp-c-brand-3: var(--color-brand);
+  --vp-c-brand-soft: var(--color-brand);
 
   --color-text-primary: hsl(240 10% 94%);
   --color-text-secondary: hsl(240 10% 70%);
