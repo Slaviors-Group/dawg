@@ -7,11 +7,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/Slaviors-Group/dawg/engine/internal/capture"
 )
+
 
 func TestExtensionServerCapturesStreamedData(t *testing.T) {
 	sessionDir := t.TempDir()
@@ -84,4 +86,36 @@ func TestExtensionServerCapturesStreamedData(t *testing.T) {
 		t.Errorf("unexpected actions file content: %s", string(actionsContent))
 	}
 }
+func TestExtensionServerRejectsDoubleStart(t *testing.T) {
+	server := &capture.ExtensionServer{ListenAddr: "127.0.0.1:0"}
+	ctx := context.Background()
 
+	if err := server.Start(ctx, t.TempDir()); err != nil {
+		t.Fatalf("first Start: %v", err)
+	}
+	t.Cleanup(func() { _ = server.Stop() })
+
+	err := server.Start(ctx, t.TempDir())
+	if err == nil {
+		t.Fatal("expected error on double Start, got nil")
+	}
+	if !strings.Contains(err.Error(), "already running") {
+		t.Fatalf("unexpected error message: %v", err)
+	}
+}
+
+func TestExtensionServerIdempotentStop(t *testing.T) {
+	server := &capture.ExtensionServer{ListenAddr: "127.0.0.1:0"}
+	ctx := context.Background()
+
+	if err := server.Start(ctx, t.TempDir()); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	if err := server.Stop(); err != nil {
+		t.Fatalf("first Stop: %v", err)
+	}
+	// Second Stop must be a no-op (nil), not a crash or error.
+	if err := server.Stop(); err != nil {
+		t.Fatalf("second Stop (idempotent): expected nil, got %v", err)
+	}
+}

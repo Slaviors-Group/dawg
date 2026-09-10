@@ -135,11 +135,12 @@ func defaultProxyArguments(request ProxyCaptureRequest, addonPath string) []stri
 }
 
 // Stop requests graceful proxy shutdown before killing a process that fails to exit.
+// Stop is idempotent: calling it when the proxy is not running is a no-op.
 func (manager *ProxyManager) Stop() error {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 	if manager.cmd == nil {
-		return fmt.Errorf("capture: proxy is not running")
+		return nil
 	}
 	_ = manager.cmd.Process.Signal(os.Interrupt)
 	timer := time.NewTimer(manager.StopTimeout)

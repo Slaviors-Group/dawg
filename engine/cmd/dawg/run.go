@@ -86,16 +86,19 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string) (dawgtypes.Rep
 		Runner: replay.ExecRunner{},
 	}
 
+	// projectName is derived from the immutable artifact ID so two concurrent
+	// replays of different artifacts never collide on the same Docker project.
 	projectName := "dawg-" + strings.ReplaceAll(m.ID[7:15], ":", "")
 	composeFile := filepath.Join(tmpDir, "env", "compose.yaml")
 
 	out.Sandbox.ComposeProject = projectName
 
+	sandboxStarted := false
 	if _, err := os.Stat(composeFile); err == nil {
 		if err := sandbox.Start(ctx, composeFile, projectName); err != nil {
 			return out, err
 		}
-		defer sandbox.Teardown(context.Background(), composeFile, projectName)
+		sandboxStarted = true
 	}
 
 	containerName := projectName + "-db-1"
@@ -105,18 +108,24 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string) (dawgtypes.Rep
 		if _, err := os.Stat(fixturePath); err == nil {
 			dbRestorer := replay.NewDBRestorer(sandbox.Runner, "postgres")
 			if err := dbRestorer.Restore(ctx, containerName, fixturePath); err != nil {
+				if sandboxStarted {
+					_ = sandbox.Teardown(context.Background(), composeFile, projectName)
+				}
 				return out, err
 			}
 		}
 	}
 
 	cassetteFile := filepath.Join(tmpDir, "cassettes", "cassette.yaml")
+	var replayer *replay.CassetteReplayer
 	if _, err := os.Stat(cassetteFile); err == nil {
-		replayer := replay.NewCassetteReplayer(sandbox.Runner)
+		replayer = replay.NewCassetteReplayer(sandbox.Runner)
 		if err := replayer.Start(ctx, 8080, cassetteFile); err != nil {
+			if sandboxStarted {
+				_ = sandbox.Teardown(context.Background(), composeFile, projectName)
+			}
 			return out, err
 		}
-		defer replayer.Stop()
 	}
 
 	player := &replay.EventPlayer{
@@ -124,9 +133,23 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string) (dawgtypes.Rep
 		ScriptPath: dawgenv.ResolveScript("replay-browser.cjs"),
 	}
 
-	outcome, err := player.Replay(ctx, tmpDir)
-	if err != nil {
-		return out, err
+	outcome, replayErr := player.Replay(ctx, tmpDir)
+
+	// Explicit sequential cleanup: stop the cassette replayer and tear down
+	// the Docker sandbox BEFORE the caller removes tmpDir. Stacked defers run
+	// in LIFO order, but because the caller defers os.RemoveAll(tmpDir) before
+	// calling us, relying on defers here would let Docker / mitmdump hold file
+	// handles into an already-deleted directory — corrupting the project state
+	// and causing "start replay error" on the next replay attempt.
+	if replayer != nil {
+		_ = replayer.Stop()
+	}
+	if sandboxStarted {
+		_ = sandbox.Teardown(context.Background(), composeFile, projectName)
+	}
+
+	if replayErr != nil {
+		return out, replayErr
 	}
 
 	out.Status = "completed"

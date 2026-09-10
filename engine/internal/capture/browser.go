@@ -112,11 +112,12 @@ func (recorder *BrowserRecorder) Start(ctx context.Context, request BrowserCaptu
 }
 
 // Stop terminates the active browser capture process and waits for it to exit.
+// Stop is idempotent: calling it when the recorder is not running is a no-op.
 func (recorder *BrowserRecorder) Stop() error {
 	recorder.mu.Lock()
 	defer recorder.mu.Unlock()
 	if recorder.cmd == nil {
-		return fmt.Errorf("capture: browser recorder is not running")
+		return nil
 	}
 	if err := recorder.cmd.Process.Kill(); err != nil {
 		return fmt.Errorf("capture: stop Playwright recorder: %w", err)

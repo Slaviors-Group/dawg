@@ -66,6 +66,27 @@ export const CaptureControls: React.FC = () => {
   } = useEngine();
 
   const [urlError, setUrlError] = useState("");
+  const [packagingProgress, setPackagingProgress] = useState(0);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (isStopping) {
+      setPackagingProgress(0);
+      interval = setInterval(() => {
+        setPackagingProgress((prev) => {
+          if (prev < 95) {
+            // Slow down as it gets closer to 95%
+            const increment = prev > 80 ? 0.5 : 1.2;
+            return Math.min(95, prev + increment);
+          }
+          return prev;
+        });
+      }, 1000);
+    } else {
+      setPackagingProgress(0);
+    }
+    return () => clearInterval(interval);
+  }, [isStopping]);
 
   useEffect(() => {
     const savedUrl = localStorage.getItem("dawg_last_target_url");
@@ -164,17 +185,34 @@ export const CaptureControls: React.FC = () => {
                 onClick={stopCaptureSession}
                 disabled={isStopping}
                 iconLeft={<StopCircle size={14} />}
+                className="shrink-0"
               >
                 {isStopping ? "Packaging..." : "Stop Capture"}
               </Button>
             )}
-            <p className="text-xs text-text-tertiary">
-              {isStopping
-                ? "Sanitizing and packaging the artifact. This can take a few seconds."
-                : isCapturing
-                  ? "Capture is running. Stop to finalize and package the artifact."
-                  : "Starts the proxy, browser agent, and log tap simultaneously."}
-            </p>
+            <div className="flex flex-col flex-1 max-w-md">
+              <p className="text-xs text-text-tertiary">
+                {isStopping
+                  ? "Sanitizing and packaging the artifact — this may take 1–2 minutes for a large session."
+                  : isCapturing
+                    ? "Capture is running. Stop to finalize and package the artifact."
+                    : "Starts the proxy, browser agent, and log tap simultaneously."}
+              </p>
+              {isStopping && (
+                <div className="mt-2 w-full">
+                  <div className="flex justify-between text-[10px] font-medium text-text-tertiary mb-1">
+                    <span>Processing telemetry</span>
+                    <span>{Math.floor(packagingProgress)}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-canvas-subtle overflow-hidden rounded-full border border-border">
+                    <div
+                      className="h-full bg-brand-500 transition-all duration-1000 ease-linear"
+                      style={{ width: `${packagingProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </form>
       </Card>

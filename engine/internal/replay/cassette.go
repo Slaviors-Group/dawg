@@ -13,8 +13,12 @@ import (
 type CassetteReplayer struct {
 	Runner CommandRunner
 	cmd    *exec.Cmd
-	done   chan error
-	job    *ReplayJob
+	// done receives the result of cmd.Wait() exactly once, then is set to nil
+	// in Stop() after draining. The goroutine never closes the channel, so a
+	// second Stop() call (double-click) sees done == nil and returns safely
+	// without blocking or panicking on a second receive from a drained channel.
+	done chan error
+	job  *ReplayJob
 }
 
 // NewCassetteReplayer creates a new CassetteReplayer.
@@ -28,7 +32,15 @@ func NewCassetteReplayer(runner CommandRunner) *CassetteReplayer {
 }
 
 // Start launches mitmdump in server-replay mode.
+// Start returns an error if called while a previous replayer instance is still running.
 func (c *CassetteReplayer) Start(ctx context.Context, listenPort int, cassetteFile string) error {
+	// Idempotency guard: a second Start() while mitmdump is still up would
+	// leave the old process holding the listen port, causing the new one to
+	// fail with "address already in use" — surfaced as "start replay error".
+	if c.cmd != nil {
+		return fmt.Errorf("replay: cassette replayer already running; call Stop() first")
+	}
+
 	c.cmd = exec.CommandContext(ctx, "mitmdump",
 		"--listen-port", fmt.Sprintf("%d", listenPort),
 		"--server-replay", cassetteFile,
@@ -41,9 +53,15 @@ func (c *CassetteReplayer) Start(ctx context.Context, listenPort int, cassetteFi
 	c.cmd.Stdout = os.Stdout
 	c.cmd.Stderr = os.Stderr
 
+	// Use a 1-buffered channel. The goroutine sends exactly once and never
+	// closes the channel — this lets Stop() drain it safely, then nil it out,
+	// so a second Stop() call (done == nil) returns immediately without
+	// blocking or panicking.
 	c.done = make(chan error, 1)
 
 	if err := c.cmd.Start(); err != nil {
+		c.cmd = nil
+		c.done = nil
 		return fmt.Errorf("replay: failed to start mitmdump: %w", err)
 	}
 
@@ -53,18 +71,23 @@ func (c *CassetteReplayer) Start(ctx context.Context, listenPort int, cassetteFi
 		_ = c.job.AssignProcess(c.cmd)
 	}
 
+	done := c.done // capture for goroutine; avoids race with Stop() nil-ing c.done
+	cmd := c.cmd
 	go func() {
-		c.done <- c.cmd.Wait()
-		close(c.done)
+		done <- cmd.Wait()
+		// Intentionally NOT close(done). Stop() drains and nils the channel,
+		// preventing a second receive from blocking forever on a closed channel.
 	}()
 
 	return nil
 }
 
 // Stop gracefully shuts down the mitmdump instance.
+// Stop is idempotent: calling it when no replayer is running is a no-op.
 func (c *CassetteReplayer) Stop() error {
 	if c.job != nil {
 		defer c.job.Close()
+		c.job = nil
 	}
 	if c.cmd == nil || c.cmd.Process == nil {
 		return nil
@@ -75,7 +98,10 @@ func (c *CassetteReplayer) Stop() error {
 		return fmt.Errorf("replay: failed to signal mitmdump: %w", err)
 	}
 
-	// Wait for process to exit or kill after timeout
+	// Wait for the goroutine to deliver the exit result, then nil out both
+	// fields so a second Stop() call is a no-op.
 	<-c.done
+	c.cmd = nil
+	c.done = nil
 	return nil
 }

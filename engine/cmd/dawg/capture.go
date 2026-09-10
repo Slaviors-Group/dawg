@@ -527,9 +527,11 @@ func newCaptureStopCommand() *cobra.Command {
 
 			// Block until the daemon finishes sanitizing and packaging so the
 			// caller gets back the real artifact path, not a guess.
-			// If the daemon was already dead use a short timeout — it either
-			// already wrote the result file or it never will.
-			resultTimeout := 90 * time.Second
+			// 5 minutes: a long real-world session (rrweb traces + HTTP cassette +
+			// OPA policy sanitization) can legitimately exceed 90s on large sites.
+			// The "daemon already gone" fast path keeps 5s since in that case the
+			// result file either already exists on disk or it never will.
+			resultTimeout := 5 * time.Minute
 			if daemonGone {
 				resultTimeout = 5 * time.Second
 			}
