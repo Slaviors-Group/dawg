@@ -19,6 +19,13 @@ import (
 	"time"
 )
 
+// wsReadTimeout is the per-frame read deadline applied to hijacked WebSocket
+// connections. It ensures the read loop is interruptible when the server shuts
+// down — without it, a connection whose remote peer stops sending can block
+// readWebSocketFrames forever because hijacked conns are invisible to
+// http.Server.Shutdown().
+const wsReadTimeout = 60 * time.Second
+
 // ExtensionServer receives streaming DOM events (rrweb), browser action traces,
 // and frontend HTTP traffic from the DAWG Chrome Extension.
 type ExtensionServer struct {
@@ -125,8 +132,9 @@ func (s *ExtensionServer) Start(ctx context.Context, directory string) error {
 	}
 
 	s.active.Store(1)
+	srv := s.server // snapshot before goroutine so Stop()'s s.server=nil can't race
 	go func() {
-		_ = s.server.Serve(listener)
+		_ = srv.Serve(listener)
 	}()
 
 	log.Printf("[debug] ExtensionServer.Start: listening on %s", s.actualAddr)
@@ -135,20 +143,49 @@ func (s *ExtensionServer) Start(ctx context.Context, directory string) error {
 
 // Stop shuts down the extension ingestion server and closes output files.
 // Stop is idempotent: calling it when the server is not running is a no-op.
+//
+// The shutdown sequence is deliberately structured to avoid a deadlock:
+//
+//  1. We snapshot and clear s.server WITHOUT holding s.mu during Shutdown().
+//     If we held s.mu across Shutdown(), any in-flight WebSocket goroutine
+//     that calls appendJSONL → s.mu.Lock() would deadlock: Shutdown() waits
+//     for active connections to drain, but the goroutine can't drain because
+//     it's blocked on the mutex we're holding.
+//
+//  2. After Shutdown() (or its Close() fallback) returns, we re-acquire s.mu
+//     to flush and close the output files safely.
 func (s *ExtensionServer) Stop() error {
+	// Phase 1: snapshot the server pointer and clear it — no lock held across
+	// the Shutdown call.
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	log.Printf("[debug] ExtensionServer.Stop: shutting down server")
+	server := s.server
+	s.server = nil   // prevents any concurrent Start from seeing stale state
+	s.listener = nil
+	s.mu.Unlock()
 
-	if s.server == nil {
+	if server == nil {
 		log.Printf("[debug] ExtensionServer.Stop: server already nil, nothing to stop")
 		return nil
 	}
 
+	// Phase 2: shut down the HTTP server.  The listener is closed as the very
+	// first action inside Shutdown(), so no new connections are accepted from
+	// this point.  Existing hijacked WebSocket connections are NOT tracked by
+	// net/http, so Shutdown() will always hit the deadline when a client is
+	// connected.  server.Close() is called as a fallback to force-close any
+	// remaining connections (including hijacked ones via their underlying TCP
+	// sockets registered in the server's internal tracking before Hijack).
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	_ = s.server.Shutdown(shutdownCtx)
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		_ = server.Close()
+	}
+
+	// Phase 3: re-acquire the lock to flush and close output files safely.
+	// appendJSONL calls after this point will see active==0 and discard writes.
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	// Mark inactive before flushing so any in-flight appendJSONL calls that
 	// are waiting on s.mu see the flag and discard their write safely.
@@ -190,8 +227,6 @@ func (s *ExtensionServer) Stop() error {
 	s.actionsFile = nil
 	s.httpFile = nil
 
-	s.server = nil
-	s.listener = nil
 	log.Printf("[debug] ExtensionServer.Stop: shutdown complete")
 	return closeErr
 }
@@ -340,8 +375,21 @@ func (s *ExtensionServer) handleWebSocket(w http.ResponseWriter, r *http.Request
 	log.Printf("[debug] handleWebSocket: extension client disconnected from %s", r.RemoteAddr)
 }
 
-func (s *ExtensionServer) readWebSocketFrames(reader *bufio.ReadWriter, _ net.Conn) {
+// readWebSocketFrames reads frames from a hijacked WebSocket connection.
+// conn is used to set a per-frame read deadline so the loop is interruptible:
+// once server.Close() is called during Stop(), the deadline fires immediately
+// (SetReadDeadline on a closed conn returns an error on the next Read) and the
+// goroutine exits cleanly, allowing the deferred conn.Close() in
+// handleWebSocket to run and release all resources.
+func (s *ExtensionServer) readWebSocketFrames(reader *bufio.ReadWriter, conn net.Conn) {
 	for {
+		// Refresh the deadline before every frame read. This means a client
+		// that silently disappears (no TCP FIN, no WS Close frame) is detected
+		// within wsReadTimeout rather than blocking forever.
+		if err := conn.SetReadDeadline(time.Now().Add(wsReadTimeout)); err != nil {
+			return
+		}
+
 		header := make([]byte, 2)
 		if _, err := io.ReadFull(reader, header); err != nil {
 			return

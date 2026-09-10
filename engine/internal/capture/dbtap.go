@@ -41,40 +41,75 @@ func CaptureDBDiffs(ctx context.Context, source io.Reader, sessionDirectory stri
 	}
 	defer output.Close()
 
+	// scanLine carries one scanned line or a terminal scan error from the
+	// background goroutine to the main select loop.
+	type scanLine struct {
+		text string
+		err  error // non-nil signals end of input (io.EOF → nil text, or scan error)
+		done bool  // true when the scanner has finished (successfully or not)
+	}
+	lines := make(chan scanLine, 16)
+
+	// Run the scanner in a goroutine so that scanner.Scan(), which blocks in a
+	// syscall, does not prevent ctx cancellation from being observed promptly.
+	// Previously, ctx.Err() was only checked between completed lines, meaning a
+	// Stop() request would be ignored while Scan() was blocked waiting for the
+	// next line from a slow or live pipe.
+	go func() {
+		defer close(lines)
+		scanner := bufio.NewScanner(source)
+		scanner.Buffer(make([]byte, 64*1024), 1024*1024)
+		for scanner.Scan() {
+			select {
+			case lines <- scanLine{text: scanner.Text()}:
+			case <-ctx.Done():
+				return
+			}
+		}
+		// Signal end: send scanner.Err() (nil on clean EOF).
+		lines <- scanLine{done: true, err: scanner.Err()}
+	}()
+
 	result := DBDiffCaptureResult{}
-	scanner := bufio.NewScanner(source)
-	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
 	lineNumber := 0
-	for scanner.Scan() {
-		lineNumber++
-		if err := ctx.Err(); err != nil {
-			return DBDiffCaptureResult{}, fmt.Errorf("capture: read DB diff: %w", err)
+	for {
+		select {
+		case <-ctx.Done():
+			return DBDiffCaptureResult{}, fmt.Errorf("capture: read DB diff: %w", ctx.Err())
+		case sl, ok := <-lines:
+			if !ok {
+				// Channel closed early (ctx cancelled inside goroutine).
+				return DBDiffCaptureResult{}, fmt.Errorf("capture: read DB diff: %w", ctx.Err())
+			}
+			if sl.done {
+				if sl.err != nil {
+					return DBDiffCaptureResult{}, fmt.Errorf("capture: scan DB diffs: %w", sl.err)
+				}
+				captureLogger(logger).Info("DB capture completed", "component", "capture", "entries", result.Entries)
+				return result, nil
+			}
+			lineNumber++
+			line := strings.TrimSpace(sl.text)
+			if line == "" {
+				continue
+			}
+			var diff dawgtypes.DBDiff
+			if err := json.Unmarshal([]byte(line), &diff); err != nil {
+				return DBDiffCaptureResult{}, fmt.Errorf("capture: decode DB diff line %d: %w", lineNumber, err)
+			}
+			if err := validateDBDiff(diff); err != nil {
+				return DBDiffCaptureResult{}, fmt.Errorf("capture: validate DB diff line %d: %w", lineNumber, err)
+			}
+			contents, err := json.Marshal(diff)
+			if err != nil {
+				return DBDiffCaptureResult{}, fmt.Errorf("capture: encode DB diff line %d: %w", lineNumber, err)
+			}
+			if _, err := output.Write(append(contents, '\n')); err != nil {
+				return DBDiffCaptureResult{}, fmt.Errorf("capture: write DB diff line %d: %w", lineNumber, err)
+			}
+			result.Entries++
 		}
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
-			continue
-		}
-		var diff dawgtypes.DBDiff
-		if err := json.Unmarshal([]byte(line), &diff); err != nil {
-			return DBDiffCaptureResult{}, fmt.Errorf("capture: decode DB diff line %d: %w", lineNumber, err)
-		}
-		if err := validateDBDiff(diff); err != nil {
-			return DBDiffCaptureResult{}, fmt.Errorf("capture: validate DB diff line %d: %w", lineNumber, err)
-		}
-		contents, err := json.Marshal(diff)
-		if err != nil {
-			return DBDiffCaptureResult{}, fmt.Errorf("capture: encode DB diff line %d: %w", lineNumber, err)
-		}
-		if _, err := output.Write(append(contents, '\n')); err != nil {
-			return DBDiffCaptureResult{}, fmt.Errorf("capture: write DB diff line %d: %w", lineNumber, err)
-		}
-		result.Entries++
 	}
-	if err := scanner.Err(); err != nil {
-		return DBDiffCaptureResult{}, fmt.Errorf("capture: scan DB diffs: %w", err)
-	}
-	captureLogger(logger).Info("DB capture completed", "component", "capture", "entries", result.Entries)
-	return result, nil
 }
 
 func validateDBDiff(diff dawgtypes.DBDiff) error {

@@ -66,7 +66,11 @@ func RunControlledSession(ctx context.Context, session *Session, controlPath str
 	case <-ctx.Done():
 	case <-stop:
 	}
-	_ = server.Shutdown(context.Background())
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		_ = server.Close()
+	}
 	return session.Stop()
 }
 
