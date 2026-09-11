@@ -43,7 +43,13 @@ export const ReplayViewer: React.FC = () => {
     addLogLine(`Triggering replay for artifact: ${selectedArtifact}`);
     try {
       const result = await engine.runReplay({ artifact: selectedArtifact });
-      addLogLine(`Replay ${result.status} for ${result.artifact_id}.`);
+      addLogLine(`Replay ${result.status} for ${result.artifactId}.`);
+      const appLogs = result.outcomes?.appLogs?.trim();
+      if (appLogs) {
+        for (const line of appLogs.split("\n")) {
+          if (line.trim()) addLogLine(`[replay] ${line}`);
+        }
+      }
       const screenshot = result.outcomes?.screenshots?.[0];
       if (screenshot) {
         addLogLine(`Final screenshot: ${screenshot}`);

@@ -157,6 +157,7 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string) (dawgtypes.Rep
 
 	out.Status = "completed"
 	out.Outcomes.ExitCode = 0 // Assuming success if it reached here
+	out.Outcomes.AppLogs = outcome.Output
 	if outcome.ScreenshotPath != "" {
 		out.Outcomes.Screenshots = []string{outcome.ScreenshotPath}
 	}

@@ -40,6 +40,22 @@ async function main() {
         throw new Error("no rrweb events found in input");
     }
 
+    // Diagnostics: a replayed page that renders blank despite the process
+    // exiting successfully is otherwise invisible to the user (no error is
+    // ever thrown). Log the shape of the trace up front so a degenerate
+    // capture (e.g. no FullSnapshot, or a snapshot of an unrelated blank
+    // document) shows up immediately in DAWG's Execution Logs.
+    const typeCounts = {};
+    for (const event of events) {
+        typeCounts[event.type] = (typeCounts[event.type] || 0) + 1;
+    }
+    const metaEvents = events.filter(event => event.type === 4);
+    process.stderr.write(`Loaded ${events.length} rrweb events, type counts: ${JSON.stringify(typeCounts)}\n`);
+    process.stderr.write(`Meta events (href/viewport): ${JSON.stringify(metaEvents.map(event => event.data))}\n`);
+    if (!typeCounts[2]) {
+        process.stderr.write("WARNING: no FullSnapshot (type 2) event found in trace — replay will render nothing.\n");
+    }
+
     // Use the Playwright-managed Chromium bundled with DAWG. An explicit
     // executable remains available for CI and advanced deployments, but replay
     // must not silently depend on a separately installed Google Chrome.
@@ -57,6 +73,18 @@ async function main() {
         const context = await browser.newContext({ ignoreHTTPSErrors: true });
         const page = await context.newPage();
 
+        // Surface in-page console/errors in the engine output. A replayed
+        // page can render blank because of an in-page JS error (e.g. an
+        // incompatible/legacy rrweb payload) that never bubbles up through
+        // page.evaluate() if it happens asynchronously (rAF callbacks,
+        // mutation processing, etc.).
+        page.on("console", msg => {
+            process.stderr.write(`[replay page console:${msg.type()}] ${msg.text()}\n`);
+        });
+        page.on("pageerror", err => {
+            process.stderr.write(`[replay page error] ${err.message}\n`);
+        });
+
         // Make the events available to the browser context via routing
         await page.route("http://dawg-replay.local/events.json", route => {
             route.fulfill({
@@ -69,7 +97,7 @@ async function main() {
         await page.addScriptTag({ content: rrwebBundle });
         await page.addStyleTag({ content: rrwebCss });
 
-        const replayDurationMs = await page.evaluate(async () => {
+        const evaluation = await page.evaluate(async () => {
             const response = await fetch("http://dawg-replay.local/events.json");
             const events = await response.json();
 
@@ -77,20 +105,41 @@ async function main() {
             const lastTimestamp = events[events.length - 1].timestamp;
             const duration = lastTimestamp - firstTimestamp;
 
-            const replayer = new rrweb.Replayer(events, {
-                root: document.body,
-                unpackFn: rrweb.unpack,
-            });
+            let replayerError = null;
+            try {
+                const replayer = new rrweb.Replayer(events, {
+                    root: document.body,
+                    unpackFn: rrweb.unpack,
+                });
 
-            // Play events in real-time instead of seeking to the end
-            replayer.play();
-            return duration;
+                // Play events in real-time instead of seeking to the end
+                replayer.play();
+            } catch (error) {
+                replayerError = error && (error.stack || error.message);
+            }
+
+            return { duration, replayerError, iframeCount: document.querySelectorAll("iframe").length };
         });
 
+        if (evaluation.replayerError) {
+            throw new Error(`rrweb.Replayer failed: ${evaluation.replayerError}`);
+        }
+        process.stderr.write(`Replayer attached ${evaluation.iframeCount} iframe(s) to the page.\n`);
+
         // Wait for the full replay duration plus a buffer for final rendering
-        const waitMs = replayDurationMs + 2000;
-        process.stderr.write(`Replay duration: ${Math.round(replayDurationMs / 1000)}s — waiting ${Math.round(waitMs / 1000)}s for playback...\n`);
+        const waitMs = evaluation.duration + 2000;
+        process.stderr.write(`Replay duration: ${Math.round(evaluation.duration / 1000)}s — waiting ${Math.round(waitMs / 1000)}s for playback...\n`);
         await new Promise(resolve => setTimeout(resolve, waitMs));
+
+        const replayedTextLength = await page.evaluate(() => {
+            const iframe = document.querySelector("iframe");
+            try {
+                return iframe && iframe.contentDocument ? iframe.contentDocument.body.innerText.length : -1;
+            } catch (_error) {
+                return -1;
+            }
+        });
+        process.stderr.write(`Replayed iframe visible text length: ${replayedTextLength}\n`);
 
         fs.mkdirSync(path.dirname(options["screenshot-output"]), { recursive: true });
         await page.screenshot({ path: options["screenshot-output"], fullPage: true });

@@ -77,17 +77,24 @@ export interface RunReplayOptions {
 }
 
 export interface RunReplayResult {
-  artifact_id: string;
+  // Field names below intentionally match the engine's actual camelCase
+  // JSON output (see dawgtypes.ReplayOutput / ReplayOutcomes in the Go
+  // engine), not snake_case - the engine never emits snake_case keys.
+  artifactId: string;
   status: "started" | "completed" | "failed";
-  replayed_at: string;
+  replayedAt: string;
   sandbox?: {
-    compose_project: string;
-    container_id: string;
+    composeProject: string;
+    containerId: string;
   };
   outcomes?: {
-    exit_code: number;
+    exitCode: number;
     screenshots?: string[];
-    http_responses?: string;
+    httpResponses?: string;
+    /** Combined stdout+stderr from replay-browser.cjs, always populated
+     * (even on success) so a visually blank replay can be diagnosed from
+     * the Execution Logs without digging through temp files. */
+    appLogs?: string;
   };
   [key: string]: unknown;
 }
