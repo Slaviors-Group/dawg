@@ -88,6 +88,38 @@ func TestSanitizeFilesPreservesRRWebStructuralNames(t *testing.T) {
 	}
 }
 
+func TestSanitizeFilesPreservesDoctypeName(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "traces", "rrweb.jsonl")
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatalf("create capture directory: %v", err)
+	}
+	// Mirrors rrweb's real DocumentType snapshot node shape for <!DOCTYPE html>.
+	contents := []byte(`{"type":2,"data":{"node":{"type":0,"childNodes":[{"type":1,"name":"html","publicId":"","systemId":"","id":2}],"id":1}},"timestamp":1}` + "\n")
+	if err := os.WriteFile(path, contents, 0o600); err != nil {
+		t.Fatalf("write rrweb capture: %v", err)
+	}
+
+	if _, err := SanitizeFiles(directory, "policy.rego", "1.2.0"); err != nil {
+		t.Fatalf("sanitize rrweb capture: %v", err)
+	}
+	actual, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read sanitized rrweb capture: %v", err)
+	}
+	var document map[string]any
+	if err := json.Unmarshal(actual, &document); err != nil {
+		t.Fatalf("decode sanitized rrweb capture: %v", err)
+	}
+	data := document["data"].(map[string]any)
+	node := data["node"].(map[string]any)
+	childNodes := node["childNodes"].([]any)
+	doctype := childNodes[0].(map[string]any)
+	if doctype["name"] != "html" {
+		t.Fatalf("doctype name was corrupted by sanitizer: %#v", doctype)
+	}
+}
+
 func TestSanitizeFilesRedactsSensitiveBrowserActionValues(t *testing.T) {
 	directory := t.TempDir()
 	path := filepath.Join(directory, "actions", "browser.jsonl")

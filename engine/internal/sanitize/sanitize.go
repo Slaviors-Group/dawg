@@ -169,12 +169,27 @@ func sanitizeValue(value any, path, file string, line int) (any, int, []dawgtype
 	case map[string]any:
 		fieldsScanned := 0
 		redactions := []dawgtypes.Redaction{}
+		// rrweb's DocumentType snapshot node is the literal shape
+		// {type, name, publicId, systemId, id} (e.g. name="html" for
+		// <!DOCTYPE html>). A bare "name" field would otherwise match the
+		// generic PII "name" rule below and get replaced with a synthetic
+		// "User <hash>" value, which is not a valid DOCTYPE name and makes
+		// document.implementation.createDocumentType() throw during replay -
+		// aborting the whole DOM rebuild and rendering a blank page. No
+		// legitimate PII payload coincidentally has both "publicId" and
+		// "systemId" sibling keys, so this check is safe.
+		_, hasPublicID := typedValue["publicId"]
+		_, hasSystemID := typedValue["systemId"]
+		isDocumentTypeNode := hasPublicID && hasSystemID
 		for key, child := range typedValue {
 			childPath := key
 			if path != "" {
 				childPath = path + "." + key
 			}
 			fieldsScanned++
+			if key == "name" && isDocumentTypeNode {
+				continue
+			}
 			if stringValue, ok := child.(string); ok {
 				if key == "body" {
 					if decoded, ok := decodeJSONBody(stringValue); ok {
