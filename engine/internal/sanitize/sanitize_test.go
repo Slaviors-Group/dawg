@@ -120,6 +120,39 @@ func TestSanitizeFilesPreservesDoctypeName(t *testing.T) {
 	}
 }
 
+func TestSanitizeFilesPreservesSVGGeometryAttributes(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "traces", "rrweb.jsonl")
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatalf("create capture directory: %v", err)
+	}
+	// These values deliberately resemble data that generic value-based PII
+	// rules could classify as phone/sensitive data. In an rrweb SVG snapshot,
+	// however, they are required geometry syntax and must remain intact.
+	contents := []byte(`{"type":2,"data":{"node":{"type":2,"tagName":"svg","attributes":{"viewBox":"+15553085090","points":"0,0 10,10"},"childNodes":[],"id":1}},"timestamp":1}` + "\n")
+	if err := os.WriteFile(path, contents, 0o600); err != nil {
+		t.Fatalf("write rrweb capture: %v", err)
+	}
+
+	if _, err := SanitizeFiles(directory, "policy.rego", "1.2.0"); err != nil {
+		t.Fatalf("sanitize rrweb capture: %v", err)
+	}
+	actual, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read sanitized rrweb capture: %v", err)
+	}
+	var document map[string]any
+	if err := json.Unmarshal(actual, &document); err != nil {
+		t.Fatalf("decode sanitized rrweb capture: %v", err)
+	}
+	data := document["data"].(map[string]any)
+	node := data["node"].(map[string]any)
+	attributes := node["attributes"].(map[string]any)
+	if attributes["viewBox"] != "+15553085090" || attributes["points"] != "0,0 10,10" {
+		t.Fatalf("SVG geometry was corrupted by sanitizer: %#v", attributes)
+	}
+}
+
 func TestSanitizeFilesRedactsSensitiveBrowserActionValues(t *testing.T) {
 	directory := t.TempDir()
 	path := filepath.Join(directory, "actions", "browser.jsonl")

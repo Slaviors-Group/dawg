@@ -14,7 +14,7 @@ import (
 
 const configFileName = "dawg.config.yaml"
 
-const defaultConfig = `schemaVersion: "0.1.4-alpha"
+const defaultConfig = `schemaVersion: "0.2.0-naughty"
 capture:
   outputDir: %q
   browser: "chromium"

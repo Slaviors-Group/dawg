@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://dawg.dev/schema/manifest/v0.1.4-alpha.json",
+  "$id": "https://dawg.dev/schema/manifest/v0.2.0-naughty.json",
   "title": "DAWG Artifact Manifest",
   "type": "object",
   "additionalProperties": false,
@@ -17,7 +17,7 @@
   ],
   "properties": {
     "schemaVersion": {
-      "const": "0.1.4-alpha"
+      "const": "0.2.0-naughty"
     },
     "id": {
       "type": "string",

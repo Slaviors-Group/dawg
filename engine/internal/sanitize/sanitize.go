@@ -190,6 +190,16 @@ func sanitizeValue(value any, path, file string, line int) (any, int, []dawgtype
 			if key == "name" && isDocumentTypeNode {
 				continue
 			}
+			// SVG's viewBox and polyline/polygon points attributes are geometry
+			// syntax, not user-provided text. Numeric point lists can resemble
+			// phone/card values to the generic value-based rules, which replaces
+			// them with values such as "+1555..." or "[REDACTED]". Chromium
+			// correctly rejects those replacements as malformed SVG during rrweb
+			// replay. These attribute names are SVG-specific, so preserving them
+			// does not weaken redaction of regular DOM text or form values.
+			if isSVGGeometryAttribute(path, key) {
+				continue
+			}
 			if stringValue, ok := child.(string); ok {
 				if key == "body" {
 					if decoded, ok := decodeJSONBody(stringValue); ok {
@@ -244,6 +254,10 @@ func sanitizeValue(value any, path, file string, line int) (any, int, []dawgtype
 	default:
 		return value, 0, nil
 	}
+}
+
+func isSVGGeometryAttribute(path, key string) bool {
+	return strings.HasSuffix(path, ".attributes") && (key == "viewBox" || key == "points")
 }
 
 func decodeJSONBody(value string) (any, bool) {

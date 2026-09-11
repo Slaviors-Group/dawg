@@ -1,8 +1,12 @@
 {
   "name": "dawg-engine-scripts",
   "private": true,
-  "version": "0.1.4-alpha",
+  "version": "0.2.0-naughty",
   "type": "commonjs",
+  "scripts": {
+    "sync:versions": "node ../tools/sync-versions.cjs",
+    "check:versions": "node ../tools/sync-versions.cjs --check"
+  },
   "dependencies": {
     "playwright": "1.55.1",
     "rrweb": "2.0.0-alpha.18"
