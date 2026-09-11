@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
@@ -16,6 +17,8 @@ import (
 type EventPlayer struct {
 	NodeBinary    string
 	ScriptPath    string
+	BrowsersDir   string
+	ChromiumPath  string
 	ReplayTimeout time.Duration
 }
 
@@ -54,6 +57,15 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 		"--screenshot-output", screenshotOutput,
 	)
 	procutil.HideWindow(cmd)
+	if player.BrowsersDir != "" {
+		cmd.Env = append(os.Environ(), "PLAYWRIGHT_BROWSERS_PATH="+player.BrowsersDir)
+	}
+	if player.ChromiumPath != "" {
+		if cmd.Env == nil {
+			cmd.Env = os.Environ()
+		}
+		cmd.Env = append(cmd.Env, "DAWG_CHROMIUM_EXECUTABLE_PATH="+player.ChromiumPath)
+	}
 
 	var outputBuf bytes.Buffer
 	cmd.Stdout = &outputBuf

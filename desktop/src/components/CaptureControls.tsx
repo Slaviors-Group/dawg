@@ -1,8 +1,6 @@
 import {
   ArrowsLeftRight,
   Browser,
-  Database,
-  FileText,
   Globe,
   Record,
   StopCircle,
@@ -30,26 +28,14 @@ const URL_PRESETS = [
 const CAPTURE_COMPONENTS = [
   {
     icon: Browser,
-    label: "Browser Capture",
-    description: "Playwright + rrweb DOM trace",
+    label: "Browser Extension",
+    description: "rrweb DOM and user-action trace",
     variant: "success" as const,
   },
   {
     icon: ArrowsLeftRight,
-    label: "HTTP Proxy",
-    description: "mitmproxy cassette capture",
-    variant: "success" as const,
-  },
-  {
-    icon: Database,
-    label: "Database Tap",
-    description: "ORM diff collector",
-    variant: "success" as const,
-  },
-  {
-    icon: FileText,
-    label: "Log Capture",
-    description: "Application stdout / JSONL stream",
+    label: "Network Metadata",
+    description: "Requests from the recorded tab",
     variant: "success" as const,
   },
 ];
@@ -115,7 +101,7 @@ export const CaptureControls: React.FC = () => {
   return (
     <PageShell
       title="Capture"
-      subtitle="Record browser activity, HTTP traffic, database diffs, and structured logs"
+      subtitle="Record one browser tab through the installed DAWG extension"
       actions={
         isCapturing ? (
           <Badge variant="error" dot>
@@ -144,7 +130,7 @@ export const CaptureControls: React.FC = () => {
             disabled={isCapturing}
             error={urlError}
             iconLeft={<Globe size={14} />}
-            hint="The DAWG proxy will intercept all requests through this origin."
+            hint="DAWG will focus an existing matching tab or open this URL in your browser."
           />
 
           {/* URL presets */}
@@ -196,7 +182,7 @@ export const CaptureControls: React.FC = () => {
                   ? "Sanitizing and packaging the artifact — this may take 1–2 minutes for a large session."
                   : isCapturing
                     ? "Capture is running. Stop to finalize and package the artifact."
-                    : "Starts the proxy, browser agent, and log tap simultaneously."}
+                    : "Requires the DAWG browser extension to be installed, enabled, and reloaded after updates."}
               </p>
               {isStopping && (
                 <div className="mt-2 w-full">
@@ -243,7 +229,7 @@ export const CaptureControls: React.FC = () => {
           <h3 className="text-base font-bold text-text-primary">Session Configuration</h3>
           <p className="text-sm text-text-tertiary">Active capture components for this session</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {CAPTURE_COMPONENTS.map(({ icon: Icon, label, description, variant }) => (
             <div
               key={label}

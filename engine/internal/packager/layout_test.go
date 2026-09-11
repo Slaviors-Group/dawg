@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -37,6 +38,13 @@ func TestPackageCreatesValidOCIImageLayout(t *testing.T) {
 	}
 	for _, layer := range value.Layers {
 		assertBlobDigest(t, outputDirectory, layer.Digest, layer.Size)
+	}
+	unpackedDirectory := t.TempDir()
+	if err := Unpack(outputDirectory, unpackedDirectory); err != nil {
+		t.Fatalf("unpack artifact: %v", err)
+	}
+	if contents, err := os.ReadFile(filepath.Join(unpackedDirectory, "actions", "browser.jsonl")); err != nil || !strings.Contains(string(contents), "click") {
+		t.Fatalf("packaged artifact omitted browser actions: contents=%q err=%v", contents, err)
 	}
 
 	indexContents, err := os.ReadFile(filepath.Join(outputDirectory, "index.json"))
@@ -134,6 +142,7 @@ func createSanitizedSession(t *testing.T, exportAllowed bool) string {
 	writeTextFixture(t, filepath.Join(directory, "env", "lockfile.json"), "{\"backend\":\"sha256:pinned\"}\n")
 	writeTextFixture(t, filepath.Join(directory, "db", "diff.jsonl"), "{\"table\":\"orders\"}\n")
 	writeTextFixture(t, filepath.Join(directory, "traces", "rrweb.jsonl"), "{\"type\":2}\n")
+	writeTextFixture(t, filepath.Join(directory, "actions", "browser.jsonl"), "{\"type\":\"click\",\"selector\":\"#checkout\"}\n")
 	writeTextFixture(t, filepath.Join(directory, "http", "frontend.jsonl"), "{\"id\":\"request-1\"}\n")
 	writeTextFixture(t, filepath.Join(directory, "logs", "structured.jsonl"), "{\"level\":\"info\"}\n")
 	writeTextFixture(t, filepath.Join(directory, "cassettes", "thirdparty.jsonl"), "{\"id\":\"cassette-1\"}\n")

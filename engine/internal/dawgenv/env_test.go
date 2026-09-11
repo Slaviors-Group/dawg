@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -39,6 +40,33 @@ func TestResolveNode(t *testing.T) {
 	t.Setenv("DAWG_NODE_PATH", mockBin)
 	if got := ResolveNode(); got != mockBin {
 		t.Fatalf("ResolveNode() = %q, want %q", got, mockBin)
+	}
+}
+
+func TestResolveChromiumExecutableFromBundledBrowsers(t *testing.T) {
+	resourceDirectory := t.TempDir()
+	t.Setenv("DAWG_RESOURCES_DIR", resourceDirectory)
+	t.Setenv("PLAYWRIGHT_BROWSERS_PATH", "")
+	t.Setenv("DAWG_CHROMIUM_EXECUTABLE_PATH", "")
+
+	var relativeExecutable string
+	switch runtime.GOOS {
+	case "windows":
+		relativeExecutable = filepath.Join("chromium-1234", "chrome-win64", "chrome.exe")
+	case "darwin":
+		relativeExecutable = filepath.Join("chromium-1234", "chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium")
+	default:
+		relativeExecutable = filepath.Join("chromium-1234", "chrome-linux", "chrome")
+	}
+	executable := filepath.Join(resourceDirectory, "browsers", relativeExecutable)
+	if err := os.MkdirAll(filepath.Dir(executable), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(executable, []byte("browser"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if got := ResolveChromiumExecutable(); got != executable {
+		t.Fatalf("ResolveChromiumExecutable() = %q, want %q", got, executable)
 	}
 }
 

@@ -2,17 +2,21 @@ package replay
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/Slaviors-Group/dawg/engine/internal/procutil"
 )
 
 // CassetteReplayer manages the lifecycle of the mitmproxy instance used to replay third-party APIs.
 type CassetteReplayer struct {
-	Runner CommandRunner
-	cmd    *exec.Cmd
+	Runner      CommandRunner
+	Executable  string
+	StopTimeout time.Duration
+	cmd         *exec.Cmd
 	// done receives the result of cmd.Wait() exactly once, then is set to nil
 	// in Stop() after draining. The goroutine never closes the channel, so a
 	// second Stop() call (double-click) sees done == nil and returns safely
@@ -41,7 +45,11 @@ func (c *CassetteReplayer) Start(ctx context.Context, listenPort int, cassetteFi
 		return fmt.Errorf("replay: cassette replayer already running; call Stop() first")
 	}
 
-	c.cmd = exec.CommandContext(ctx, "mitmdump",
+	executable := c.Executable
+	if executable == "" {
+		executable = "mitmdump"
+	}
+	c.cmd = exec.CommandContext(ctx, executable,
 		"--listen-port", fmt.Sprintf("%d", listenPort),
 		"--server-replay", cassetteFile,
 		"--server-replay-kill-extra", // Drop requests not in cassette
@@ -93,14 +101,34 @@ func (c *CassetteReplayer) Stop() error {
 		return nil
 	}
 
-	// Send SIGINT for graceful shutdown so it flushes buffers
+	// Send SIGINT for graceful shutdown so it flushes buffers. Windows does not
+	// implement os.Interrupt for arbitrary child processes, so fall back to a
+	// direct kill there instead of leaking the replay process indefinitely.
 	if err := c.cmd.Process.Signal(os.Interrupt); err != nil {
-		return fmt.Errorf("replay: failed to signal mitmdump: %w", err)
+		if killErr := c.cmd.Process.Kill(); killErr != nil && !errors.Is(killErr, os.ErrProcessDone) {
+			return fmt.Errorf("replay: stop mitmdump after interrupt failed: %w", errors.Join(err, killErr))
+		}
 	}
 
-	// Wait for the goroutine to deliver the exit result, then nil out both
-	// fields so a second Stop() call is a no-op.
-	<-c.done
+	stopTimeout := c.StopTimeout
+	if stopTimeout <= 0 {
+		stopTimeout = 5 * time.Second
+	}
+	timer := time.NewTimer(stopTimeout)
+	select {
+	case <-c.done:
+	case <-timer.C:
+		if err := c.cmd.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
+			return fmt.Errorf("replay: force stop mitmdump: %w", err)
+		}
+		<-c.done
+	}
+	if !timer.Stop() {
+		select {
+		case <-timer.C:
+		default:
+		}
+	}
 	c.cmd = nil
 	c.done = nil
 	return nil

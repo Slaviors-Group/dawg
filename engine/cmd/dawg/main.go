@@ -36,6 +36,9 @@ func pauseIfStandalone() {
 
 // defaultDawgDir returns an absolute path in ~/.dawg/ to avoid writing to arbitrary CWDs like System32 on Windows.
 func defaultDawgDir(subpaths ...string) string {
+	if stateDirectory := os.Getenv("DAWG_STATE_DIR"); stateDirectory != "" {
+		return filepath.Join(append([]string{stateDirectory}, subpaths...)...)
+	}
 	home, err := os.UserHomeDir()
 	if err == nil {
 		base := []string{home, ".dawg"}

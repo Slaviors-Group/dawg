@@ -20,6 +20,7 @@ var captureFiles = []string{
 	"db/diff.jsonl",
 	"logs/structured.jsonl",
 	"traces/rrweb.jsonl",
+	"actions/browser.jsonl",
 	"cassettes/thirdparty.jsonl",
 }
 
@@ -187,7 +188,15 @@ func sanitizeValue(value any, path, file string, line int) (any, int, []dawgtype
 						continue
 					}
 				}
-				if category, matched := classify(childPath, stringValue); matched {
+				classificationPath := childPath
+				if key == "value" {
+					for _, contextKey := range []string{"selector", "fieldName", "inputType"} {
+						if contextValue, ok := typedValue[contextKey].(string); ok {
+							classificationPath += "." + contextValue
+						}
+					}
+				}
+				if category, matched := classify(classificationPath, stringValue); matched {
 					replacementValue := replacement(childPath, stringValue, category)
 					typedValue[key] = replacementValue
 					redactions = append(redactions, dawgtypes.Redaction{

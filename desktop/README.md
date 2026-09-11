@@ -9,7 +9,7 @@ This directory contains the desktop GUI application for DAWG, built with **Tauri
 - **Frontend (`src/`)**: React 19 single-page application with tabs for Capture Controls, Live Session Logs, Replay Viewer, Verification Diff Reports, and Sanitizer Policy Configuration.
 - **IPC Bridge (`src/lib/engine.ts`)**: Strongly typed TypeScript interface invoking Tauri Rust commands.
 - **Rust Backend (`src-tauri/src/lib.rs`)**: Manages sidecar engine binary resolution (`dawg.exe` / `dawg`), injects `DAWG_RESOURCES_DIR`, and handles subprocess execution and health probes.
-- **Bundled Resources (`src-tauri/resources/`)**: Staging root for embedded standalone runtimes (`mitmdump`, `node`, Playwright scripts, and schemas).
+- **Bundled Resources (`src-tauri/resources/`)**: Staging root for replay runtimes (`mitmdump`, Node.js, Playwright/Chromium), schemas, and the installable DAWG browser extension.
 
 ---
 

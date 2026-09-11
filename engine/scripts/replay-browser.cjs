@@ -33,8 +33,13 @@ async function main() {
         throw new Error("no rrweb events found in input");
     }
 
-    // Launch the user's installed Chrome in isolated mode (incognito)
-    const launchOptions = { headless: false, channel: "chrome" };
+    // Use the Playwright-managed Chromium bundled with DAWG. An explicit
+    // executable remains available for CI and advanced deployments, but replay
+    // must not silently depend on a separately installed Google Chrome.
+    const launchOptions = { headless: false };
+    if (process.env.DAWG_CHROMIUM_EXECUTABLE_PATH) {
+        launchOptions.executablePath = process.env.DAWG_CHROMIUM_EXECUTABLE_PATH;
+    }
 
     if (options["proxy-server"]) {
         launchOptions.proxy = { server: options["proxy-server"] };

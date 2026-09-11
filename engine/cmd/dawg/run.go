@@ -120,6 +120,7 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string) (dawgtypes.Rep
 	var replayer *replay.CassetteReplayer
 	if _, err := os.Stat(cassetteFile); err == nil {
 		replayer = replay.NewCassetteReplayer(sandbox.Runner)
+		replayer.Executable = dawgenv.ResolveMitmdump()
 		if err := replayer.Start(ctx, 8080, cassetteFile); err != nil {
 			if sandboxStarted {
 				_ = sandbox.Teardown(context.Background(), composeFile, projectName)
@@ -129,8 +130,10 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string) (dawgtypes.Rep
 	}
 
 	player := &replay.EventPlayer{
-		NodeBinary: dawgenv.ResolveNode(),
-		ScriptPath: dawgenv.ResolveScript("replay-browser.cjs"),
+		NodeBinary:   dawgenv.ResolveNode(),
+		ScriptPath:   dawgenv.ResolveScript("replay-browser.cjs"),
+		BrowsersDir:  dawgenv.ResolveBrowsersDir(),
+		ChromiumPath: dawgenv.ResolveChromiumExecutable(),
 	}
 
 	outcome, replayErr := player.Replay(ctx, tmpDir)

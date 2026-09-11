@@ -13,10 +13,10 @@ use tauri::{AppHandle, Manager};
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 /// Suppresses console window allocation for `cmd` on Windows. No-op elsewhere.
-fn suppress_console_window(cmd: &mut Command) {
+fn suppress_console_window(_cmd: &mut Command) {
     #[cfg(windows)]
     {
-        cmd.creation_flags(CREATE_NO_WINDOW);
+        _cmd.creation_flags(CREATE_NO_WINDOW);
     }
 }
 

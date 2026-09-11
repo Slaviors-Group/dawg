@@ -47,6 +47,7 @@ export function EngineProvider({ children }: { children: ReactNode }) {
   const [isCapturing, setIsCapturing] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [activeControlFile, setActiveControlFile] = useState<string | null>(null);
   const [targetUrl, setTargetUrl] = useState("http://localhost:3000");
   const [inspectedArtifact, setInspectedArtifact] = useState<ArtifactItem | null>(null);
   const [logs, setLogs] = useState<string[]>([
@@ -78,6 +79,7 @@ export function EngineProvider({ children }: { children: ReactNode }) {
       setIsCapturing(true);
       const res = await engine.startCapture({ url });
       setActiveSessionId(res.sessionId);
+      setActiveControlFile(res.controlFile);
       addLogLine(`Capture session active. Session ID: ${res.sessionId}`);
       if (res.sessionPath) {
         addLogLine(`Session path: ${res.sessionPath}`);
@@ -85,6 +87,7 @@ export function EngineProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       addLogLine(`[ERROR] Start capture failed: ${String(err)}`);
       setIsCapturing(false);
+      setActiveControlFile(null);
     }
   };
 
@@ -95,7 +98,9 @@ export function EngineProvider({ children }: { children: ReactNode }) {
     setIsStopping(true);
     try {
       addLogLine("Stopping active capture session and packaging artifact...");
-      const res = await engine.stopCapture();
+      const res = await engine.stopCapture({
+        controlFile: activeControlFile ?? undefined,
+      });
       setIsCapturing(false);
 
       const sessionId = res.sessionId ?? activeSessionId;
@@ -107,7 +112,7 @@ export function EngineProvider({ children }: { children: ReactNode }) {
             path: res.artifactPath as string,
             targetUrl,
             createdAt: new Date().toISOString(),
-            components: ["browser", "http", "cassettes", "actions"],
+            components: ["browser", "http", "actions"],
           },
           ...prev,
         ]);
@@ -115,12 +120,14 @@ export function EngineProvider({ children }: { children: ReactNode }) {
         addLogLine("[WARN] Capture stopped but no artifact path was returned.");
       }
       setActiveSessionId(null);
+      setActiveControlFile(null);
     } catch (err) {
       addLogLine(`[ERROR] Stop capture failed: ${String(err)}`);
       // Reset state so the user isn't permanently stuck — the daemon is already
       // gone if we get ECONNREFUSED, so treat this as an abnormal session end.
       setIsCapturing(false);
       setActiveSessionId(null);
+      setActiveControlFile(null);
     } finally {
       setIsStopping(false);
     }

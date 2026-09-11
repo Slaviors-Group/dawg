@@ -1,68 +1,193 @@
-package capture_test
+package capture
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
-
-	"github.com/Slaviors-Group/dawg/engine/internal/capture"
 )
 
-func TestBrowserExtensionServerContractedTraceFiles(t *testing.T) {
-	sessionDir := t.TempDir()
-	server := &capture.ExtensionServer{
-		ListenAddr: "127.0.0.1:0",
+func TestBrowserRecorderDrainsBeforeGracefulStop(t *testing.T) {
+	root := t.TempDir()
+	scriptPath := writeBrowserFixture(t, root, `
+const fs = require("node:fs");
+const readline = require("node:readline");
+const options = Object.fromEntries(process.argv.slice(2).reduce((pairs, value, index, values) => index % 2 === 0 ? [...pairs, [value.slice(2), values[index + 1]]] : pairs, []));
+for (const key of ["rrweb-output", "http-output", "actions-output"]) fs.writeFileSync(options[key], "{\"initial\":true}\n");
+const input = readline.createInterface({ input: process.stdin });
+input.on("line", line => {
+    if (JSON.parse(line).command !== "stop") return;
+    setTimeout(() => {
+        fs.appendFileSync(options["rrweb-output"], "{\"flushed\":true}\n");
+        console.log(JSON.stringify({ status: "stopped" }));
+        input.close();
+    }, 30);
+});
+console.log(JSON.stringify({ status: "capturing" }));
+`)
+	recorder := BrowserRecorder{
+		NodeBinary:     "node",
+		ScriptPath:     scriptPath,
+		StartupTimeout: time.Second,
+		StopTimeout:    time.Second,
+	}
+	sessionDirectory := filepath.Join(root, "session")
+	if err := recorder.Start(context.Background(), BrowserCaptureRequest{TargetURL: "http://127.0.0.1:1", SessionDirectory: sessionDirectory}); err != nil {
+		t.Fatalf("start browser recorder: %v", err)
+	}
+	if err := recorder.Stop(); err != nil {
+		t.Fatalf("stop browser recorder: %v", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := server.Start(ctx, sessionDir); err != nil {
-		t.Fatalf("Start extension server: %v", err)
+	contents, err := os.ReadFile(filepath.Join(sessionDirectory, "traces", "rrweb.jsonl"))
+	if err != nil {
+		t.Fatalf("read trace: %v", err)
 	}
-
-	baseURL := "http://" + server.Addr()
-
-	// Stream mock rrweb event
-	rrwebData := []byte(`{"timestamp":1600000000,"type":2}`)
-	resp, err := http.Post(baseURL+"/api/v1/stream/rrweb", "application/json", bytes.NewReader(rrwebData))
-	if err != nil || resp.StatusCode != http.StatusOK {
-		t.Fatalf("post rrweb event failed: %v", err)
+	if !strings.Contains(string(contents), `{"flushed":true}`) {
+		t.Fatalf("graceful stop returned before final flush: %s", contents)
 	}
-	_ = resp.Body.Close()
-
-	// Stream mock action event
-	actionData := []byte(`{"type":"click","selector":"#checkout","timestamp":1600000001}`)
-	resp, err = http.Post(baseURL+"/api/v1/stream/actions", "application/json", bytes.NewReader(actionData))
-	if err != nil || resp.StatusCode != http.StatusOK {
-		t.Fatalf("post action event failed: %v", err)
+	for _, relativePath := range []string{"traces/rrweb.jsonl", "http/frontend.jsonl", "actions/browser.jsonl"} {
+		assertBrowserJSONLFile(t, filepath.Join(sessionDirectory, filepath.FromSlash(relativePath)))
 	}
-	_ = resp.Body.Close()
-
-	// Stream mock frontend HTTP request
-	httpData := []byte(`{"id":"req-1","timestamp":"2026-09-09T00:00:00Z","request":{"method":"GET","url":"http://api.local/data"},"response":{"status":200},"direction":"frontend-to-backend","durationMs":15}`)
-	resp, err = http.Post(baseURL+"/api/v1/stream/http", "application/json", bytes.NewReader(httpData))
-	if err != nil || resp.StatusCode != http.StatusOK {
-		t.Fatalf("post http event failed: %v", err)
+	if err := recorder.Stop(); err != nil {
+		t.Fatalf("idempotent stop: %v", err)
 	}
-	_ = resp.Body.Close()
-
-	if err := server.Stop(); err != nil {
-		t.Fatalf("Stop extension server: %v", err)
-	}
-
-	assertJSONLFile(t, filepath.Join(sessionDir, "traces", "rrweb.jsonl"))
-	assertJSONLFile(t, filepath.Join(sessionDir, "actions", "browser.jsonl"))
-	assertJSONLFile(t, filepath.Join(sessionDir, "http", "frontend.jsonl"))
 }
 
-func assertJSONLFile(t *testing.T, path string) {
+func TestBrowserRecorderPassesBundledBrowserFallbackOptions(t *testing.T) {
+	root := t.TempDir()
+	scriptPath := writeBrowserFixture(t, root, `
+const fs = require("node:fs");
+const readline = require("node:readline");
+const values = {};
+for (let index = 2; index < process.argv.length; index += 2) values[process.argv[index].slice(2)] = process.argv[index + 1];
+fs.writeFileSync(values["actions-output"], JSON.stringify({
+    endpoint: values["cdp-endpoint"],
+    chromium: values["chromium-path"],
+    profile: values["browser-profile"],
+    proxy: values["proxy-server"],
+}));
+const input = readline.createInterface({ input: process.stdin });
+input.on("line", () => {
+    input.close();
+    process.stdin.destroy();
+});
+console.log(JSON.stringify({ status: "capturing" }));
+`)
+	recorder := BrowserRecorder{
+		NodeBinary:              "node",
+		ScriptPath:              scriptPath,
+		CDPEndpoint:             "http://127.0.0.1:9333",
+		ChromiumPath:            "/opt/dawg/chromium",
+		BrowserProfileDirectory: filepath.Join(root, "profile"),
+		ProxyServer:             "http://127.0.0.1:18881",
+		StartupTimeout:          time.Second,
+		StopTimeout:             time.Second,
+	}
+	sessionDirectory := filepath.Join(root, "session")
+	if err := recorder.Start(context.Background(), BrowserCaptureRequest{TargetURL: "http://127.0.0.1:1", SessionDirectory: sessionDirectory}); err != nil {
+		t.Fatalf("start browser recorder: %v", err)
+	}
+	if err := recorder.Stop(); err != nil {
+		t.Fatalf("stop browser recorder: %v", err)
+	}
+
+	contents, err := os.ReadFile(filepath.Join(sessionDirectory, "actions", "browser.jsonl"))
+	if err != nil {
+		t.Fatalf("read fallback options: %v", err)
+	}
+	var options map[string]string
+	if err := json.Unmarshal(contents, &options); err != nil {
+		t.Fatalf("decode fallback options: %v", err)
+	}
+	if options["endpoint"] != recorder.CDPEndpoint || options["chromium"] != recorder.ChromiumPath || options["profile"] != recorder.BrowserProfileDirectory || options["proxy"] != recorder.ProxyServer {
+		t.Fatalf("unexpected fallback options: %#v", options)
+	}
+}
+
+func TestBrowserRecorderStopIsSafeForConcurrentCallers(t *testing.T) {
+	root := t.TempDir()
+	scriptPath := writeBrowserFixture(t, root, `
+const readline = require("node:readline");
+const input = readline.createInterface({ input: process.stdin });
+input.on("line", line => {
+    if (JSON.parse(line).command === "stop") setTimeout(() => input.close(), 20);
+});
+console.log(JSON.stringify({ status: "capturing" }));
+`)
+	recorder := BrowserRecorder{NodeBinary: "node", ScriptPath: scriptPath, StartupTimeout: time.Second, StopTimeout: time.Second}
+	if err := recorder.Start(context.Background(), BrowserCaptureRequest{TargetURL: "http://127.0.0.1:1", SessionDirectory: filepath.Join(root, "session")}); err != nil {
+		t.Fatalf("start browser recorder: %v", err)
+	}
+
+	var waitGroup sync.WaitGroup
+	errors := make(chan error, 4)
+	for range 4 {
+		waitGroup.Add(1)
+		go func() {
+			defer waitGroup.Done()
+			errors <- recorder.Stop()
+		}()
+	}
+	waitGroup.Wait()
+	close(errors)
+	for err := range errors {
+		if err != nil {
+			t.Fatalf("concurrent stop: %v", err)
+		}
+	}
+}
+
+func TestBrowserRecorderTimesOutBeforeReady(t *testing.T) {
+	root := t.TempDir()
+	scriptPath := writeBrowserFixture(t, root, "setInterval(() => {}, 1000);\n")
+	recorder := BrowserRecorder{
+		NodeBinary:     "node",
+		ScriptPath:     scriptPath,
+		StartupTimeout: 25 * time.Millisecond,
+		StopTimeout:    25 * time.Millisecond,
+	}
+	err := recorder.Start(context.Background(), BrowserCaptureRequest{TargetURL: "http://127.0.0.1:1", SessionDirectory: filepath.Join(root, "session")})
+	if err == nil || !strings.Contains(err.Error(), "startup timed out") {
+		t.Fatalf("expected startup timeout, got %v", err)
+	}
+}
+
+func TestBrowserRecorderUnexpectedExitRequestsSessionStop(t *testing.T) {
+	root := t.TempDir()
+	scriptPath := writeBrowserFixture(t, root, `
+console.log(JSON.stringify({ status: "capturing" }));
+setTimeout(() => process.exit(3), 30);
+`)
+	recorder := BrowserRecorder{NodeBinary: "node", ScriptPath: scriptPath, StartupTimeout: time.Second, StopTimeout: time.Second}
+	if err := recorder.Start(context.Background(), BrowserCaptureRequest{TargetURL: "http://127.0.0.1:1", SessionDirectory: filepath.Join(root, "session")}); err != nil {
+		t.Fatalf("start browser recorder: %v", err)
+	}
+
+	select {
+	case <-recorder.StopRequested():
+	case <-time.After(time.Second):
+		t.Fatal("unexpected recorder exit did not request session stop")
+	}
+	if err := recorder.Stop(); err == nil {
+		t.Fatal("expected unexpected recorder exit to fail capture")
+	}
+}
+
+func writeBrowserFixture(t *testing.T, directory, contents string) string {
+	t.Helper()
+	path := filepath.Join(directory, "capture-fixture.cjs")
+	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+		t.Fatalf("write browser fixture: %v", err)
+	}
+	return path
+}
+
+func assertBrowserJSONLFile(t *testing.T, path string) {
 	t.Helper()
 	contents, err := os.ReadFile(path)
 	if err != nil {

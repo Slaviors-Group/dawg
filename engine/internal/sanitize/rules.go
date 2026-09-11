@@ -21,7 +21,8 @@ type classification struct {
 func classify(field, value string) (classification, bool) {
 	field = strings.ToLower(field)
 	value = strings.TrimSpace(value)
-	if strings.HasSuffix(field, "tagname") || strings.HasSuffix(field, "nodename") || strings.HasSuffix(field, "localname") {
+	if strings.HasSuffix(field, "tagname") || strings.HasSuffix(field, "nodename") || strings.HasSuffix(field, "localname") ||
+		strings.HasSuffix(field, "fieldname") || strings.HasSuffix(field, "inputtype") || strings.HasSuffix(field, "selector") {
 		return classification{}, false
 	}
 

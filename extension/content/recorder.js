@@ -37,6 +37,8 @@
         type: "fill",
         timestamp: Date.now(),
         selector: selector,
+        fieldName: event.target.name || "",
+        inputType: event.target.type || "",
         value: event.target.value || ""
       }
     }).catch(() => {});
@@ -51,6 +53,9 @@
 
     if (typeof rrweb !== "undefined" && typeof rrweb.record === "function") {
       stopRecord = rrweb.record({
+        // Replayable fill actions are captured separately and sanitized by the
+        // engine. Never persist raw form values inside the DOM snapshot stream.
+        maskAllInputs: true,
         emit(event) {
           if (!isRecording) return;
           chrome.runtime.sendMessage({
@@ -94,5 +99,10 @@
       startRecording();
     }
   });
-})();
 
+  // Wake the MV3 worker while a normal page is open so it can discover a
+  // newly-started desktop daemon. Once connected, its WebSocket keeps it alive.
+  setInterval(() => {
+    chrome.runtime.sendMessage({ type: "DAWG_EXTENSION_WAKE" }).catch(() => {});
+  }, 2000);
+})();

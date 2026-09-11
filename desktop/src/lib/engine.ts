@@ -39,6 +39,9 @@ export interface StartCaptureResult {
   status: "capturing";
   sessionId: string;
   sessionPath: string;
+  controlFile: string;
+  resultFile: string;
+  daemonPid: number;
 }
 
 export interface StopCaptureOptions {

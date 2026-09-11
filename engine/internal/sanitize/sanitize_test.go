@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
@@ -84,6 +85,33 @@ func TestSanitizeFilesPreservesRRWebStructuralNames(t *testing.T) {
 	}
 	if data["name"] == "Ada" {
 		t.Fatal("PII name was not replaced")
+	}
+}
+
+func TestSanitizeFilesRedactsSensitiveBrowserActionValues(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "actions", "browser.jsonl")
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatalf("create action directory: %v", err)
+	}
+	line := `{"type":"fill","selector":"input.login","fieldName":"password","inputType":"password","value":"private-value"}` + "\n"
+	if err := os.WriteFile(path, []byte(line), 0o600); err != nil {
+		t.Fatalf("write action capture: %v", err)
+	}
+
+	report, err := SanitizeFiles(directory, "policy.rego", "1.2.0")
+	if err != nil {
+		t.Fatalf("sanitize actions: %v", err)
+	}
+	if report.FieldsRedacted != 1 {
+		t.Fatalf("expected one redacted action value, got %#v", report)
+	}
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read sanitized action: %v", err)
+	}
+	if strings.Contains(string(contents), "private-value") {
+		t.Fatalf("sensitive action value survived sanitization: %s", contents)
 	}
 }
 

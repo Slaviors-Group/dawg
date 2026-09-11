@@ -24,6 +24,7 @@ type SessionComponent interface {
 // SessionOptions describes the metadata and components captured in one session.
 type SessionOptions struct {
 	Directory  string
+	ResultFile string
 	Metadata   dawgtypes.CaptureMetadata
 	Components []SessionComponent
 }

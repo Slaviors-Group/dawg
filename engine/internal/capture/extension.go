@@ -3,10 +3,12 @@ package capture
 import (
 	"bufio"
 	"context"
+	"crypto/rand"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -14,89 +16,195 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
-// wsReadTimeout is the per-frame read deadline applied to hijacked WebSocket
-// connections. It ensures the read loop is interruptible when the server shuts
-// down — without it, a connection whose remote peer stops sending can block
-// readWebSocketFrames forever because hijacked conns are invisible to
-// http.Server.Shutdown().
-const wsReadTimeout = 60 * time.Second
+const (
+	wsReadTimeout    = 60 * time.Second
+	wsWriteTimeout   = 2 * time.Second
+	wsDrainTimeout   = 5 * time.Second
+	maxStreamBytes   = 16 << 20
+	webSocketGUID    = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+	wsOpcodeContinue = byte(0x0)
+	wsOpcodeText     = byte(0x1)
+	wsOpcodeBinary   = byte(0x2)
+	wsOpcodeClose    = byte(0x8)
+	wsOpcodePing     = byte(0x9)
+	wsOpcodePong     = byte(0xA)
+)
 
-// ExtensionServer receives streaming DOM events (rrweb), browser action traces,
-// and frontend HTTP traffic from the DAWG Chrome Extension.
+type webSocketClient struct {
+	conn    net.Conn
+	writer  *bufio.ReadWriter
+	writeMu sync.Mutex
+}
+
+type streamTarget uint8
+
+const (
+	streamRRWeb streamTarget = iota
+	streamActions
+	streamHTTP
+)
+
+func (client *webSocketClient) writeFrame(opcode byte, payload []byte) error {
+	client.writeMu.Lock()
+	defer client.writeMu.Unlock()
+
+	if err := client.conn.SetWriteDeadline(time.Now().Add(wsWriteTimeout)); err != nil {
+		return err
+	}
+	header := []byte{0x80 | opcode}
+	switch length := len(payload); {
+	case length <= 125:
+		header = append(header, byte(length))
+	case length <= 65535:
+		header = append(header, 126, byte(length>>8), byte(length))
+	default:
+		header = append(header, 127)
+		var extended [8]byte
+		binary.BigEndian.PutUint64(extended[:], uint64(length))
+		header = append(header, extended[:]...)
+	}
+	if _, err := client.writer.Write(header); err != nil {
+		return err
+	}
+	if _, err := client.writer.Write(payload); err != nil {
+		return err
+	}
+	return client.writer.Flush()
+}
+
+func (client *webSocketClient) writeMessage(messageType string, data any) error {
+	payload, err := json.Marshal(map[string]any{"type": messageType, "data": data})
+	if err != nil {
+		return err
+	}
+	return client.writeFrame(wsOpcodeText, payload)
+}
+
+// ExtensionServer receives streaming DOM events, browser action traces, and
+// frontend HTTP traffic from the DAWG browser extension.
 type ExtensionServer struct {
-	ListenPort int
-	ListenAddr string
+	ListenPort       int
+	ListenAddr       string
+	TargetURL        string
+	RequireHandshake bool
+	StartupTimeout   time.Duration
 
-	mu          sync.Mutex
-	listener    net.Listener
-	server      *http.Server
-	rrwebBuf    *bufio.Writer
-	actionsBuf  *bufio.Writer
-	httpBuf     *bufio.Writer
-	rrwebFile   *os.File
-	actionsFile *os.File
-	httpFile    *os.File
-	actualAddr  string
-	// active is set to 1 while the server is running and accepting writes.
-	// It is cleared to 0 before files are flushed and closed in Stop(), so
-	// that in-flight HTTP handlers that have already passed the nil-check see
-	// it and discard the write rather than racing on a closing bufio.Writer.
-	active atomic.Int32
+	mu             sync.Mutex
+	listener       net.Listener
+	server         *http.Server
+	serveDone      chan struct{}
+	stopDone       chan struct{}
+	stopErr        error
+	stopping       bool
+	connections    map[*webSocketClient]struct{}
+	handlers       sync.WaitGroup
+	stopRequests   chan struct{}
+	clientDrained  chan struct{}
+	sessionStarted chan struct{}
+	startupErrors  chan error
+	controller     *webSocketClient
+	sessionReady   bool
+	sessionToken   string
+	rrwebBuf       *bufio.Writer
+	actionsBuf     *bufio.Writer
+	httpBuf        *bufio.Writer
+	rrwebFile      *os.File
+	actionsFile    *os.File
+	httpFile       *os.File
+	actualAddr     string
+	active         atomic.Int32
 }
 
-// Name implements SessionComponent.
-func (s *ExtensionServer) Name() string {
-	return "browser"
-}
+func (s *ExtensionServer) Name() string { return "browser" }
 
-// Addr returns the actual listening address of the server.
 func (s *ExtensionServer) Addr() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.actualAddr
 }
 
-// Start creates session files and launches the HTTP/WebSocket ingestion server.
-func (s *ExtensionServer) Start(ctx context.Context, directory string) error {
+// StopRequested returns a signal that fires when the extension sends its final
+// DAWG_SESSION_STOP envelope. The channel is buffered so a stop received just
+// after Start cannot be lost before the session coordinator begins waiting.
+func (s *ExtensionServer) StopRequested() <-chan struct{} {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.stopRequests == nil {
+		s.stopRequests = make(chan struct{}, 1)
+	}
+	return s.stopRequests
+}
 
-	if s.server != nil {
+func (s *ExtensionServer) Start(ctx context.Context, directory string) error {
+	s.mu.Lock()
+
+	if s.server != nil || s.stopping {
+		s.mu.Unlock()
 		return fmt.Errorf("capture: extension server already running")
 	}
+	if s.RequireHandshake && strings.TrimSpace(s.TargetURL) == "" {
+		s.mu.Unlock()
+		return fmt.Errorf("capture: target URL is required for extension recording")
+	}
+	if s.stopRequests == nil {
+		s.stopRequests = make(chan struct{}, 1)
+	} else {
+		drainSignal(s.stopRequests)
+	}
+	s.clientDrained = make(chan struct{}, 1)
+	s.sessionStarted = make(chan struct{}, 1)
+	s.startupErrors = make(chan error, 1)
+	s.stopDone = make(chan struct{})
+	s.stopErr = nil
+	s.controller = nil
+	s.sessionReady = false
+	s.sessionToken = ""
+	if s.RequireHandshake {
+		tokenBytes := make([]byte, 32)
+		if _, err := rand.Read(tokenBytes); err != nil {
+			s.mu.Unlock()
+			return fmt.Errorf("capture: generate extension session token: %w", err)
+		}
+		s.sessionToken = base64.RawURLEncoding.EncodeToString(tokenBytes)
+	}
+	s.connections = make(map[*webSocketClient]struct{})
+	s.handlers = sync.WaitGroup{}
 
-	for _, dir := range []string{"traces", "http", "actions"} {
-		if err := os.MkdirAll(filepath.Join(directory, dir), 0o700); err != nil {
-			return fmt.Errorf("capture: create output directory %s: %w", dir, err)
+	for _, child := range []string{"traces", "http", "actions"} {
+		if err := os.MkdirAll(filepath.Join(directory, child), 0o700); err != nil {
+			s.mu.Unlock()
+			return fmt.Errorf("capture: create output directory %s: %w", child, err)
 		}
 	}
 
 	var err error
 	s.rrwebFile, err = os.OpenFile(filepath.Join(directory, "traces", "rrweb.jsonl"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
+		s.mu.Unlock()
 		return fmt.Errorf("capture: open rrweb.jsonl: %w", err)
 	}
-
 	s.actionsFile, err = os.OpenFile(filepath.Join(directory, "actions", "browser.jsonl"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
 		_ = s.rrwebFile.Close()
+		s.rrwebFile = nil
+		s.mu.Unlock()
 		return fmt.Errorf("capture: open browser.jsonl: %w", err)
 	}
-
 	s.httpFile, err = os.OpenFile(filepath.Join(directory, "http", "frontend.jsonl"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
 		_ = s.rrwebFile.Close()
 		_ = s.actionsFile.Close()
+		s.rrwebFile = nil
+		s.actionsFile = nil
+		s.mu.Unlock()
 		return fmt.Errorf("capture: open frontend.jsonl: %w", err)
 	}
-
-	// Wrap each file with a bufio.Writer to batch small event writes into
-	// fewer syscalls. All three writers are flushed + synced in Stop().
 	s.rrwebBuf = bufio.NewWriter(s.rrwebFile)
 	s.actionsBuf = bufio.NewWriter(s.actionsFile)
 	s.httpBuf = bufio.NewWriter(s.httpFile)
@@ -109,91 +217,187 @@ func (s *ExtensionServer) Start(ctx context.Context, directory string) error {
 		}
 		addr = fmt.Sprintf("127.0.0.1:%d", port)
 	}
-
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		_ = s.rrwebFile.Close()
-		_ = s.actionsFile.Close()
-		_ = s.httpFile.Close()
+		_ = s.closeOutputsLocked()
+		s.mu.Unlock()
 		return fmt.Errorf("capture: start extension listener on %s: %w", addr, err)
 	}
-	s.listener = listener
-	s.actualAddr = listener.Addr().String()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", s.handleWebSocket)
-	mux.HandleFunc("/api/v1/stream/rrweb", s.handleStreamRRWeb)
-	mux.HandleFunc("/api/v1/stream/actions", s.handleStreamActions)
-	mux.HandleFunc("/api/v1/stream/http", s.handleStreamHTTP)
-	mux.HandleFunc("/api/v1/stream/event", s.handleStreamEvent)
+	mux.Handle("/api/v1/stream/rrweb", extensionCORS(http.HandlerFunc(s.handleStreamRRWeb)))
+	mux.Handle("/api/v1/stream/actions", extensionCORS(http.HandlerFunc(s.handleStreamActions)))
+	mux.Handle("/api/v1/stream/http", extensionCORS(http.HandlerFunc(s.handleStreamHTTP)))
+	mux.Handle("/api/v1/stream/event", extensionCORS(http.HandlerFunc(s.handleStreamEvent)))
 
-	s.server = &http.Server{
-		Handler: mux,
-	}
-
+	server := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second}
+	serveDone := make(chan struct{})
+	s.listener = listener
+	s.server = server
+	s.serveDone = serveDone
+	s.actualAddr = listener.Addr().String()
 	s.active.Store(1)
-	srv := s.server // snapshot before goroutine so Stop()'s s.server=nil can't race
+
 	go func() {
-		_ = srv.Serve(listener)
+		defer close(serveDone)
+		if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) && !errors.Is(err, net.ErrClosed) {
+			log.Printf("[warn] ExtensionServer: serve failed: %v", err)
+		}
 	}()
 
-	log.Printf("[debug] ExtensionServer.Start: listening on %s", s.actualAddr)
+	actualAddr := s.actualAddr
+	requireHandshake := s.RequireHandshake
+	startupTimeout := s.StartupTimeout
+	sessionStarted := s.sessionStarted
+	startupErrors := s.startupErrors
+	s.mu.Unlock()
+
+	log.Printf("[debug] ExtensionServer.Start: listening on %s", actualAddr)
+	if !requireHandshake {
+		return nil
+	}
+	if startupTimeout <= 0 {
+		startupTimeout = 12 * time.Second
+	}
+	timer := time.NewTimer(startupTimeout)
+	defer timer.Stop()
+
+	var startErr error
+	select {
+	case <-sessionStarted:
+		log.Printf("[debug] ExtensionServer.Start: extension is recording target %s", s.TargetURL)
+		return nil
+	case err := <-startupErrors:
+		startErr = fmt.Errorf("capture: browser extension could not start recording: %w", err)
+	case <-ctx.Done():
+		startErr = fmt.Errorf("capture: wait for browser extension: %w", ctx.Err())
+	case <-timer.C:
+		startErr = fmt.Errorf("capture: browser extension did not connect and start within %s; install or reload the DAWG extension and keep Chrome/Edge open", startupTimeout)
+	}
+	if stopErr := s.Stop(); stopErr != nil {
+		startErr = errors.Join(startErr, stopErr)
+	}
+	return startErr
+}
+
+// Stop asks connected extensions to stop their producers, waits briefly for
+// their ordered DAWG_SESSION_STOP acknowledgement, then closes every listener
+// and hijacked connection before flushing capture files.
+func (s *ExtensionServer) Stop() error {
+	s.mu.Lock()
+	if s.server == nil {
+		s.mu.Unlock()
+		return nil
+	}
+	if s.stopping {
+		done := s.stopDone
+		s.mu.Unlock()
+		if done != nil {
+			<-done
+		}
+		s.mu.Lock()
+		err := s.stopErr
+		s.mu.Unlock()
+		return err
+	}
+
+	s.stopping = true
+	server := s.server
+	listener := s.listener
+	serveDone := s.serveDone
+	stopDone := s.stopDone
+	clientDrained := s.clientDrained
+	clients := s.snapshotCaptureClientsLocked()
+	s.mu.Unlock()
+
+	log.Printf("[debug] ExtensionServer.Stop: draining %d WebSocket client(s)", len(clients))
+	if len(clients) > 0 && !signalReady(clientDrained) {
+		for _, client := range clients {
+			_ = client.writeMessage("DAWG_COMMAND_STOP", nil)
+		}
+		timer := time.NewTimer(wsDrainTimeout)
+		select {
+		case <-clientDrained:
+		case <-timer.C:
+			log.Printf("[warn] ExtensionServer.Stop: extension drain timed out after %s", wsDrainTimeout)
+		}
+		if !timer.Stop() {
+			select {
+			case <-timer.C:
+			default:
+			}
+		}
+	}
+
+	s.mu.Lock()
+	s.active.Store(0)
+	clients = s.snapshotClientsLocked()
+	s.mu.Unlock()
+
+	var stopErr error
+	if listener != nil {
+		// Serve and Shutdown may win the close race. Either result means the
+		// listener is no longer accepting connections, so Close is idempotent
+		// lifecycle cleanup rather than an error to surface to callers.
+		_ = listener.Close()
+	}
+	for _, client := range clients {
+		_ = client.writeFrame(wsOpcodeClose, []byte{0x03, 0xE8})
+		_ = client.conn.Close()
+	}
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	if err := server.Shutdown(shutdownCtx); err != nil && !errors.Is(err, http.ErrServerClosed) && !errors.Is(err, net.ErrClosed) {
+		stopErr = errors.Join(stopErr, err)
+		_ = server.Close()
+	}
+	cancel()
+	if serveDone != nil {
+		<-serveDone
+	}
+	s.handlers.Wait()
+
+	s.mu.Lock()
+	stopErr = errors.Join(stopErr, s.closeOutputsLocked())
+	s.server = nil
+	s.listener = nil
+	s.serveDone = nil
+	s.connections = nil
+	s.controller = nil
+	s.sessionReady = false
+	s.sessionToken = ""
+	s.actualAddr = ""
+	s.stopping = false
+	s.stopErr = stopErr
+	if stopDone != nil {
+		close(stopDone)
+	}
+	s.mu.Unlock()
+
+	log.Printf("[debug] ExtensionServer.Stop: shutdown complete")
+	return stopErr
+}
+
+func (s *ExtensionServer) snapshotClientsLocked() []*webSocketClient {
+	clients := make([]*webSocketClient, 0, len(s.connections))
+	for client := range s.connections {
+		clients = append(clients, client)
+	}
+	return clients
+}
+
+func (s *ExtensionServer) snapshotCaptureClientsLocked() []*webSocketClient {
+	if s.controller != nil {
+		return []*webSocketClient{s.controller}
+	}
+	if !s.RequireHandshake {
+		return s.snapshotClientsLocked()
+	}
 	return nil
 }
 
-// Stop shuts down the extension ingestion server and closes output files.
-// Stop is idempotent: calling it when the server is not running is a no-op.
-//
-// The shutdown sequence is deliberately structured to avoid a deadlock:
-//
-//  1. We snapshot and clear s.server WITHOUT holding s.mu during Shutdown().
-//     If we held s.mu across Shutdown(), any in-flight WebSocket goroutine
-//     that calls appendJSONL → s.mu.Lock() would deadlock: Shutdown() waits
-//     for active connections to drain, but the goroutine can't drain because
-//     it's blocked on the mutex we're holding.
-//
-//  2. After Shutdown() (or its Close() fallback) returns, we re-acquire s.mu
-//     to flush and close the output files safely.
-func (s *ExtensionServer) Stop() error {
-	// Phase 1: snapshot the server pointer and clear it — no lock held across
-	// the Shutdown call.
-	s.mu.Lock()
-	log.Printf("[debug] ExtensionServer.Stop: shutting down server")
-	server := s.server
-	s.server = nil   // prevents any concurrent Start from seeing stale state
-	s.listener = nil
-	s.mu.Unlock()
-
-	if server == nil {
-		log.Printf("[debug] ExtensionServer.Stop: server already nil, nothing to stop")
-		return nil
-	}
-
-	// Phase 2: shut down the HTTP server.  The listener is closed as the very
-	// first action inside Shutdown(), so no new connections are accepted from
-	// this point.  Existing hijacked WebSocket connections are NOT tracked by
-	// net/http, so Shutdown() will always hit the deadline when a client is
-	// connected.  server.Close() is called as a fallback to force-close any
-	// remaining connections (including hijacked ones via their underlying TCP
-	// sockets registered in the server's internal tracking before Hijack).
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	if err := server.Shutdown(shutdownCtx); err != nil {
-		_ = server.Close()
-	}
-
-	// Phase 3: re-acquire the lock to flush and close output files safely.
-	// appendJSONL calls after this point will see active==0 and discard writes.
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	// Mark inactive before flushing so any in-flight appendJSONL calls that
-	// are waiting on s.mu see the flag and discard their write safely.
-	s.active.Store(0)
-
-	// Flush buffered writers before syncing/closing the underlying files so
-	// we guarantee all captured events are durably on disk — not just in the
-	// kernel page cache.
+func (s *ExtensionServer) closeOutputsLocked() error {
 	var closeErr error
 	for _, pair := range []struct {
 		buf  *bufio.Writer
@@ -204,20 +408,11 @@ func (s *ExtensionServer) Stop() error {
 		{s.httpBuf, s.httpFile},
 	} {
 		if pair.buf != nil {
-			if err := pair.buf.Flush(); err != nil && closeErr == nil {
-				closeErr = err
-			}
+			closeErr = errors.Join(closeErr, pair.buf.Flush())
 		}
 		if pair.file != nil {
-			// Sync before Close to ensure kernel buffers are written to disk.
-			// This is the key durability guarantee, especially important on
-			// Windows where Close() alone does not fsync.
-			if err := pair.file.Sync(); err != nil && closeErr == nil {
-				closeErr = err
-			}
-			if err := pair.file.Close(); err != nil && closeErr == nil {
-				closeErr = err
-			}
+			closeErr = errors.Join(closeErr, pair.file.Sync())
+			closeErr = errors.Join(closeErr, pair.file.Close())
 		}
 	}
 	s.rrwebBuf = nil
@@ -226,18 +421,25 @@ func (s *ExtensionServer) Stop() error {
 	s.rrwebFile = nil
 	s.actionsFile = nil
 	s.httpFile = nil
-
-	log.Printf("[debug] ExtensionServer.Stop: shutdown complete")
 	return closeErr
 }
 
-func (s *ExtensionServer) appendJSONL(buf *bufio.Writer, data []byte) error {
+func (s *ExtensionServer) appendJSONL(target streamTarget, data []byte) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	// Double-check the active flag after acquiring the lock so writes that
-	// raced with Stop() are safely discarded rather than writing to a nil buf.
+	var buf *bufio.Writer
+	switch target {
+	case streamRRWeb:
+		buf = s.rrwebBuf
+	case streamActions:
+		buf = s.actionsBuf
+	case streamHTTP:
+		buf = s.httpBuf
+	default:
+		return fmt.Errorf("capture: unknown extension stream")
+	}
 	if s.active.Load() == 0 || buf == nil {
-		return fmt.Errorf("output file closed")
+		return fmt.Errorf("capture: extension output is closed")
 	}
 	if len(data) == 0 {
 		return nil
@@ -250,44 +452,31 @@ func (s *ExtensionServer) appendJSONL(buf *bufio.Writer, data []byte) error {
 }
 
 func (s *ExtensionServer) handleStreamRRWeb(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	_ = s.appendJSONL(s.rrwebBuf, body)
-	w.WriteHeader(http.StatusOK)
+	s.handleRawStream(w, r, streamRRWeb)
 }
 
 func (s *ExtensionServer) handleStreamActions(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	_ = s.appendJSONL(s.actionsBuf, body)
-	w.WriteHeader(http.StatusOK)
+	s.handleRawStream(w, r, streamActions)
 }
 
 func (s *ExtensionServer) handleStreamHTTP(w http.ResponseWriter, r *http.Request) {
+	s.handleRawStream(w, r, streamHTTP)
+}
+
+func (s *ExtensionServer) handleRawStream(w http.ResponseWriter, r *http.Request, target streamTarget) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	body, err := io.ReadAll(r.Body)
+	body, err := readLimitedBody(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	_ = s.appendJSONL(s.httpBuf, body)
+	if err := s.appendJSONL(target, body); err != nil {
+		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -296,150 +485,394 @@ func (s *ExtensionServer) handleStreamEvent(w http.ResponseWriter, r *http.Reque
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	body, err := io.ReadAll(r.Body)
+	body, err := readLimitedBody(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	s.processEventPayload(body)
+	if err := s.processEventPayload(body, nil); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
-type streamEnvelope struct {
-	Type string          `json:"type"`
-	Data json.RawMessage `json:"data"`
+func extensionCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if origin != "" {
+			if !strings.HasPrefix(origin, "chrome-extension://") {
+				http.Error(w, "capture: request origin is not a browser extension", http.StatusForbidden)
+				return
+			}
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Vary", "Origin")
+		}
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Private-Network", "true")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
-func (s *ExtensionServer) processEventPayload(rawPayload []byte) {
-	var env streamEnvelope
-	if err := json.Unmarshal(rawPayload, &env); err != nil {
-		log.Printf("[debug] processEventPayload: json unmarshal error: %v", err)
+func readLimitedBody(reader io.Reader) ([]byte, error) {
+	body, err := io.ReadAll(io.LimitReader(reader, maxStreamBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("capture: read extension event: %w", err)
+	}
+	if len(body) > maxStreamBytes {
+		return nil, fmt.Errorf("capture: extension event exceeds %d bytes", maxStreamBytes)
+	}
+	return body, nil
+}
+
+type streamEnvelope struct {
+	Type         string          `json:"type"`
+	Data         json.RawMessage `json:"data"`
+	SessionToken string          `json:"sessionToken"`
+}
+
+func (s *ExtensionServer) processEventPayload(rawPayload []byte, client *webSocketClient) error {
+	var envelope streamEnvelope
+	if err := json.Unmarshal(rawPayload, &envelope); err != nil {
+		return fmt.Errorf("capture: decode extension event: %w", err)
+	}
+	switch envelope.Type {
+	case "DAWG_EXTENSION_READY":
+		if client == nil {
+			return fmt.Errorf("capture: extension ready handshake requires WebSocket transport")
+		}
+		var ready struct {
+			IsRecording  bool   `json:"isRecording"`
+			SessionToken string `json:"sessionToken"`
+		}
+		_ = json.Unmarshal(envelope.Data, &ready)
+		s.mu.Lock()
+		if s.sessionReady && ready.IsRecording && ready.SessionToken == s.sessionToken {
+			s.controller = client
+		}
+		if !s.sessionReady && s.controller == nil {
+			s.controller = client
+		}
+		shouldStart := s.RequireHandshake && !s.sessionReady && s.controller == client
+		targetURL := s.TargetURL
+		sessionToken := s.sessionToken
+		s.mu.Unlock()
+		if shouldStart {
+			log.Printf("[debug] ExtensionServer: commanding extension to record %s", targetURL)
+			return client.writeMessage("DAWG_COMMAND_START", map[string]string{"targetUrl": targetURL, "sessionToken": sessionToken})
+		}
+		return nil
+	case "DAWG_RRWEB_EVENT":
+		if !s.validSessionEnvelope(envelope, client) {
+			return nil
+		}
+		return s.appendJSONL(streamRRWeb, envelope.Data)
+	case "DAWG_ACTION_EVENT":
+		if !s.validSessionEnvelope(envelope, client) {
+			return nil
+		}
+		return s.appendJSONL(streamActions, envelope.Data)
+	case "DAWG_HTTP_EVENT":
+		if !s.validSessionEnvelope(envelope, client) {
+			return nil
+		}
+		return s.appendJSONL(streamHTTP, envelope.Data)
+	case "DAWG_SESSION_START":
+		if !s.validSessionEnvelope(envelope, client) {
+			return nil
+		}
+		var details struct {
+			TargetURL string `json:"targetUrl"`
+		}
+		_ = json.Unmarshal(envelope.Data, &details)
+		if s.RequireHandshake && details.TargetURL != s.TargetURL {
+			if client != nil {
+				_ = client.writeMessage("DAWG_COMMAND_STOP", nil)
+			}
+			s.signalStartupError(fmt.Errorf("extension acknowledged target %q instead of %q", details.TargetURL, s.TargetURL))
+			return nil
+		}
+		log.Printf("[debug] ExtensionServer: session start handshake received")
+		s.mu.Lock()
+		if client != nil {
+			s.controller = client
+		}
+		s.sessionReady = true
+		started := s.sessionStarted
+		s.mu.Unlock()
+		nonBlockingSignal(started)
+		return nil
+	case "DAWG_SESSION_ERROR":
+		if !s.validSessionEnvelope(envelope, client) {
+			return nil
+		}
+		var details struct {
+			Message string `json:"message"`
+		}
+		if err := json.Unmarshal(envelope.Data, &details); err != nil || strings.TrimSpace(details.Message) == "" {
+			details.Message = "unknown extension error"
+		}
+		s.signalStartupError(errors.New(details.Message))
+		s.signalClientDrained()
+		return nil
+	case "DAWG_SESSION_STOP":
+		if !s.validSessionEnvelope(envelope, client) {
+			return nil
+		}
+		log.Printf("[debug] ExtensionServer: session stop handshake received")
+		if client != nil {
+			_ = client.writeMessage("DAWG_SESSION_STOP_ACK", nil)
+		}
+		s.signalClientDrained()
+		s.signalStopRequested()
+		return nil
+	case "DAWG_KEEPALIVE":
+		return nil
+	default:
+		return fmt.Errorf("capture: unknown extension event type %q", envelope.Type)
+	}
+}
+
+func (s *ExtensionServer) validSessionEnvelope(envelope streamEnvelope, client *webSocketClient) bool {
+	if !s.RequireHandshake {
+		return true
+	}
+	s.mu.Lock()
+	validToken := envelope.SessionToken != "" && envelope.SessionToken == s.sessionToken
+	validClient := client == nil || s.controller == nil || client == s.controller
+	s.mu.Unlock()
+	if !validToken || !validClient {
+		log.Printf("[warn] ExtensionServer: ignored %s from an unclaimed extension session", envelope.Type)
+		return false
+	}
+	return true
+}
+
+func (s *ExtensionServer) signalStartupError(err error) {
+	if err == nil {
 		return
 	}
-	log.Printf("[debug] processEventPayload: received type=%s", env.Type)
-	switch env.Type {
-	case "DAWG_RRWEB_EVENT":
-		_ = s.appendJSONL(s.rrwebBuf, env.Data)
-	case "DAWG_ACTION_EVENT":
-		_ = s.appendJSONL(s.actionsBuf, env.Data)
-	case "DAWG_HTTP_EVENT":
-		_ = s.appendJSONL(s.httpBuf, env.Data)
-	case "DAWG_SESSION_START":
-		log.Printf("[debug] processEventPayload: extension session start handshake received")
-	case "DAWG_SESSION_STOP":
-		log.Printf("[debug] processEventPayload: extension session stop handshake received")
+	s.mu.Lock()
+	startupErrors := s.startupErrors
+	s.mu.Unlock()
+	select {
+	case startupErrors <- err:
 	default:
-		log.Printf("[debug] processEventPayload: unknown event type=%s", env.Type)
+	}
+}
+
+func (s *ExtensionServer) signalClientDrained() {
+	s.mu.Lock()
+	channel := s.clientDrained
+	s.mu.Unlock()
+	nonBlockingSignal(channel)
+}
+
+func (s *ExtensionServer) signalStopRequested() {
+	s.mu.Lock()
+	channel := s.stopRequests
+	s.mu.Unlock()
+	nonBlockingSignal(channel)
+}
+
+func nonBlockingSignal(channel chan struct{}) {
+	if channel == nil {
+		return
+	}
+	select {
+	case channel <- struct{}{}:
+	default:
+	}
+}
+
+func signalReady(channel <-chan struct{}) bool {
+	if channel == nil {
+		return false
+	}
+	select {
+	case <-channel:
+		return true
+	default:
+		return false
+	}
+}
+
+func drainSignal(channel chan struct{}) {
+	for {
+		select {
+		case <-channel:
+		default:
+			return
+		}
 	}
 }
 
 func (s *ExtensionServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Upgrade") != "websocket" {
+	if !strings.EqualFold(r.Header.Get("Upgrade"), "websocket") {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
+	if origin := r.Header.Get("Origin"); origin != "" && !strings.HasPrefix(origin, "chrome-extension://") {
+		http.Error(w, "capture: WebSocket origin is not a browser extension", http.StatusForbidden)
+		return
+	}
 	secKey := r.Header.Get("Sec-WebSocket-Key")
 	if secKey == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	h := sha1.New()
-	h.Write([]byte(secKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
-	acceptKey := base64.StdEncoding.EncodeToString(h.Sum(nil))
-
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
 	conn, buf, err := hijacker.Hijack()
 	if err != nil {
 		return
 	}
+	client := &webSocketClient{conn: conn, writer: buf}
 	defer conn.Close()
 
+	hash := sha1.Sum([]byte(secKey + webSocketGUID))
 	response := "HTTP/1.1 101 Switching Protocols\r\n" +
 		"Upgrade: websocket\r\n" +
 		"Connection: Upgrade\r\n" +
-		"Sec-WebSocket-Accept: " + acceptKey + "\r\n\r\n"
+		"Sec-WebSocket-Accept: " + base64.StdEncoding.EncodeToString(hash[:]) + "\r\n\r\n"
 	if _, err := buf.WriteString(response); err != nil {
 		return
 	}
-	_ = buf.Flush()
+	if err := buf.Flush(); err != nil {
+		return
+	}
 
-	log.Printf("[debug] handleWebSocket: extension client connected from %s", r.RemoteAddr)
-	s.readWebSocketFrames(buf, conn)
-	log.Printf("[debug] handleWebSocket: extension client disconnected from %s", r.RemoteAddr)
+	s.mu.Lock()
+	if s.active.Load() == 0 || s.stopping {
+		s.mu.Unlock()
+		return
+	}
+	s.connections[client] = struct{}{}
+	s.handlers.Add(1)
+	s.mu.Unlock()
+	defer func() {
+		s.mu.Lock()
+		delete(s.connections, client)
+		if s.controller == client {
+			s.controller = nil
+		}
+		var drained chan struct{}
+		if s.stopping && len(s.connections) == 0 {
+			drained = s.clientDrained
+		}
+		s.mu.Unlock()
+		nonBlockingSignal(drained)
+		s.handlers.Done()
+	}()
+
+	log.Printf("[debug] ExtensionServer: WebSocket client connected from %s", r.RemoteAddr)
+	s.readWebSocketFrames(buf, client)
+	log.Printf("[debug] ExtensionServer: WebSocket client disconnected from %s", r.RemoteAddr)
 }
 
-// readWebSocketFrames reads frames from a hijacked WebSocket connection.
-// conn is used to set a per-frame read deadline so the loop is interruptible:
-// once server.Close() is called during Stop(), the deadline fires immediately
-// (SetReadDeadline on a closed conn returns an error on the next Read) and the
-// goroutine exits cleanly, allowing the deferred conn.Close() in
-// handleWebSocket to run and release all resources.
-func (s *ExtensionServer) readWebSocketFrames(reader *bufio.ReadWriter, conn net.Conn) {
+func (s *ExtensionServer) readWebSocketFrames(reader *bufio.ReadWriter, client *webSocketClient) {
+	var fragmented []byte
+	var fragmentedOpcode byte
 	for {
-		// Refresh the deadline before every frame read. This means a client
-		// that silently disappears (no TCP FIN, no WS Close frame) is detected
-		// within wsReadTimeout rather than blocking forever.
-		if err := conn.SetReadDeadline(time.Now().Add(wsReadTimeout)); err != nil {
+		if err := client.conn.SetReadDeadline(time.Now().Add(wsReadTimeout)); err != nil {
+			return
+		}
+		fin, opcode, payload, err := readClientFrame(reader)
+		if err != nil {
 			return
 		}
 
-		header := make([]byte, 2)
-		if _, err := io.ReadFull(reader, header); err != nil {
+		switch opcode {
+		case wsOpcodeClose:
+			_ = client.writeFrame(wsOpcodeClose, payload)
 			return
-		}
-
-		fin := (header[0] & 0x80) != 0
-		opcode := header[0] & 0x0F
-		masked := (header[1] & 0x80) != 0
-		payloadLen := uint64(header[1] & 0x7F)
-
-		if opcode == 8 { // Close frame
-			return
-		}
-
-		switch payloadLen {
-		case 126:
-			extended := make([]byte, 2)
-			if _, err := io.ReadFull(reader, extended); err != nil {
+		case wsOpcodePing:
+			_ = client.writeFrame(wsOpcodePong, payload)
+			continue
+		case wsOpcodePong:
+			continue
+		case wsOpcodeText, wsOpcodeBinary:
+			if fragmentedOpcode != 0 {
 				return
 			}
-			payloadLen = uint64(binary.BigEndian.Uint16(extended))
-		case 127:
-			extended := make([]byte, 8)
-			if _, err := io.ReadFull(reader, extended); err != nil {
+			if fin {
+				if err := s.processEventPayload(payload, client); err != nil {
+					log.Printf("[warn] ExtensionServer: rejected event: %v", err)
+				}
+				continue
+			}
+			fragmentedOpcode = opcode
+			fragmented = append(fragmented[:0], payload...)
+		case wsOpcodeContinue:
+			if fragmentedOpcode == 0 || len(fragmented)+len(payload) > maxStreamBytes {
 				return
 			}
-			payloadLen = binary.BigEndian.Uint64(extended)
-		}
-
-		var maskKey []byte
-		if masked {
-			maskKey = make([]byte, 4)
-			if _, err := io.ReadFull(reader, maskKey); err != nil {
-				return
+			fragmented = append(fragmented, payload...)
+			if fin {
+				if err := s.processEventPayload(fragmented, client); err != nil {
+					log.Printf("[warn] ExtensionServer: rejected fragmented event: %v", err)
+				}
+				fragmented = nil
+				fragmentedOpcode = 0
 			}
-		}
-
-		payload := make([]byte, payloadLen)
-		if _, err := io.ReadFull(reader, payload); err != nil {
+		default:
 			return
-		}
-
-		if masked {
-			for i := uint64(0); i < payloadLen; i++ {
-				payload[i] ^= maskKey[i%4]
-			}
-		}
-
-		if fin && (opcode == 1 || opcode == 2) {
-			s.processEventPayload(payload)
 		}
 	}
+}
+
+func readClientFrame(reader io.Reader) (bool, byte, []byte, error) {
+	var header [2]byte
+	if _, err := io.ReadFull(reader, header[:]); err != nil {
+		return false, 0, nil, err
+	}
+	fin := header[0]&0x80 != 0
+	opcode := header[0] & 0x0F
+	masked := header[1]&0x80 != 0
+	if !masked {
+		return false, 0, nil, fmt.Errorf("capture: unmasked WebSocket client frame")
+	}
+	payloadLength := uint64(header[1] & 0x7F)
+	switch payloadLength {
+	case 126:
+		var extended [2]byte
+		if _, err := io.ReadFull(reader, extended[:]); err != nil {
+			return false, 0, nil, err
+		}
+		payloadLength = uint64(binary.BigEndian.Uint16(extended[:]))
+	case 127:
+		var extended [8]byte
+		if _, err := io.ReadFull(reader, extended[:]); err != nil {
+			return false, 0, nil, err
+		}
+		payloadLength = binary.BigEndian.Uint64(extended[:])
+	}
+	if payloadLength > maxStreamBytes {
+		return false, 0, nil, fmt.Errorf("capture: WebSocket payload exceeds %d bytes", maxStreamBytes)
+	}
+	if opcode >= wsOpcodeClose && (!fin || payloadLength > 125) {
+		return false, 0, nil, fmt.Errorf("capture: invalid WebSocket control frame")
+	}
+
+	var mask [4]byte
+	if _, err := io.ReadFull(reader, mask[:]); err != nil {
+		return false, 0, nil, err
+	}
+	payload := make([]byte, int(payloadLength))
+	if _, err := io.ReadFull(reader, payload); err != nil {
+		return false, 0, nil, err
+	}
+	for index := range payload {
+		payload[index] ^= mask[index%len(mask)]
+	}
+	return fin, opcode, payload, nil
 }
