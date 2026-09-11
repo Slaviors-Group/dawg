@@ -1,5 +1,4 @@
-// import { Separator } from "./ui/Separator";
-import { Cube, Flask, PlayCircle, WarningCircle } from "@phosphor-icons/react";
+import { Cube, Flask, Info, PlayCircle, StopCircle } from "@phosphor-icons/react";
 import type React from "react";
 import { useMemo, useState } from "react";
 import { useEngine } from "../context/EngineContext";
@@ -10,13 +9,6 @@ import { Card, CardHeader, CardTitle } from "./ui/Card";
 import { EmptyState } from "./ui/EmptyState";
 import { PageShell } from "./ui/PageShell";
 import { Select } from "./ui/Select";
-// import { Separator } from "./ui/Separator";
-import {
-  PlayCircle,
-  Info,
-  Cube,
-  Flask,
-} from "@phosphor-icons/react";
 
 // The desktop shell has no reliable IPC signal for host OS yet, so this is a
 // best-effort UI hint only. The engine itself is the source of truth: it
@@ -28,6 +20,7 @@ export const ReplayViewer: React.FC = () => {
   const { artifacts, addLogLine } = useEngine();
   const [selectedArtifact, setSelectedArtifact] = useState("");
   const [isReplaying, setIsReplaying] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const sandboxStatus = useMemo(() => {
     if (isWindows) {
@@ -50,15 +43,38 @@ export const ReplayViewer: React.FC = () => {
     addLogLine(`Triggering replay for artifact: ${selectedArtifact}`);
     try {
       const result = await engine.runReplay({ artifact: selectedArtifact });
-      addLogLine(`Replay ${result.status} for ${result.artifact_id}.`);
+      addLogLine(`Replay ${result.status} for ${result.artifactId}.`);
+      const appLogs = result.outcomes?.appLogs?.trim();
+      if (appLogs) {
+        for (const line of appLogs.split("\n")) {
+          if (line.trim()) addLogLine(`[replay] ${line}`);
+        }
+      }
       const screenshot = result.outcomes?.screenshots?.[0];
       if (screenshot) {
         addLogLine(`Final screenshot: ${screenshot}`);
       }
     } catch (err) {
-      addLogLine(`[ERROR] Replay failed: ${String(err)}`);
+      if (String(err).includes("cancelled by user")) {
+        addLogLine("Replay stopped by user.");
+      } else {
+        addLogLine(`[ERROR] Replay failed: ${String(err)}`);
+      }
     } finally {
       setIsReplaying(false);
+    }
+  };
+
+  const handleCancelReplay = async () => {
+    if (!isReplaying || isCancelling) return;
+    setIsCancelling(true);
+    addLogLine("Stopping replay — terminating browser and engine process...");
+    try {
+      await engine.cancelReplay();
+    } catch (err) {
+      addLogLine(`[ERROR] Failed to stop replay: ${String(err)}`);
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -96,6 +112,19 @@ export const ReplayViewer: React.FC = () => {
             >
               {isReplaying ? "Replaying..." : "Run Replay"}
             </Button>
+
+            {isReplaying && (
+              <Button
+                type="button"
+                variant="danger"
+                onClick={handleCancelReplay}
+                disabled={isCancelling}
+                loading={isCancelling}
+                iconLeft={<StopCircle size={16} />}
+              >
+                {isCancelling ? "Stopping..." : "Stop Replay"}
+              </Button>
+            )}
           </div>
         </div>
       </Card>

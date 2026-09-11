@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DAWG Capture</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div class="logo">
+        <span class="icon">🐶</span>
+        <h1>DAWG Capture</h1>
+      </div>
+      <div id="statusBadge" class="badge status-idle">Idle</div>
+    </div>
+
+    <div class="content">
+      <div class="info-box" id="infoBox">
+        <p>Start a capture from the DAWG desktop app.</p>
+      </div>
+
+      <div class="actions">
+        <button id="btnStop" class="btn btn-danger hidden">Stop Recording</button>
+      </div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

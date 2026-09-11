@@ -2,12 +2,14 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestRootCommandPrintsHelp(t *testing.T) {
@@ -36,6 +38,7 @@ func TestRootCommandRejectsUnknownOutput(t *testing.T) {
 
 func TestInitCreatesDefaultConfig(t *testing.T) {
 	directory := t.TempDir()
+	t.Setenv("DAWG_STATE_DIR", t.TempDir())
 	command := newRootCommand()
 	buffer := new(bytes.Buffer)
 	command.SetOut(buffer)
@@ -63,6 +66,7 @@ func TestInitCreatesDefaultConfig(t *testing.T) {
 
 func TestInitRefusesToOverwriteWithoutForce(t *testing.T) {
 	directory := t.TempDir()
+	t.Setenv("DAWG_STATE_DIR", t.TempDir())
 	configPath := filepath.Join(directory, configFileName)
 	if err := os.WriteFile(configPath, []byte("existing"), 0o600); err != nil {
 		t.Fatalf("write existing config: %v", err)
@@ -85,6 +89,7 @@ func TestInitRefusesToOverwriteWithoutForce(t *testing.T) {
 
 func TestInitForceOverwritesConfig(t *testing.T) {
 	directory := t.TempDir()
+	t.Setenv("DAWG_STATE_DIR", t.TempDir())
 	configPath := filepath.Join(directory, configFileName)
 	if err := os.WriteFile(configPath, []byte("existing"), 0o600); err != nil {
 		t.Fatalf("write existing config: %v", err)
@@ -115,6 +120,44 @@ func TestCaptureStopReportsMissingControlFile(t *testing.T) {
 	}
 }
 
+func TestCaptureDaemonArgumentsUseExtensionCapture(t *testing.T) {
+	arguments := daemonArguments(captureStartRequest{
+		TargetURL:  "http://127.0.0.1:3000",
+		ResultFile: filepath.Join(t.TempDir(), "capture-result.json"),
+	}, t.TempDir())
+	joined := strings.Join(arguments, " ")
+	if strings.Contains(joined, "playwright") || strings.Contains(joined, "cdp-endpoint") || strings.Contains(joined, "proxy-addon") {
+		t.Fatalf("extension capture inherited a legacy browser/proxy argument: %v", arguments)
+	}
+	if !strings.Contains(joined, "--url http://127.0.0.1:3000") || !strings.Contains(joined, "--result-file") {
+		t.Fatalf("daemon arguments omitted extension capture state: %v", arguments)
+	}
+}
+
+func TestWaitForControlStateReportsDaemonStartupFailure(t *testing.T) {
+	directory := t.TempDir()
+	resultPath := filepath.Join(directory, "result.json")
+	contents, err := json.Marshal(captureResultState{
+		Status:    "error",
+		SessionID: "session-1",
+		Error:     "browser extension did not connect",
+	})
+	if err != nil {
+		t.Fatalf("serialize result: %v", err)
+	}
+	if err := os.WriteFile(resultPath, contents, 0o600); err != nil {
+		t.Fatalf("write result: %v", err)
+	}
+
+	_, err = waitForControlState(context.Background(), filepath.Join(directory, "control.json"), resultPath, "session-1", time.Second)
+	if err == nil || !strings.Contains(err.Error(), "browser extension did not connect") {
+		t.Fatalf("expected daemon startup failure, got %v", err)
+	}
+	if _, statErr := os.Stat(resultPath); !os.IsNotExist(statErr) {
+		t.Fatalf("startup result was not consumed: %v", statErr)
+	}
+}
+
 func TestInspectReturnsValidatedManifestJSON(t *testing.T) {
 	directory := t.TempDir()
 	fixturePath := filepath.Join("..", "..", "internal", "manifest", "testdata", "valid.json")
@@ -136,7 +179,7 @@ func TestInspectReturnsValidatedManifestJSON(t *testing.T) {
 	if err := json.Unmarshal(buffer.Bytes(), &value); err != nil {
 		t.Fatalf("decode inspect output: %v", err)
 	}
-	if value["schemaVersion"] != "0.1.3-alpha" || value["title"] == "" {
+	if value["schemaVersion"] != "0.2.0-naughty" || value["title"] == "" {
 		t.Fatalf("unexpected inspect output: %#v", value)
 	}
 }

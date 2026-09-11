@@ -14,7 +14,7 @@ import (
 
 const configFileName = "dawg.config.yaml"
 
-const defaultConfig = `schemaVersion: "0.1.3-alpha"
+const defaultConfig = `schemaVersion: "0.2.0-naughty"
 capture:
   outputDir: %q
   browser: "chromium"
@@ -95,7 +95,7 @@ func initializeConfig(directory string, force bool) (initResult, error) {
 		return initResult{Status: "created", ConfigPath: configPath}, nil
 	}
 
-	if err := os.WriteFile(configPath, []byte(fmt.Sprintf(defaultConfig, captureDir, defaultDawgDir("policies", "default.rego"))), 0o600); err != nil {
+	if err := os.WriteFile(configPath, fmt.Appendf(nil, defaultConfig, captureDir, defaultDawgDir("policies", "default.rego")), 0o600); err != nil {
 		return initResult{}, fmt.Errorf("init: overwrite config %s: %w", configPath, err)
 	}
 	if err := os.WriteFile(defaultDawgDir("policies", "default.rego"), []byte(defaultPolicy), 0o644); err != nil {

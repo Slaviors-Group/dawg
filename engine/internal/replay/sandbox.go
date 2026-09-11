@@ -4,6 +4,7 @@ package replay
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"runtime"
@@ -39,10 +40,11 @@ type Sandbox struct {
 }
 
 // Start verifies sandbox prerequisites and starts a digest-pinned Compose project.
+// On Windows, sandbox isolation via Docker Compose is not required — replay
+// runs natively and this method is a no-op.
 func (sandbox Sandbox) Start(ctx context.Context, composeFile, projectName string) error {
 	if runtime.GOOS == "windows" {
-		// Log a warning that we are bypassing Docker and running natively (Native Sandbox mock mode)
-		fmt.Println("WARNING: Running in Native Sandbox mode (Docker compose bypassed on Windows).")
+		log.Printf("[debug] Sandbox.Start: skipped on Windows (native mode, no Docker required)")
 		return nil
 	}
 	if sandbox.Runner == nil || composeFile == "" || projectName == "" {
@@ -70,6 +72,7 @@ func (sandbox Sandbox) Start(ctx context.Context, composeFile, projectName strin
 }
 
 // Teardown removes a replay project, its volumes, and orphaned containers.
+// On Windows, this is a no-op because Start() never launched a Docker project.
 func (sandbox Sandbox) Teardown(ctx context.Context, composeFile, projectName string) error {
 	if runtime.GOOS == "windows" {
 		return nil

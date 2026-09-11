@@ -82,6 +82,42 @@ func fixtureArguments(_ ProxyCaptureRequest, addonPath string) []string {
 	return []string{addonPath}
 }
 
+func TestProxyManagerIdempotentStop(t *testing.T) {
+	// Calling Stop() when the proxy was never started must return nil — not an
+	// error — so that a crashed proxy doesn't surface a spurious "stop error"
+	// to the user when Stop() is called during session cleanup.
+	manager := &ProxyManager{}
+	if err := manager.Stop(); err != nil {
+		t.Fatalf("Stop on never-started proxy: expected nil, got %v", err)
+	}
+
+	// A second Stop after a successful Stop must also be nil.
+	root := t.TempDir()
+	fixture := writeProxyFixture(t, root, `
+console.log(JSON.stringify({status: "capturing"}));
+setInterval(() => {}, 1000);
+`)
+	running := ProxyManager{
+		Executable:     "node",
+		AddonPath:      fixture,
+		Arguments:      fixtureArguments,
+		StartupTimeout: time.Second,
+		StopTimeout:    time.Second,
+	}
+	if err := running.Start(context.Background(), ProxyCaptureRequest{
+		ListenPort:       availablePort(t),
+		SessionDirectory: filepath.Join(root, "session"),
+	}); err != nil {
+		t.Fatalf("start proxy: %v", err)
+	}
+	if err := running.Stop(); err != nil {
+		t.Fatalf("first stop: %v", err)
+	}
+	if err := running.Stop(); err != nil {
+		t.Fatalf("second stop (idempotent): expected nil, got %v", err)
+	}
+}
+
 func productionProxyAddon(t *testing.T) string {
 	t.Helper()
 	_, currentFile, _, ok := runtime.Caller(0)
@@ -90,3 +126,5 @@ func productionProxyAddon(t *testing.T) string {
 	}
 	return filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", "..", "scripts", "capture-proxy.py"))
 }
+
+

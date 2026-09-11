@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if [ -x /usr/bin/find ]; then
+  SYSTEM_FIND=/usr/bin/find
+elif [ -x /bin/find ]; then
+  SYSTEM_FIND=/bin/find
+else
+  echo "DAWG linuxdeploy shim: system find executable not found" >&2
+  exit 127
+fi
+
+# Tauri's GTK linuxdeploy plugin expands /usr/lib* and copies every matching
+# libgiognutls.so. On multilib x86_64 Fedora, /usr/lib is i386 while /usr/lib64
+# is x86_64. Feeding both to the x86_64 linuxdeploy process makes ldd fail and
+# aborts AppImage creation. Narrow this one plugin query to native lib roots;
+# every other find invocation is passed through unchanged.
+if [ "$(uname -m)" = x86_64 ]; then
+  is_gio_query=false
+  for argument in "$@"; do
+    if [ "${argument}" = libgiognutls.so ]; then
+      is_gio_query=true
+      break
+    fi
+  done
+
+  if [ "${is_gio_query}" = true ]; then
+    filtered_arguments=()
+    for argument in "$@"; do
+      case "${argument}" in
+        /usr/lib|/usr/lib32|/usr/lib/i386-linux-gnu)
+          ;;
+        *)
+          filtered_arguments+=("${argument}")
+          ;;
+      esac
+    done
+    exec "${SYSTEM_FIND}" "${filtered_arguments[@]}"
+  fi
+fi
+
+exec "${SYSTEM_FIND}" "$@"

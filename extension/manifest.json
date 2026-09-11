@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "minimum_chrome_version": "116",
+  "name": "DAWG Browser Extension",
+  "version": "0.2.0",
+  "description": "Captures DOM events and frontend network traffic directly for DAWG bug reporting.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "webRequest",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background/service_worker.js"
+  },
+  "incognito": "spanning",
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "DAWG Capture",
+    "default_icon": {
+      "32": "icons/32x32.png",
+      "64": "icons/64x64.png",
+      "128": "icons/128x128.png"
+    }
+  },
+  "icons": {
+    "32": "icons/32x32.png",
+    "64": "icons/64x64.png",
+    "128": "icons/128x128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "lib/rrweb.min.js",
+        "content/recorder.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "version_name": "0.2_naughty"
+}

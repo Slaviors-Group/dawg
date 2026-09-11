@@ -39,6 +39,9 @@ export interface StartCaptureResult {
   status: "capturing";
   sessionId: string;
   sessionPath: string;
+  controlFile: string;
+  resultFile: string;
+  daemonPid: number;
 }
 
 export interface StopCaptureOptions {
@@ -46,8 +49,10 @@ export interface StopCaptureOptions {
 }
 
 export interface StopCaptureResult {
-  status: "stopping";
+  status: "packaged";
   controlFile: string;
+  sessionId?: string;
+  artifactPath?: string;
 }
 
 export interface InspectOptions {
@@ -72,17 +77,24 @@ export interface RunReplayOptions {
 }
 
 export interface RunReplayResult {
-  artifact_id: string;
+  // Field names below intentionally match the engine's actual camelCase
+  // JSON output (see dawgtypes.ReplayOutput / ReplayOutcomes in the Go
+  // engine), not snake_case - the engine never emits snake_case keys.
+  artifactId: string;
   status: "started" | "completed" | "failed";
-  replayed_at: string;
+  replayedAt: string;
   sandbox?: {
-    compose_project: string;
-    container_id: string;
+    composeProject: string;
+    containerId: string;
   };
   outcomes?: {
-    exit_code: number;
+    exitCode: number;
     screenshots?: string[];
-    http_responses?: string;
+    httpResponses?: string;
+    /** Combined stdout+stderr from replay-browser.cjs, always populated
+     * (even on success) so a visually blank replay can be diagnosed from
+     * the Execution Logs without digging through temp files. */
+    appLogs?: string;
   };
   [key: string]: unknown;
 }
@@ -169,6 +181,20 @@ export class EngineBridge {
     } catch (err) {
       console.warn("Tauri engine IPC fallback:", err);
       throw new Error(`Engine runReplay failed: ${String(err)}`);
+    }
+  }
+
+  /**
+   * Force-kills an in-flight `run_replay` invocation (and its underlying
+   * node/Chromium/mitmdump process tree) started by this session. Returns
+   * true if a replay was actually running and got cancelled.
+   */
+  async cancelReplay(): Promise<boolean> {
+    try {
+      return await invoke<boolean>("cancel_replay");
+    } catch (err) {
+      console.warn("Tauri engine IPC fallback:", err);
+      throw new Error(`Engine cancelReplay failed: ${String(err)}`);
     }
   }
 

@@ -3,6 +3,7 @@ package dawgenv
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -130,7 +131,7 @@ func ResolveNode() string {
 	return exeName
 }
 
-// ResolveScript locates an engine script (e.g. capture-browser.cjs, capture-proxy.py, replay-browser.cjs).
+// ResolveScript locates an engine script (currently replay-browser.cjs).
 func ResolveScript(name string) string {
 	res := ResourceDir()
 	candidates := []string{
@@ -186,6 +187,31 @@ func ResolvePolicy() string {
 	}
 
 	return "schema/policies/default.rego"
+}
+
+// ResolveExtensionManifest locates the installable MV3 browser extension that
+// ships beside the desktop resources (and in the repository during development).
+func ResolveExtensionManifest() string {
+	res := ResourceDir()
+	candidates := []string{
+		filepath.Join(res, "extension", "manifest.json"),
+		filepath.Join(res, "..", "extension", "manifest.json"),
+		filepath.Join("extension", "manifest.json"),
+		filepath.Join("..", "extension", "manifest.json"),
+	}
+	if exe, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exe)
+		candidates = append(candidates,
+			filepath.Join(exeDir, "resources", "extension", "manifest.json"),
+			filepath.Join(exeDir, "extension", "manifest.json"),
+		)
+	}
+	for _, candidate := range candidates {
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			return candidate
+		}
+	}
+	return filepath.Join(res, "extension", "manifest.json")
 }
 
 // ResolveSchema locates the manifest schema JSON.
@@ -244,6 +270,9 @@ func ResolveBrowsersDir() string {
 		filepath.Join(res, "node_modules", "playwright-core", ".local-browsers"),
 		filepath.Join(res, "node_modules", "playwright", ".local-browsers"),
 	}
+	if cacheDirectory, err := os.UserCacheDir(); err == nil {
+		candidates = append(candidates, filepath.Join(cacheDirectory, "ms-playwright"))
+	}
 
 	for _, candidate := range candidates {
 		if info, err := os.Stat(candidate); err == nil && info.IsDir() {
@@ -251,6 +280,45 @@ func ResolveBrowsersDir() string {
 		}
 	}
 
+	return ""
+}
+
+// ResolveChromiumExecutable finds the browser installed by Playwright without
+// assuming that Google Chrome is separately installed on the host.
+func ResolveChromiumExecutable() string {
+	if executable := os.Getenv("DAWG_CHROMIUM_EXECUTABLE_PATH"); executable != "" {
+		return executable
+	}
+	browsersDirectory := ResolveBrowsersDir()
+	if browsersDirectory == "" {
+		return ""
+	}
+	var relativePatterns []string
+	switch runtime.GOOS {
+	case "windows":
+		relativePatterns = []string{
+			filepath.Join("chromium-*", "chrome-win", "chrome.exe"),
+			filepath.Join("chromium-*", "chrome-win64", "chrome.exe"),
+		}
+	case "darwin":
+		relativePatterns = []string{
+			filepath.Join("chromium-*", "chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium"),
+			filepath.Join("chromium-*", "chrome-mac-arm64", "Chromium.app", "Contents", "MacOS", "Chromium"),
+		}
+	default:
+		relativePatterns = []string{
+			filepath.Join("chromium-*", "chrome-linux", "chrome"),
+			filepath.Join("chromium-*", "chrome-linux64", "chrome"),
+		}
+	}
+	for _, relativePattern := range relativePatterns {
+		matches, _ := filepath.Glob(filepath.Join(browsersDirectory, relativePattern))
+		for _, match := range matches {
+			if info, err := os.Stat(match); err == nil && !info.IsDir() {
+				return match
+			}
+		}
+	}
 	return ""
 }
 
@@ -338,8 +406,20 @@ func RunDoctor(ctx context.Context, engineVersion string) DoctorReport {
 	}
 	report.Components = append(report.Components, nodeStatus)
 
-	// 4. Scripts
-	scripts := []string{"capture-browser.cjs", "capture-proxy.py", "replay-browser.cjs"}
+	// 4. Playwright Chromium
+	chromiumPath := ResolveChromiumExecutable()
+	chromiumStatus := ComponentStatus{Name: "playwright:chromium", Path: chromiumPath}
+	if chromiumPath != "" {
+		chromiumStatus.Installed = true
+		chromiumStatus.Bundled = strings.HasPrefix(chromiumPath, resDir)
+	} else {
+		chromiumStatus.Error = "Playwright Chromium executable not found"
+		report.Status = "degraded"
+	}
+	report.Components = append(report.Components, chromiumStatus)
+
+	// 5. Replay scripts. Browser capture is owned by the extension below.
+	scripts := []string{"replay-browser.cjs"}
 	for _, scriptName := range scripts {
 		scriptPath := ResolveScript(scriptName)
 		scriptStatus := ComponentStatus{Name: "script:" + scriptName, Path: scriptPath}
@@ -356,7 +436,31 @@ func RunDoctor(ctx context.Context, engineVersion string) DoctorReport {
 		report.Components = append(report.Components, scriptStatus)
 	}
 
-	// 5. Schema & Policies
+	// 6. Installable browser extension
+	extensionPath := ResolveExtensionManifest()
+	extensionStatus := ComponentStatus{Name: "browser-extension", Path: extensionPath}
+	if strings.HasPrefix(extensionPath, resDir) {
+		extensionStatus.Bundled = true
+	}
+	if contents, err := os.ReadFile(extensionPath); err == nil {
+		var manifest struct {
+			ManifestVersion int    `json:"manifest_version"`
+			Version         string `json:"version"`
+		}
+		if err := json.Unmarshal(contents, &manifest); err != nil || manifest.ManifestVersion != 3 {
+			extensionStatus.Error = "extension manifest is not valid Manifest V3 JSON"
+			report.Status = "degraded"
+		} else {
+			extensionStatus.Installed = true
+			extensionStatus.Version = manifest.Version
+		}
+	} else {
+		extensionStatus.Error = fmt.Sprintf("extension manifest not found at %s", extensionPath)
+		report.Status = "degraded"
+	}
+	report.Components = append(report.Components, extensionStatus)
+
+	// 7. Schema & Policies
 	policyPath := ResolvePolicy()
 	policyStatus := ComponentStatus{Name: "policy:default.rego", Path: policyPath}
 	if _, err := os.Stat(policyPath); err == nil {
@@ -368,23 +472,23 @@ func RunDoctor(ctx context.Context, engineVersion string) DoctorReport {
 	}
 	report.Components = append(report.Components, policyStatus)
 
-	if _, err := ResolveSchema("0.1.3-alpha"); err == nil {
+	if _, err := ResolveSchema("0.2.0-naughty"); err == nil {
 		report.Components = append(report.Components, ComponentStatus{
 			Name:      "schema:manifest",
 			Installed: true,
-			Version:   "0.1.3-alpha",
+			Version:   "0.2.0-naughty",
 		})
 	} else {
 		report.Components = append(report.Components, ComponentStatus{
 			Name:      "schema:manifest",
 			Installed: false,
-			Error:     "manifest schema v0.1.3-alpha not found",
+			Error:     "manifest schema v0.2.0-naughty not found",
 		})
 		report.Status = "degraded"
 	}
 
 	// Check if environment as a whole is running in bundled mode
-	report.IsBundled = mitmStatus.Bundled && nodeStatus.Bundled
+	report.IsBundled = mitmStatus.Bundled && nodeStatus.Bundled && chromiumStatus.Bundled && extensionStatus.Bundled
 
 	return report
 }

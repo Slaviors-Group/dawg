@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.1.3-alpha"
+const version = "0.2.0-naughty"
 
 func main() {
 	rootCommand := newRootCommand()
@@ -36,6 +36,9 @@ func pauseIfStandalone() {
 
 // defaultDawgDir returns an absolute path in ~/.dawg/ to avoid writing to arbitrary CWDs like System32 on Windows.
 func defaultDawgDir(subpaths ...string) string {
+	if stateDirectory := os.Getenv("DAWG_STATE_DIR"); stateDirectory != "" {
+		return filepath.Join(append([]string{stateDirectory}, subpaths...)...)
+	}
 	home, err := os.UserHomeDir()
 	if err == nil {
 		base := []string{home, ".dawg"}

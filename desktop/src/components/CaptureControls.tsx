@@ -1,8 +1,6 @@
 import {
   ArrowsLeftRight,
   Browser,
-  Database,
-  FileText,
   Globe,
   Record,
   StopCircle,
@@ -30,26 +28,14 @@ const URL_PRESETS = [
 const CAPTURE_COMPONENTS = [
   {
     icon: Browser,
-    label: "Browser Capture",
-    description: "Playwright + rrweb DOM trace",
+    label: "Browser Extension",
+    description: "rrweb DOM and user-action trace",
     variant: "success" as const,
   },
   {
     icon: ArrowsLeftRight,
-    label: "HTTP Proxy",
-    description: "mitmproxy cassette capture",
-    variant: "success" as const,
-  },
-  {
-    icon: Database,
-    label: "Database Tap",
-    description: "ORM diff collector",
-    variant: "success" as const,
-  },
-  {
-    icon: FileText,
-    label: "Log Capture",
-    description: "Application stdout / JSONL stream",
+    label: "Network Metadata",
+    description: "Requests from the recorded tab",
     variant: "success" as const,
   },
 ];
@@ -57,6 +43,7 @@ const CAPTURE_COMPONENTS = [
 export const CaptureControls: React.FC = () => {
   const {
     isCapturing,
+    isStopping,
     targetUrl,
     setTargetUrl,
     startCaptureSession,
@@ -65,6 +52,27 @@ export const CaptureControls: React.FC = () => {
   } = useEngine();
 
   const [urlError, setUrlError] = useState("");
+  const [packagingProgress, setPackagingProgress] = useState(0);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (isStopping) {
+      setPackagingProgress(0);
+      interval = setInterval(() => {
+        setPackagingProgress((prev) => {
+          if (prev < 95) {
+            // Slow down as it gets closer to 95%
+            const increment = prev > 80 ? 0.5 : 1.2;
+            return Math.min(95, prev + increment);
+          }
+          return prev;
+        });
+      }, 1000);
+    } else {
+      setPackagingProgress(0);
+    }
+    return () => clearInterval(interval);
+  }, [isStopping]);
 
   useEffect(() => {
     const savedUrl = localStorage.getItem("dawg_last_target_url");
@@ -93,7 +101,7 @@ export const CaptureControls: React.FC = () => {
   return (
     <PageShell
       title="Capture"
-      subtitle="Record browser activity, HTTP traffic, database diffs, and structured logs"
+      subtitle="Record one browser tab through the installed DAWG extension"
       actions={
         isCapturing ? (
           <Badge variant="error" dot>
@@ -122,7 +130,7 @@ export const CaptureControls: React.FC = () => {
             disabled={isCapturing}
             error={urlError}
             iconLeft={<Globe size={14} />}
-            hint="The DAWG proxy will intercept all requests through this origin."
+            hint="DAWG will focus an existing matching tab or open this URL in your browser."
           />
 
           {/* URL presets */}
@@ -161,16 +169,36 @@ export const CaptureControls: React.FC = () => {
                 variant="danger"
                 size="md"
                 onClick={stopCaptureSession}
+                disabled={isStopping}
                 iconLeft={<StopCircle size={14} />}
+                className="shrink-0"
               >
-                Stop Capture
+                {isStopping ? "Packaging..." : "Stop Capture"}
               </Button>
             )}
-            <p className="text-xs text-text-tertiary">
-              {isCapturing
-                ? "Capture is running. Stop to finalize and package the artifact."
-                : "Starts the proxy, browser agent, and log tap simultaneously."}
-            </p>
+            <div className="flex flex-col flex-1 max-w-md">
+              <p className="text-xs text-text-tertiary">
+                {isStopping
+                  ? "Sanitizing and packaging the artifact — this may take 1–2 minutes for a large session."
+                  : isCapturing
+                    ? "Capture is running. Stop to finalize and package the artifact."
+                    : "Requires the DAWG browser extension to be installed, enabled, and reloaded after updates."}
+              </p>
+              {isStopping && (
+                <div className="mt-2 w-full">
+                  <div className="flex justify-between text-[10px] font-medium text-text-tertiary mb-1">
+                    <span>Processing telemetry</span>
+                    <span>{Math.floor(packagingProgress)}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-canvas-subtle overflow-hidden rounded-full border border-border">
+                    <div
+                      className="h-full bg-brand-500 transition-all duration-1000 ease-linear"
+                      style={{ width: `${packagingProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </form>
       </Card>
@@ -201,7 +229,7 @@ export const CaptureControls: React.FC = () => {
           <h3 className="text-base font-bold text-text-primary">Session Configuration</h3>
           <p className="text-sm text-text-tertiary">Active capture components for this session</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {CAPTURE_COMPONENTS.map(({ icon: Icon, label, description, variant }) => (
             <div
               key={label}

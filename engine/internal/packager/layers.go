@@ -31,7 +31,7 @@ func buildLayers(sessionDirectory string) ([]layerBlob, error) {
 	sources := []layerSource{
 		{name: "environment", mediaType: dawgtypes.MediaTypeEnvironment, directories: []string{"env"}},
 		{name: "database-fixture", mediaType: dawgtypes.MediaTypeDatabaseFixture, directories: []string{"db"}, compressed: true},
-		{name: "trace", mediaType: dawgtypes.MediaTypeTrace, directories: []string{"traces", "http", "logs"}, compressed: true},
+		{name: "trace", mediaType: dawgtypes.MediaTypeTrace, directories: []string{"traces", "actions", "http", "logs"}, compressed: true},
 		{name: "cassette", mediaType: dawgtypes.MediaTypeCassette, directories: []string{"cassettes"}, compressed: true},
 	}
 

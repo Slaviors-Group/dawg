@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -42,6 +43,33 @@ func TestResolveNode(t *testing.T) {
 	}
 }
 
+func TestResolveChromiumExecutableFromBundledBrowsers(t *testing.T) {
+	resourceDirectory := t.TempDir()
+	t.Setenv("DAWG_RESOURCES_DIR", resourceDirectory)
+	t.Setenv("PLAYWRIGHT_BROWSERS_PATH", "")
+	t.Setenv("DAWG_CHROMIUM_EXECUTABLE_PATH", "")
+
+	var relativeExecutable string
+	switch runtime.GOOS {
+	case "windows":
+		relativeExecutable = filepath.Join("chromium-1234", "chrome-win64", "chrome.exe")
+	case "darwin":
+		relativeExecutable = filepath.Join("chromium-1234", "chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium")
+	default:
+		relativeExecutable = filepath.Join("chromium-1234", "chrome-linux", "chrome")
+	}
+	executable := filepath.Join(resourceDirectory, "browsers", relativeExecutable)
+	if err := os.MkdirAll(filepath.Dir(executable), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(executable, []byte("browser"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if got := ResolveChromiumExecutable(); got != executable {
+		t.Fatalf("ResolveChromiumExecutable() = %q, want %q", got, executable)
+	}
+}
+
 func TestResolveScript(t *testing.T) {
 	tempDir := t.TempDir()
 	scriptsDir := filepath.Join(tempDir, "scripts")
@@ -61,7 +89,7 @@ func TestResolveScript(t *testing.T) {
 
 func TestDoctorReport(t *testing.T) {
 	ctx := context.Background()
-	report := RunDoctor(ctx, "0.1.3-test")
+	report := RunDoctor(ctx, "0.2.0-test")
 
 	if report.EnginePath == "" {
 		t.Errorf("expected non-empty EnginePath")

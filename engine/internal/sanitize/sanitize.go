@@ -20,6 +20,7 @@ var captureFiles = []string{
 	"db/diff.jsonl",
 	"logs/structured.jsonl",
 	"traces/rrweb.jsonl",
+	"actions/browser.jsonl",
 	"cassettes/thirdparty.jsonl",
 }
 
@@ -168,12 +169,37 @@ func sanitizeValue(value any, path, file string, line int) (any, int, []dawgtype
 	case map[string]any:
 		fieldsScanned := 0
 		redactions := []dawgtypes.Redaction{}
+		// rrweb's DocumentType snapshot node is the literal shape
+		// {type, name, publicId, systemId, id} (e.g. name="html" for
+		// <!DOCTYPE html>). A bare "name" field would otherwise match the
+		// generic PII "name" rule below and get replaced with a synthetic
+		// "User <hash>" value, which is not a valid DOCTYPE name and makes
+		// document.implementation.createDocumentType() throw during replay -
+		// aborting the whole DOM rebuild and rendering a blank page. No
+		// legitimate PII payload coincidentally has both "publicId" and
+		// "systemId" sibling keys, so this check is safe.
+		_, hasPublicID := typedValue["publicId"]
+		_, hasSystemID := typedValue["systemId"]
+		isDocumentTypeNode := hasPublicID && hasSystemID
 		for key, child := range typedValue {
 			childPath := key
 			if path != "" {
 				childPath = path + "." + key
 			}
 			fieldsScanned++
+			if key == "name" && isDocumentTypeNode {
+				continue
+			}
+			// SVG's viewBox and polyline/polygon points attributes are geometry
+			// syntax, not user-provided text. Numeric point lists can resemble
+			// phone/card values to the generic value-based rules, which replaces
+			// them with values such as "+1555..." or "[REDACTED]". Chromium
+			// correctly rejects those replacements as malformed SVG during rrweb
+			// replay. These attribute names are SVG-specific, so preserving them
+			// does not weaken redaction of regular DOM text or form values.
+			if isSVGGeometryAttribute(path, key) {
+				continue
+			}
 			if stringValue, ok := child.(string); ok {
 				if key == "body" {
 					if decoded, ok := decodeJSONBody(stringValue); ok {
@@ -187,7 +213,15 @@ func sanitizeValue(value any, path, file string, line int) (any, int, []dawgtype
 						continue
 					}
 				}
-				if category, matched := classify(childPath, stringValue); matched {
+				classificationPath := childPath
+				if key == "value" {
+					for _, contextKey := range []string{"selector", "fieldName", "inputType"} {
+						if contextValue, ok := typedValue[contextKey].(string); ok {
+							classificationPath += "." + contextValue
+						}
+					}
+				}
+				if category, matched := classify(classificationPath, stringValue); matched {
 					replacementValue := replacement(childPath, stringValue, category)
 					typedValue[key] = replacementValue
 					redactions = append(redactions, dawgtypes.Redaction{
@@ -220,6 +254,10 @@ func sanitizeValue(value any, path, file string, line int) (any, int, []dawgtype
 	default:
 		return value, 0, nil
 	}
+}
+
+func isSVGGeometryAttribute(path, key string) bool {
+	return strings.HasSuffix(path, ".attributes") && (key == "viewBox" || key == "points")
 }
 
 func decodeJSONBody(value string) (any, bool) {

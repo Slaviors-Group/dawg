@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -135,13 +136,21 @@ func defaultProxyArguments(request ProxyCaptureRequest, addonPath string) []stri
 }
 
 // Stop requests graceful proxy shutdown before killing a process that fails to exit.
+// Stop is idempotent: calling it when the proxy is not running is a no-op.
 func (manager *ProxyManager) Stop() error {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 	if manager.cmd == nil {
-		return fmt.Errorf("capture: proxy is not running")
+		return nil
 	}
-	_ = manager.cmd.Process.Signal(os.Interrupt)
+	// os.Interrupt is not implemented for Windows processes. If the graceful
+	// signal cannot be delivered, terminate immediately instead of waiting the
+	// full stop timeout on every Windows capture.
+	if err := manager.cmd.Process.Signal(os.Interrupt); err != nil {
+		if killErr := manager.cmd.Process.Kill(); killErr != nil && !errors.Is(killErr, os.ErrProcessDone) {
+			return fmt.Errorf("capture: stop mitmproxy after interrupt failed: %w", errors.Join(err, killErr))
+		}
+	}
 	timer := time.NewTimer(manager.StopTimeout)
 	defer timer.Stop()
 	select {
@@ -149,7 +158,7 @@ func (manager *ProxyManager) Stop() error {
 		manager.clearLocked()
 		return nil
 	case <-timer.C:
-		if err := manager.cmd.Process.Kill(); err != nil {
+		if err := manager.cmd.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
 			return fmt.Errorf("capture: force stop mitmproxy: %w", err)
 		}
 		<-manager.done

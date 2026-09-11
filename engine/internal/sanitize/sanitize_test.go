@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
@@ -84,6 +85,98 @@ func TestSanitizeFilesPreservesRRWebStructuralNames(t *testing.T) {
 	}
 	if data["name"] == "Ada" {
 		t.Fatal("PII name was not replaced")
+	}
+}
+
+func TestSanitizeFilesPreservesDoctypeName(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "traces", "rrweb.jsonl")
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatalf("create capture directory: %v", err)
+	}
+	// Mirrors rrweb's real DocumentType snapshot node shape for <!DOCTYPE html>.
+	contents := []byte(`{"type":2,"data":{"node":{"type":0,"childNodes":[{"type":1,"name":"html","publicId":"","systemId":"","id":2}],"id":1}},"timestamp":1}` + "\n")
+	if err := os.WriteFile(path, contents, 0o600); err != nil {
+		t.Fatalf("write rrweb capture: %v", err)
+	}
+
+	if _, err := SanitizeFiles(directory, "policy.rego", "1.2.0"); err != nil {
+		t.Fatalf("sanitize rrweb capture: %v", err)
+	}
+	actual, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read sanitized rrweb capture: %v", err)
+	}
+	var document map[string]any
+	if err := json.Unmarshal(actual, &document); err != nil {
+		t.Fatalf("decode sanitized rrweb capture: %v", err)
+	}
+	data := document["data"].(map[string]any)
+	node := data["node"].(map[string]any)
+	childNodes := node["childNodes"].([]any)
+	doctype := childNodes[0].(map[string]any)
+	if doctype["name"] != "html" {
+		t.Fatalf("doctype name was corrupted by sanitizer: %#v", doctype)
+	}
+}
+
+func TestSanitizeFilesPreservesSVGGeometryAttributes(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "traces", "rrweb.jsonl")
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatalf("create capture directory: %v", err)
+	}
+	// These values deliberately resemble data that generic value-based PII
+	// rules could classify as phone/sensitive data. In an rrweb SVG snapshot,
+	// however, they are required geometry syntax and must remain intact.
+	contents := []byte(`{"type":2,"data":{"node":{"type":2,"tagName":"svg","attributes":{"viewBox":"+15553085090","points":"0,0 10,10"},"childNodes":[],"id":1}},"timestamp":1}` + "\n")
+	if err := os.WriteFile(path, contents, 0o600); err != nil {
+		t.Fatalf("write rrweb capture: %v", err)
+	}
+
+	if _, err := SanitizeFiles(directory, "policy.rego", "1.2.0"); err != nil {
+		t.Fatalf("sanitize rrweb capture: %v", err)
+	}
+	actual, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read sanitized rrweb capture: %v", err)
+	}
+	var document map[string]any
+	if err := json.Unmarshal(actual, &document); err != nil {
+		t.Fatalf("decode sanitized rrweb capture: %v", err)
+	}
+	data := document["data"].(map[string]any)
+	node := data["node"].(map[string]any)
+	attributes := node["attributes"].(map[string]any)
+	if attributes["viewBox"] != "+15553085090" || attributes["points"] != "0,0 10,10" {
+		t.Fatalf("SVG geometry was corrupted by sanitizer: %#v", attributes)
+	}
+}
+
+func TestSanitizeFilesRedactsSensitiveBrowserActionValues(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "actions", "browser.jsonl")
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatalf("create action directory: %v", err)
+	}
+	line := `{"type":"fill","selector":"input.login","fieldName":"password","inputType":"password","value":"private-value"}` + "\n"
+	if err := os.WriteFile(path, []byte(line), 0o600); err != nil {
+		t.Fatalf("write action capture: %v", err)
+	}
+
+	report, err := SanitizeFiles(directory, "policy.rego", "1.2.0")
+	if err != nil {
+		t.Fatalf("sanitize actions: %v", err)
+	}
+	if report.FieldsRedacted != 1 {
+		t.Fatalf("expected one redacted action value, got %#v", report)
+	}
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read sanitized action: %v", err)
+	}
+	if strings.Contains(string(contents), "private-value") {
+		t.Fatalf("sensitive action value survived sanitization: %s", contents)
 	}
 }
 
