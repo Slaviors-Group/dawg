@@ -262,12 +262,16 @@ if (-Not $SkipTauri) {
     if (Test-Path $generatedResourcesDir) {
         Remove-Item -Recurse -Force $generatedResourcesDir
     }
-    npm run tauri build -- --bundles nsis
+    # Invoke the local tauri CLI binary directly rather than via 'npm run',
+    # since npm's argument passthrough on Windows can mangle the
+    # '--bundles nsis' flag (it gets silently dropped, leaving a bare
+    # 'nsis' positional argument that the Rust CLI rejects).
+    & ".\node_modules\.bin\tauri.cmd" build --bundles nsis
     if ($LASTEXITCODE -ne 0) {
         Write-Error "Tauri packaging build failed!"
     }
     Write-Host "`n🎉 Monolithic DAWG Desktop installer created successfully!" -ForegroundColor Green
 } else {
     Write-Host "`nBundle staging complete (Tauri build skipped by flag)." -ForegroundColor Cyan
-    Write-Host "Run 'npm run tauri build -- --bundles nsis' inside 'desktop/' to compile the Windows installer." -ForegroundColor DarkGray
+    Write-Host "Run '.\node_modules\.bin\tauri.cmd build --bundles nsis' inside 'desktop/' to compile the Windows installer." -ForegroundColor DarkGray
 }

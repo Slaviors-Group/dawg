@@ -1,4 +1,4 @@
-import { Cube, Flask, Info, PlayCircle } from "@phosphor-icons/react";
+import { Cube, Flask, Info, PlayCircle, StopCircle } from "@phosphor-icons/react";
 import type React from "react";
 import { useMemo, useState } from "react";
 import { useEngine } from "../context/EngineContext";
@@ -20,6 +20,7 @@ export const ReplayViewer: React.FC = () => {
   const { artifacts, addLogLine } = useEngine();
   const [selectedArtifact, setSelectedArtifact] = useState("");
   const [isReplaying, setIsReplaying] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const sandboxStatus = useMemo(() => {
     if (isWindows) {
@@ -48,9 +49,26 @@ export const ReplayViewer: React.FC = () => {
         addLogLine(`Final screenshot: ${screenshot}`);
       }
     } catch (err) {
-      addLogLine(`[ERROR] Replay failed: ${String(err)}`);
+      if (String(err).includes("cancelled by user")) {
+        addLogLine("Replay stopped by user.");
+      } else {
+        addLogLine(`[ERROR] Replay failed: ${String(err)}`);
+      }
     } finally {
       setIsReplaying(false);
+    }
+  };
+
+  const handleCancelReplay = async () => {
+    if (!isReplaying || isCancelling) return;
+    setIsCancelling(true);
+    addLogLine("Stopping replay — terminating browser and engine process...");
+    try {
+      await engine.cancelReplay();
+    } catch (err) {
+      addLogLine(`[ERROR] Failed to stop replay: ${String(err)}`);
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -88,6 +106,19 @@ export const ReplayViewer: React.FC = () => {
             >
               {isReplaying ? "Replaying..." : "Run Replay"}
             </Button>
+
+            {isReplaying && (
+              <Button
+                type="button"
+                variant="danger"
+                onClick={handleCancelReplay}
+                disabled={isCancelling}
+                loading={isCancelling}
+                iconLeft={<StopCircle size={16} />}
+              >
+                {isCancelling ? "Stopping..." : "Stop Replay"}
+              </Button>
+            )}
           </div>
         </div>
       </Card>

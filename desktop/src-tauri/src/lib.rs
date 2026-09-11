@@ -2,7 +2,8 @@ use serde::{Deserialize, Serialize};
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::sync::Mutex;
 use tauri::{AppHandle, Manager};
 
 /// Windows CREATE_NO_WINDOW process creation flag. Without this, every engine
@@ -24,6 +25,102 @@ fn suppress_console_window(_cmd: &mut Command) {
 pub struct CommandOutput {
     pub status: String,
     pub payload: serde_json::Value,
+}
+
+/// Tracks DAWG engine background processes that outlive a single Tauri
+/// command invocation, so they can be (a) cancelled mid-flight by the user
+/// and (b) forcibly cleaned up if the desktop window is closed while they
+/// are still running. Without this, a stuck `dawg run` replay (and its
+/// node/Chromium/mitmdump child processes) or an in-progress capture daemon
+/// would keep running as an orphan after the app exits.
+#[derive(Default)]
+struct ProcessRegistry {
+    /// PID of the currently in-flight `dawg run` (replay) subprocess, if any.
+    replay_pid: Mutex<Option<u32>>,
+    /// Set once `cancel_replay` force-kills the tracked replay process, so
+    /// `run_replay` can report a clean "cancelled" outcome instead of a
+    /// generic subprocess failure once the killed process's `wait` returns.
+    replay_cancelled: Mutex<bool>,
+    /// PID of the detached capture daemon launched by `dawg capture`, if a
+    /// capture session is currently active. It outlives the short-lived
+    /// `dawg capture --url` launcher process that spawned it, so it must be
+    /// tracked separately from `replay_pid`.
+    capture_daemon_pid: Mutex<Option<u32>>,
+}
+
+impl ProcessRegistry {
+    fn start_replay(&self, pid: u32) {
+        *self.replay_pid.lock().unwrap() = Some(pid);
+        *self.replay_cancelled.lock().unwrap() = false;
+    }
+
+    /// Clears the tracked replay PID and returns whether it had been
+    /// cancelled by the user before this call.
+    fn finish_replay(&self) -> bool {
+        *self.replay_pid.lock().unwrap() = None;
+        let mut cancelled = self.replay_cancelled.lock().unwrap();
+        let was_cancelled = *cancelled;
+        *cancelled = false;
+        was_cancelled
+    }
+
+    /// Force-kills the currently tracked replay process tree, if any.
+    /// Returns true if a replay was actually running and got cancelled.
+    fn cancel_replay(&self) -> bool {
+        let pid = *self.replay_pid.lock().unwrap();
+        match pid {
+            Some(pid) => {
+                *self.replay_cancelled.lock().unwrap() = true;
+                kill_process_tree(pid);
+                true
+            }
+            None => false,
+        }
+    }
+
+    fn set_capture_daemon(&self, pid: u32) {
+        *self.capture_daemon_pid.lock().unwrap() = Some(pid);
+    }
+
+    fn clear_capture_daemon(&self) {
+        *self.capture_daemon_pid.lock().unwrap() = None;
+    }
+
+    /// Force-kills every DAWG background process this app session is aware
+    /// of. Called when the desktop window is closed so no orphaned engine
+    /// subprocess (a stuck replay's node/Chromium/mitmdump tree, or an
+    /// active capture daemon) keeps running after the user closes DAWG.
+    fn kill_all(&self) {
+        if let Some(pid) = self.replay_pid.lock().unwrap().take() {
+            kill_process_tree(pid);
+        }
+        if let Some(pid) = self.capture_daemon_pid.lock().unwrap().take() {
+            kill_process_tree(pid);
+        }
+    }
+}
+
+/// Forcibly terminates `pid` and its full descendant process tree. Used both
+/// for user-initiated replay cancellation and for cleaning up orphaned
+/// background processes (replay's node/Chromium/mitmdump tree, capture's
+/// daemon) when the desktop window is closed.
+fn kill_process_tree(pid: u32) {
+    #[cfg(windows)]
+    {
+        let mut cmd = Command::new("taskkill");
+        cmd.args(["/PID", &pid.to_string(), "/T", "/F"]);
+        suppress_console_window(&mut cmd);
+        let _ = cmd.output();
+    }
+    #[cfg(not(windows))]
+    {
+        // Best-effort: SIGKILL the process group first (covers detached
+        // daemons/sandboxes that set up their own group), then the PID itself.
+        let _ = Command::new("kill")
+            .args(["-9", &format!("-{}", pid)])
+            .output();
+        let _ = Command::new("kill").args(["-9", &pid.to_string()]).output();
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -352,13 +449,25 @@ async fn execute_engine_cmd(
 }
 
 #[tauri::command]
-async fn start_capture(app: AppHandle, url: String) -> Result<CommandOutput, String> {
-    execute_engine_cmd(app, "capture".to_string(), vec!["--url".to_string(), url]).await
+async fn start_capture(
+    app: AppHandle,
+    registry: tauri::State<'_, ProcessRegistry>,
+    url: String,
+) -> Result<CommandOutput, String> {
+    let result =
+        execute_engine_cmd(app, "capture".to_string(), vec!["--url".to_string(), url]).await?;
+    // Track the detached daemon PID so it can be force-killed on app exit
+    // even though the short-lived launcher process above has already exited.
+    if let Some(daemon_pid) = result.payload.get("daemonPid").and_then(|v| v.as_u64()) {
+        registry.set_capture_daemon(daemon_pid as u32);
+    }
+    Ok(result)
 }
 
 #[tauri::command]
 async fn stop_capture(
     app: AppHandle,
+    registry: tauri::State<'_, ProcessRegistry>,
     control_file: Option<String>,
 ) -> Result<CommandOutput, String> {
     let mut args = vec!["stop".to_string()];
@@ -366,7 +475,11 @@ async fn stop_capture(
         args.push("--control-file".to_string());
         args.push(cf);
     }
-    execute_engine_cmd(app, "capture".to_string(), args).await
+    let result = execute_engine_cmd(app, "capture".to_string(), args).await;
+    // The daemon has been asked to stop (gracefully or otherwise); either way
+    // it's no longer our responsibility to force-kill it on app exit.
+    registry.clear_capture_daemon();
+    result
 }
 
 #[tauri::command]
@@ -375,8 +488,56 @@ async fn inspect_artifact(app: AppHandle, path: String) -> Result<CommandOutput,
 }
 
 #[tauri::command]
-async fn run_replay(app: AppHandle, artifact: String) -> Result<CommandOutput, String> {
-    execute_engine_cmd(app, "run".to_string(), vec![artifact]).await
+async fn run_replay(
+    app: AppHandle,
+    registry: tauri::State<'_, ProcessRegistry>,
+    artifact: String,
+) -> Result<CommandOutput, String> {
+    let mut cmd = build_engine_command(&app, "run", &[artifact]);
+    cmd.stdin(Stdio::null());
+    cmd.stdout(Stdio::piped());
+    cmd.stderr(Stdio::piped());
+
+    let child = cmd
+        .spawn()
+        .map_err(|e| format!("Failed to start replay: {}", e))?;
+    let pid = child.id();
+    registry.start_replay(pid);
+
+    // Wait off the async executor thread: Child::wait_with_output blocks the
+    // calling thread until the process exits (or is killed by cancel_replay),
+    // which can take up to the engine's internal replay timeout.
+    let wait_result = tauri::async_runtime::spawn_blocking(move || child.wait_with_output())
+        .await
+        .map_err(|e| format!("Replay wait task panicked: {}", e))?;
+
+    let was_cancelled = registry.finish_replay();
+    if was_cancelled {
+        return Err("Replay cancelled by user.".to_string());
+    }
+
+    match wait_result {
+        Ok(output) => {
+            let stdout_str = String::from_utf8_lossy(&output.stdout);
+            if output.status.success() {
+                let parsed: serde_json::Value = serde_json::from_str(&stdout_str)
+                    .unwrap_or_else(|_| serde_json::json!({ "raw": stdout_str.trim() }));
+                Ok(CommandOutput {
+                    status: "success".to_string(),
+                    payload: parsed,
+                })
+            } else {
+                let stderr_str = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Engine command failed: {}", stderr_str.trim()))
+            }
+        }
+        Err(err) => Err(format!("Failed to execute engine: {}", err)),
+    }
+}
+
+#[tauri::command]
+async fn cancel_replay(registry: tauri::State<'_, ProcessRegistry>) -> Result<bool, String> {
+    Ok(registry.cancel_replay())
 }
 
 #[tauri::command]
@@ -397,6 +558,7 @@ async fn verify_result(
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .manage(ProcessRegistry::default())
         .invoke_handler(tauri::generate_handler![
             check_engine_installed,
             get_doctor_report,
@@ -404,8 +566,20 @@ pub fn run() {
             stop_capture,
             inspect_artifact,
             run_replay,
+            cancel_replay,
             verify_result
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            // If the desktop window is closed while a replay or capture is
+            // still active, force-kill every tracked DAWG background
+            // process (replay's node/Chromium/mitmdump tree, capture
+            // daemon) instead of leaving them running as orphans.
+            if let tauri::RunEvent::ExitRequested { .. } = event {
+                if let Some(registry) = app_handle.try_state::<ProcessRegistry>() {
+                    registry.kill_all();
+                }
+            }
+        });
 }

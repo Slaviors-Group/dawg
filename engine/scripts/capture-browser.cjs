@@ -150,6 +150,19 @@ async function main() {
     await page.exposeBinding("__dawgRecordAction", (_, action) => appendJSONL(options["actions-output"], action));
     await page.addInitScript({ content: rrwebBundle });
     await page.addInitScript(() => {
+        // Playwright re-runs addInitScript callbacks for every frame it
+        // attaches to this page, including same-origin iframes the target
+        // page creates itself (ads, analytics beacons, widgets, etc. often
+        // use hidden `about:blank` iframes for this). Without this guard,
+        // rrweb.record() starts once per iframe, and every one of those
+        // recorders emits its own Meta/FullSnapshot into the same flat
+        // event stream via __dawgRecordEvent. Replaying that merged stream
+        // is undefined: a single rrweb.Replayer can only rebuild one
+        // document, so it ends up applying whichever frame's snapshot it
+        // saw last - typically one of the near-empty iframe snapshots -
+        // instead of the real top-level page, producing a blank replay.
+        if (window.top !== window.self) return;
+
         rrweb.record({ emit: (event) => window.__dawgRecordEvent(event) });
         document.addEventListener("click", (event) => {
             const element = event.target;

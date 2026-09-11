@@ -177,6 +177,20 @@ export class EngineBridge {
     }
   }
 
+  /**
+   * Force-kills an in-flight `run_replay` invocation (and its underlying
+   * node/Chromium/mitmdump process tree) started by this session. Returns
+   * true if a replay was actually running and got cancelled.
+   */
+  async cancelReplay(): Promise<boolean> {
+    try {
+      return await invoke<boolean>("cancel_replay");
+    } catch (err) {
+      console.warn("Tauri engine IPC fallback:", err);
+      throw new Error(`Engine cancelReplay failed: ${String(err)}`);
+    }
+  }
+
   async verifyResult(options: VerifyOptions): Promise<VerifyResult> {
     try {
       const res = await invoke<CommandOutput<VerifyResult>>("verify_result", {
