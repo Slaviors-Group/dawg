@@ -109,7 +109,7 @@ func SnapshotEnvironment(ctx context.Context, runner CommandRunner, request Envi
 	}
 	lockfilePath := filepath.Join(environmentDirectory, "lockfile.json")
 	lockfile := EnvironmentLockfile{
-		SchemaVersion: "0.2.0-naughty",
+		SchemaVersion: "0.2.3-naughty",
 		ComposeFile:   "env/compose.yaml",
 		ImageDigests:  digests,
 	}

@@ -69,5 +69,5 @@ func TestValidateJSONRejectsMalformedSchema(t *testing.T) {
 
 func schemaPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join("..", "..", "..", "schema", "manifest", "v0.2.0-naughty.json")
+	return filepath.Join("..", "..", "..", "schema", "manifest", "v0.2.3-naughty.json")
 }

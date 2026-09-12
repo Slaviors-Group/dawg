@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.2.0-naughty"
+const version = "0.2.3-naughty"
 
 func main() {
 	rootCommand := newRootCommand()
@@ -77,6 +77,7 @@ func newRootCommand() *cobra.Command {
 	command.AddCommand(newPushCommand())
 	command.AddCommand(newPullCommand())
 	command.AddCommand(newInspectCommand())
+	command.AddCommand(newArtifactsCommand())
 	command.AddCommand(newRunCommand())
 	command.AddCommand(newVerifyCommand())
 	command.AddCommand(newDoctorCommand())

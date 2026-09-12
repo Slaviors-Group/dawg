@@ -340,6 +340,11 @@ fn resolve_engine_binary(app: &AppHandle) -> (PathBuf, Option<PathBuf>, bool) {
     (PathBuf::from(exe_name), None, false)
 }
 
+fn has_output_argument(args: &[String]) -> bool {
+    args.iter()
+        .any(|arg| arg == "--output" || arg.starts_with("--output="))
+}
+
 fn build_engine_command(app: &AppHandle, subcommand: &str, args: &[String]) -> Command {
     let (engine_path, resource_dir, _) = resolve_engine_binary(app);
     let mut cmd = Command::new(&engine_path);
@@ -348,7 +353,11 @@ fn build_engine_command(app: &AppHandle, subcommand: &str, args: &[String]) -> C
     for arg in args {
         cmd.arg(arg);
     }
-    cmd.arg("--output").arg("json");
+    // Some engine subcommands use --output as a destination path rather than
+    // the global response format. Never overwrite that path with "json".
+    if !has_output_argument(args) {
+        cmd.arg("--output").arg("json");
+    }
 
     if let Some(res_dir) = resource_dir {
         cmd.env("DAWG_RESOURCES_DIR", res_dir);
@@ -453,9 +462,14 @@ async fn start_capture(
     app: AppHandle,
     registry: tauri::State<'_, ProcessRegistry>,
     url: String,
+    title: Option<String>,
 ) -> Result<CommandOutput, String> {
-    let result =
-        execute_engine_cmd(app, "capture".to_string(), vec!["--url".to_string(), url]).await?;
+    let mut args = vec!["--url".to_string(), url];
+    if let Some(title) = title.filter(|value| !value.trim().is_empty()) {
+        args.push("--title".to_string());
+        args.push(title);
+    }
+    let result = execute_engine_cmd(app, "capture".to_string(), args).await?;
     // Track the detached daemon PID so it can be force-killed on app exit
     // even though the short-lived launcher process above has already exited.
     if let Some(daemon_pid) = result.payload.get("daemonPid").and_then(|v| v.as_u64()) {
@@ -485,6 +499,41 @@ async fn stop_capture(
 #[tauri::command]
 async fn inspect_artifact(app: AppHandle, path: String) -> Result<CommandOutput, String> {
     execute_engine_cmd(app, "inspect".to_string(), vec![path]).await
+}
+
+#[tauri::command]
+async fn list_artifacts(app: AppHandle) -> Result<CommandOutput, String> {
+    execute_engine_cmd(app, "artifacts".to_string(), vec!["list".to_string()]).await
+}
+
+#[tauri::command]
+async fn import_artifact(app: AppHandle, archive: String) -> Result<CommandOutput, String> {
+    execute_engine_cmd(
+        app,
+        "artifacts".to_string(),
+        vec!["import".to_string(), archive],
+    )
+    .await
+}
+
+#[tauri::command]
+async fn export_artifact(
+    app: AppHandle,
+    artifact: String,
+    output: String,
+) -> Result<CommandOutput, String> {
+    execute_engine_cmd(
+        app,
+        "artifacts".to_string(),
+        vec![
+            "export".to_string(),
+            artifact,
+            "--output".to_string(),
+            output,
+            "--force".to_string(),
+        ],
+    )
+    .await
 }
 
 #[tauri::command]
@@ -554,10 +603,42 @@ async fn verify_result(
     .await
 }
 
+#[cfg(test)]
+mod tests {
+    use super::has_output_argument;
+
+    #[test]
+    fn detects_separate_output_argument() {
+        let args = vec![
+            "export".to_string(),
+            "artifact".to_string(),
+            "--output".to_string(),
+            "D:\\exports\\artifact.dawg".to_string(),
+        ];
+
+        assert!(has_output_argument(&args));
+    }
+
+    #[test]
+    fn detects_equals_output_argument() {
+        let args = vec!["--output=D:\\exports\\artifact.dawg".to_string()];
+
+        assert!(has_output_argument(&args));
+    }
+
+    #[test]
+    fn allows_json_format_when_no_output_argument_exists() {
+        let args = vec!["list".to_string()];
+
+        assert!(!has_output_argument(&args));
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(ProcessRegistry::default())
         .invoke_handler(tauri::generate_handler![
             check_engine_installed,
@@ -565,6 +646,9 @@ pub fn run() {
             start_capture,
             stop_capture,
             inspect_artifact,
+            list_artifacts,
+            import_artifact,
+            export_artifact,
             run_replay,
             cancel_replay,
             verify_result

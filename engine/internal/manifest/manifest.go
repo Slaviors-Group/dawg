@@ -12,7 +12,7 @@ import (
 )
 
 // SchemaVersion is the P0 DAWG manifest schema version.
-const SchemaVersion = "0.2.0-naughty"
+const SchemaVersion = "0.2.3-naughty"
 
 // Manifest is the OCI config document for a DAWG artifact.
 type Manifest struct {
@@ -79,7 +79,7 @@ func DefaultSchemaPath() (string, error) {
 		return configuredPath, nil
 	}
 	if resDir := os.Getenv("DAWG_RESOURCES_DIR"); resDir != "" {
-		candidate := filepath.Join(resDir, "schema", "manifest", "v0.2.0-naughty.json")
+		candidate := filepath.Join(resDir, "schema", "manifest", "v0.2.3-naughty.json")
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate, nil
 		}
@@ -94,7 +94,7 @@ func DefaultSchemaPath() (string, error) {
 	}
 	for _, start := range starts {
 		for directory := start; ; directory = filepath.Dir(directory) {
-			candidate := filepath.Join(directory, "schema", "manifest", "v0.2.0-naughty.json")
+			candidate := filepath.Join(directory, "schema", "manifest", "v0.2.3-naughty.json")
 			if _, err := os.Stat(candidate); err == nil {
 				return candidate, nil
 			}
