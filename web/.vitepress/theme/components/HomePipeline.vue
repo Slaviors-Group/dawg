@@ -1,26 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { useScrollReveal } from '../composables/useScrollReveal'
 
-const isRevealed = ref(false)
-const sectionRef = ref<HTMLElement | null>(null)
-let observer: IntersectionObserver | null = null
-
-onMounted(() => {
-  observer = new IntersectionObserver(
-    ([entry]) => {
-      if (entry.isIntersecting) {
-        isRevealed.value = true
-        observer?.disconnect()
-      }
-    },
-    { threshold: 0.15 }
-  )
-  if (sectionRef.value) observer.observe(sectionRef.value)
-})
-
-onUnmounted(() => {
-  observer?.disconnect()
-})
+const { isRevealed, sectionRef } = useScrollReveal()
 
 const features = [
   // Two large features for the top row
@@ -71,7 +52,7 @@ const features = [
           :key="p.title" 
           class="dh-bento-card"
           :class="p.size === 'large' ? 'dh-bento-large' : 'dh-bento-small'"
-          :style="{ transitionDelay: `${0.1 + idx * 0.1}s` }"
+          :style="{ transitionDelay: `${0.1 + idx * 0.25}s` }"
         >
           <!-- Placeholder Graphic Area -->
           <div class="dh-bento-img">
@@ -142,24 +123,28 @@ const features = [
 /* ── Scroll Reveal Initial States ── */
 .dh-h2 {
   opacity: 0;
-  transform: translateY(20px);
-  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(30px) scale(0.98);
+  filter: blur(8px);
+  transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1), filter 1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .dh-bento-card {
   opacity: 0;
-  transform: translateY(30px);
-  /* Use a separate transition property to ensure delay applies correctly */
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(40px) scale(0.98);
+  filter: blur(8px);
+  /* Use separate transition properties so inline transitionDelay works correctly */
+  transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1), filter 1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ── Revealed States ── */
 .dh-revealed .dh-h2 {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
+  filter: blur(0);
 }
 .dh-revealed .dh-bento-card {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
+  filter: blur(0);
 }
 
 .dh-bento-img {

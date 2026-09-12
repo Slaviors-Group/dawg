@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { useScrollReveal } from '../composables/useScrollReveal'
 // Technologies positioned on three concentric half-circle orbits
 // Each entry: { name, logo (SVG URL from CDN), orbit (1=inner, 2=mid, 3=outer), angleDeg }
 // angleDeg: 0 = left horizontal, 90 = top, 180 = right horizontal
@@ -38,26 +38,7 @@ function getPos(angleDeg: number, radius: number) {
   }
 }
 
-const isRevealed = ref(false)
-const sectionRef = ref<HTMLElement | null>(null)
-let observer: IntersectionObserver | null = null
-
-onMounted(() => {
-  observer = new IntersectionObserver(
-    ([entry]) => {
-      if (entry.isIntersecting) {
-        isRevealed.value = true
-        observer?.disconnect()
-      }
-    },
-    { threshold: 0.15 }
-  )
-  if (sectionRef.value) observer.observe(sectionRef.value)
-})
-
-onUnmounted(() => {
-  observer?.disconnect()
-})
+const { isRevealed, sectionRef } = useScrollReveal()
 </script>
 
 <template>
@@ -155,8 +136,9 @@ onUnmounted(() => {
   max-width: 600px;
   margin: 0 auto 32px;
   opacity: 0;
-  transform: translateY(20px);
-  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(30px) scale(0.98);
+  filter: blur(8px);
+  transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1), filter 1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .dh-orbit-svg {
   width: 100%;
@@ -166,19 +148,20 @@ onUnmounted(() => {
 .dh-orbit-bg, .dh-center-node {
   opacity: 0;
   transform: translateY(30px);
-  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s;
+  transition: all 1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s;
 }
 .dh-orbit-node {
   opacity: 0;
   /* In SVG, using CSS transform scale can be unpredictable, so we use translateY */
-  transform: translateY(15px);
-  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform: translateY(20px);
+  transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* ── Revealed States ── */
 .dh-revealed .dh-orbit-head {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
+  filter: blur(0);
 }
 .dh-revealed .dh-orbit-bg,
 .dh-revealed .dh-center-node {

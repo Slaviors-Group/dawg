@@ -1,26 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { useScrollReveal } from '../composables/useScrollReveal'
 
-const isRevealed = ref(false)
-const sectionRef = ref<HTMLElement | null>(null)
-let observer: IntersectionObserver | null = null
-
-onMounted(() => {
-  observer = new IntersectionObserver(
-    ([entry]) => {
-      if (entry.isIntersecting) {
-        isRevealed.value = true
-        observer?.disconnect()
-      }
-    },
-    { threshold: 0.15 }
-  )
-  if (sectionRef.value) observer.observe(sectionRef.value)
-})
-
-onUnmounted(() => {
-  observer?.disconnect()
-})
+const { isRevealed, sectionRef } = useScrollReveal()
 
 const features = [
   {
@@ -46,7 +27,7 @@ const features = [
 
       <!-- Two Columns -->
       <div class="dh-grid-2">
-        <div v-for="(feat, idx) in features" :key="feat.title" class="dh-feature-card" :style="{ transitionDelay: `${0.1 + idx * 0.1}s` }">
+        <div v-for="(feat, idx) in features" :key="feat.title" class="dh-feature-card" :style="{ transitionDelay: `${0.1 + idx * 0.25}s` }">
           <div class="dh-mock-wrap">
             <div class="dh-mock-glow"></div>
             <div class="dh-mock-ui">
@@ -66,7 +47,7 @@ const features = [
       </div>
 
       <!-- Bottom Centered Column -->
-      <div class="dh-feature-card dh-card-center" style="transition-delay: 0.3s;">
+      <div class="dh-feature-card dh-card-center" style="transition-delay: 0.6s;">
         <div class="dh-mock-wrap dh-mock-wrap-lg">
           <div class="dh-mock-glow dh-glow-lg"></div>
           <div class="dh-mock-ui dh-ui-lg">
@@ -120,18 +101,20 @@ const features = [
 /* ── Scroll Reveal Initial States ── */
 .dh-head {
   opacity: 0;
-  transform: translateY(20px);
-  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(30px) scale(0.98);
+  filter: blur(8px);
+  transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1), filter 1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .dh-feature-card {
   opacity: 0;
-  transform: translateY(30px);
-  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(40px) scale(0.98);
+  filter: blur(8px);
+  transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1), filter 1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ── Revealed States ── */
-.dh-revealed .dh-head { opacity: 1; transform: translateY(0); }
-.dh-revealed .dh-feature-card { opacity: 1; transform: translateY(0); }
+.dh-revealed .dh-head { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+.dh-revealed .dh-feature-card { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 
 /* ── Grid Layout ── */
 .dh-grid-2 {

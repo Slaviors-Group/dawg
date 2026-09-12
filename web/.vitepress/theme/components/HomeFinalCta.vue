@@ -1,5 +1,11 @@
+<script setup lang="ts">
+import { useScrollReveal } from '../composables/useScrollReveal'
+
+const { isRevealed, sectionRef } = useScrollReveal()
+</script>
+
 <template>
-  <section class="dh-final">
+  <section class="dh-final" :class="{ 'dh-revealed': isRevealed }" ref="sectionRef">
     <div class="dh-inner">
       <div class="dh-final-box">
         <div class="dh-final-content">
@@ -47,7 +53,7 @@
   z-index: 2;
 }
 
-/* Sizing matches Hero big title as requested */
+/* ── Scroll Reveal Initial States ── */
 .dh-final-title {
   font-size: clamp(42px, 5vw, 64px);
   font-weight: 400;
@@ -56,23 +62,46 @@
   margin: 0 0 24px;
   color: var(--color-text-primary);
   text-wrap: balance;
+  
+  opacity: 0;
+  transform: translateY(30px) scale(0.98);
+  filter: blur(8px);
+  transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1), filter 1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Sizing matches Hero/Tooling desc as requested */
 .dh-final-desc {
   font-size: 18px;
   line-height: 1.6;
   color: var(--color-text-secondary);
   margin: 0 0 40px;
   font-weight: 400;
+
+  opacity: 0;
+  transform: translateY(30px) scale(0.98);
+  filter: blur(8px);
+  transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s, filter 1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s;
 }
 
 .dh-cta {
   display: inline-flex; align-items: center; justify-content: center;
   font-weight: 600; font-size: 15px; padding: 12px 24px; border-radius: var(--radius-full);
   text-decoration: none; border: none; white-space: nowrap; 
-  transition: all var(--duration-fast);
+  
+  opacity: 0;
+  transform: translateY(30px) scale(0.98);
+  filter: blur(8px);
+  transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s, filter 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s, background var(--duration-fast), box-shadow var(--duration-fast);
 }
+
+/* ── Revealed States ── */
+.dh-revealed .dh-final-title,
+.dh-revealed .dh-final-desc,
+.dh-revealed .dh-cta {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+
 .dh-cta-lg { padding: 16px 36px; font-size: 16px; }
 
 .dh-cta-dark {
