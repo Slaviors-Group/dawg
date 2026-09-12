@@ -1,3 +1,9 @@
+<script setup lang="ts">
+import { useData } from 'vitepress'
+
+const { lang } = useData()
+</script>
+
 <template>
   <footer class="dh-footer">
     <div class="dh-inner">
@@ -27,6 +33,16 @@
             <a href="https://github.com/Slaviors-Group/dawg" target="_blank" rel="noopener noreferrer">GitHub</a>
             <a href="https://github.com/Slaviors-Group/dawg/releases" target="_blank" rel="noopener noreferrer">Releases</a>
             <a href="/docs/contributing">Contributing</a>
+          </div>
+          <div class="dh-foot-col" v-if="lang === 'id'">
+            <p class="dh-foot-head">Legal</p>
+            <a href="/id/docs/user-policy">Kebijakan Pengguna</a>
+            <a href="/id/docs/terms-of-service">Ketentuan Layanan</a>
+          </div>
+          <div class="dh-foot-col" v-else>
+            <p class="dh-foot-head">Legal</p>
+            <a href="/docs/user-policy">User Policy</a>
+            <a href="/docs/terms-of-service">Terms of Service</a>
           </div>
         </div>
 

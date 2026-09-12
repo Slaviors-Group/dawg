@@ -7,6 +7,93 @@ export default defineConfig({
   description:
     "A Portable, Versioned Bug-Reproduction Artifact Platform for Deterministic Full-Stack Web Application Debugging",
 
+  locales: {
+    root: {
+      label: 'English',
+      lang: 'en'
+    },
+    id: {
+      label: 'Bahasa Indonesia',
+      lang: 'id',
+      description: "Platform Artefak Reproduksi Bug Web yang Portabel dan Berversi",
+      themeConfig: {
+        nav: [
+          { text: "Beranda", link: "/id/" },
+          {
+            text: "Panduan",
+            items: [
+              { text: "Mulai", link: "/id/docs/getting-started" },
+              { text: "Instalasi", link: "/id/docs/installation" },
+              { text: "Referensi CLI", link: "/id/docs/cli-reference" },
+            ],
+          },
+          {
+            text: "Arsitektur",
+            items: [
+              { text: "Ikhtisar", link: "/id/docs/architecture" },
+              { text: "Kebijakan Sanitasi", link: "/id/docs/sanitizer-policy" },
+            ],
+          },
+          { text: "Catatan Perubahan", link: "/id/docs/changelog" },
+          {
+            text: "v0.1.2-alpha",
+            items: [
+              {
+                text: "Rilis",
+                link: "https://github.com/Slaviors-Group/dawg/releases",
+              },
+              {
+                text: "Berkontribusi",
+                link: "/id/docs/contributing",
+              },
+            ],
+          },
+        ],
+        sidebar: {
+          "/id/docs/": [
+            {
+              text: "Pengenalan",
+              items: [
+                { text: "Mulai", link: "/id/docs/getting-started" },
+                { text: "Instalasi", link: "/id/docs/installation" },
+              ],
+            },
+            {
+              text: "Panduan",
+              items: [
+                { text: "Referensi CLI", link: "/id/docs/cli-reference" },
+                { text: "Arsitektur", link: "/id/docs/architecture" },
+                { text: "Kebijakan Sanitasi", link: "/id/docs/sanitizer-policy" },
+              ],
+            },
+            {
+              text: "Komunitas",
+              items: [
+                { text: "Berkontribusi", link: "/id/docs/contributing" },
+                { text: "Catatan Perubahan", link: "/id/docs/changelog" },
+              ],
+            },
+            {
+              text: "Legal",
+              items: [
+                { text: "Kebijakan Pengguna", link: "/id/docs/user-policy" },
+                { text: "Ketentuan Layanan", link: "/id/docs/terms-of-service" },
+              ],
+            },
+          ],
+        },
+        footer: {
+          message: "Dirilis di bawah Lisensi Apache-2.0.",
+          copyright: "Hak Cipta © 2026 Slaviors-Group",
+        },
+        editLink: {
+          pattern: "https://github.com/Slaviors-Group/dawg/edit/staging/web/:path",
+          text: "Edit halaman ini di GitHub",
+        },
+      }
+    }
+  },
+
   head: [
     ["link", { rel: "preconnect", href: "https://fonts.googleapis.com" }],
     [
@@ -90,6 +177,13 @@ export default defineConfig({
           items: [
             { text: "Contributing", link: "/docs/contributing" },
             { text: "Changelog", link: "/docs/changelog" },
+          ],
+        },
+        {
+          text: "Legal",
+          items: [
+            { text: "User Policy", link: "/docs/user-policy" },
+            { text: "Terms of Service", link: "/docs/terms-of-service" },
           ],
         },
       ],
