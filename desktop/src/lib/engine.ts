@@ -33,6 +33,7 @@ export interface EngineStatusInfo {
 
 export interface StartCaptureOptions {
   url: string;
+  title?: string;
 }
 
 export interface StartCaptureResult {
@@ -53,6 +54,18 @@ export interface StopCaptureResult {
   controlFile: string;
   sessionId?: string;
   artifactPath?: string;
+}
+
+export interface ArtifactItem {
+  id: string;
+  path: string;
+  targetUrl: string;
+  createdAt: string;
+  title: string;
+  schemaVersion: string;
+  origin: "captured" | "imported" | "pulled" | "legacy";
+  status: "valid";
+  components: string[];
 }
 
 export interface InspectOptions {
@@ -140,6 +153,7 @@ export class EngineBridge {
     try {
       const res = await invoke<CommandOutput<StartCaptureResult>>("start_capture", {
         url: options.url,
+        title: options.title,
       });
       return res.payload;
     } catch (err) {
@@ -157,6 +171,39 @@ export class EngineBridge {
     } catch (err) {
       console.warn("Tauri engine IPC fallback:", err);
       throw new Error(`Engine stopCapture failed: ${String(err)}`);
+    }
+  }
+
+  async listArtifacts(): Promise<ArtifactItem[]> {
+    try {
+      const res = await invoke<CommandOutput<ArtifactItem[]>>("list_artifacts");
+      return res.payload;
+    } catch (err) {
+      console.warn("Tauri engine IPC fallback:", err);
+      throw new Error(`Engine listArtifacts failed: ${String(err)}`);
+    }
+  }
+
+  async importArtifact(archive: string): Promise<ArtifactItem> {
+    try {
+      const res = await invoke<CommandOutput<ArtifactItem>>("import_artifact", { archive });
+      return res.payload;
+    } catch (err) {
+      console.warn("Tauri engine IPC fallback:", err);
+      throw new Error(`Engine importArtifact failed: ${String(err)}`);
+    }
+  }
+
+  async exportArtifact(artifact: string, output: string): Promise<{ status: "exported"; output: string }> {
+    try {
+      const res = await invoke<CommandOutput<{ status: "exported"; output: string }>>(
+        "export_artifact",
+        { artifact, output },
+      );
+      return res.payload;
+    } catch (err) {
+      console.warn("Tauri engine IPC fallback:", err);
+      throw new Error(`Engine exportArtifact failed: ${String(err)}`);
     }
   }
 

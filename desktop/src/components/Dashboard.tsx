@@ -1,17 +1,66 @@
-import { Archive, Cpu, Record, ShieldCheck } from "@phosphor-icons/react";
+import { Archive, Cpu, Record, ShieldCheck, UploadSimple } from "@phosphor-icons/react";
 import type React from "react";
+import { useEffect, useState } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEngine } from "../context/EngineContext";
+import { chooseArtifactArchive } from "../lib/artifactDialogs";
 import { ArtifactInspectorModal } from "./ArtifactInspectorModal";
 import { ArtifactList } from "./ArtifactList";
 import { EngineHelpBanner } from "./EngineHelpBanner";
 import { LogStreamer } from "./LogStreamer";
 import { Badge } from "./ui/Badge";
+import { Button } from "./ui/Button";
 import { PageShell } from "./ui/PageShell";
 import { StatCard } from "./ui/StatCard";
 
 export const Dashboard: React.FC = () => {
-  const { engineStatus, artifacts, inspectedArtifact, closeInspectModal, isCapturing } =
+  const { engineStatus, artifacts, addLogLine, importArtifact, inspectedArtifact, closeInspectModal, isCapturing } =
     useEngine();
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const importArchive = async (archive: string) => {
+    if (!archive.toLowerCase().endsWith(".dawg")) {
+      addLogLine("[WARN] Only .dawg artifact archives can be imported.");
+      return;
+    }
+    try {
+      await importArtifact(archive);
+    } catch {
+      // EngineContext records the actionable error in the shared log stream.
+    }
+  };
+
+  const handleImport = async () => {
+    const archive = await chooseArtifactArchive();
+    if (archive) await importArchive(archive);
+  };
+
+  useEffect(() => {
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+    void getCurrentWindow()
+      .onDragDropEvent(({ payload }) => {
+        if (payload.type === "enter" || payload.type === "over") {
+          setIsDragOver(true);
+        } else if (payload.type === "leave") {
+          setIsDragOver(false);
+        } else if (payload.type === "drop") {
+          setIsDragOver(false);
+          const archive = payload.paths.find((path) => path.toLowerCase().endsWith(".dawg"));
+          if (archive) void importArchive(archive);
+          else addLogLine("[WARN] Drop a .dawg artifact archive to import it.");
+        }
+      })
+      .then((stopListening) => {
+        if (disposed) stopListening();
+        else unlisten = stopListening;
+      })
+      .catch((error) => addLogLine(`[WARN] Drag-and-drop import is unavailable: ${String(error)}`));
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, [addLogLine]);
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "short",
@@ -38,11 +87,27 @@ export const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Left Column: Artifacts */}
         <div className="xl:col-span-2 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <h3 className="text-base font-bold text-text-primary">Recent Artifacts</h3>
-            <span className="text-xs font-semibold text-text-tertiary bg-canvas-subtle px-2 py-1 rounded-full border border-border">
-              {artifacts.length} total
-            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs font-semibold text-text-tertiary bg-canvas-subtle px-2 py-1 rounded-full border border-border">
+                {artifacts.length} total
+              </span>
+              <Button variant="secondary" size="sm" onClick={handleImport} iconLeft={<UploadSimple size={14} />}>
+                Import
+              </Button>
+            </div>
+          </div>
+          <div
+            className={[
+              "rounded-lg border-2 border-dashed px-4 py-3 text-center transition-colors",
+              isDragOver
+                ? "border-brand-500 bg-brand-100/50 text-brand-700"
+                : "border-border bg-canvas-subtle text-text-secondary",
+            ].join(" ")}
+          >
+            <p className="text-xs font-medium">Drop a .dawg archive here to import it</p>
+            <p className="mt-1 text-[11px] text-text-tertiary">or use the Import button to choose a file</p>
           </div>
           <ArtifactList />
 

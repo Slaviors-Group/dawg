@@ -52,6 +52,7 @@ export const CaptureControls: React.FC = () => {
   } = useEngine();
 
   const [urlError, setUrlError] = useState("");
+  const [artifactTitle, setArtifactTitle] = useState("");
   const [packagingProgress, setPackagingProgress] = useState(0);
 
   useEffect(() => {
@@ -95,7 +96,7 @@ export const CaptureControls: React.FC = () => {
       setUrlError("URL must start with http:// or https://");
       return;
     }
-    startCaptureSession(targetUrl);
+    void startCaptureSession(targetUrl, artifactTitle.trim() || undefined);
   };
 
   return (
@@ -131,6 +132,16 @@ export const CaptureControls: React.FC = () => {
             error={urlError}
             iconLeft={<Globe size={14} />}
             hint="DAWG will focus an existing matching tab or open this URL in your browser."
+          />
+
+          <Input
+            id="artifact-title"
+            label="Artifact name (optional)"
+            placeholder="Checkout validation regression"
+            value={artifactTitle}
+            onChange={(event) => setArtifactTitle(event.target.value)}
+            disabled={isCapturing}
+            hint="Used for the dashboard label and readable artifact folder name. A timestamp and target host are used when left blank."
           />
 
           {/* URL presets */}

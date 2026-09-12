@@ -1,18 +1,12 @@
-import { type ReactNode, createContext, useContext, useState } from "react";
+import { type ReactNode, createContext, useContext, useCallback, useEffect, useState } from "react";
 import {
   type DoctorReport,
   type EngineStatusInfo,
   useEngineStatus,
 } from "../hooks/useEngineStatus";
-import { engine } from "../lib/engine";
+import { engine, type ArtifactItem } from "../lib/engine";
 
-export interface ArtifactItem {
-  id: string;
-  path: string;
-  targetUrl: string;
-  createdAt: string;
-  components: string[];
-}
+export type { ArtifactItem } from "../lib/engine";
 
 interface EngineContextType {
   engineStatus: EngineStatusInfo;
@@ -26,10 +20,13 @@ interface EngineContextType {
   setTargetUrl: (url: string) => void;
   logs: string[];
   artifacts: ArtifactItem[];
+  refreshArtifacts: () => Promise<void>;
+  importArtifact: (archive: string) => Promise<void>;
+  exportArtifact: (artifact: ArtifactItem, output: string) => Promise<void>;
   inspectedArtifact: ArtifactItem | null;
   openInspectModal: (artifact: ArtifactItem) => void;
   closeInspectModal: () => void;
-  startCaptureSession: (url: string) => Promise<void>;
+  startCaptureSession: (url: string, title?: string) => Promise<void>;
   stopCaptureSession: () => Promise<void>;
   addLogLine: (line: string) => void;
   clearLogs: () => void;
@@ -65,6 +62,40 @@ export function EngineProvider({ children }: { children: ReactNode }) {
     setLogs([]);
   };
 
+  const refreshArtifacts = useCallback(async () => {
+    try {
+      const discovered = await engine.listArtifacts();
+      setArtifacts(discovered);
+    } catch (err) {
+      addLogLine(`[WARN] Unable to load saved artifacts: ${String(err)}`);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshArtifacts();
+  }, [refreshArtifacts]);
+
+  const importArtifact = async (archive: string) => {
+    try {
+      const artifact = await engine.importArtifact(archive);
+      addLogLine(`Imported artifact ${artifact.id} from ${archive}.`);
+      await refreshArtifacts();
+    } catch (err) {
+      addLogLine(`[ERROR] Import artifact failed: ${String(err)}`);
+      throw err;
+    }
+  };
+
+  const exportArtifact = async (artifact: ArtifactItem, output: string) => {
+    try {
+      const result = await engine.exportArtifact(artifact.path, output);
+      addLogLine(`Exported artifact ${artifact.id} to ${result.output}.`);
+    } catch (err) {
+      addLogLine(`[ERROR] Export artifact failed: ${String(err)}`);
+      throw err;
+    }
+  };
+
   const openInspectModal = (artifact: ArtifactItem) => {
     setInspectedArtifact(artifact);
   };
@@ -73,11 +104,11 @@ export function EngineProvider({ children }: { children: ReactNode }) {
     setInspectedArtifact(null);
   };
 
-  const startCaptureSession = async (url: string) => {
+  const startCaptureSession = async (url: string, title?: string) => {
     try {
       addLogLine(`Starting capture session for target URL: ${url}`);
       setIsCapturing(true);
-      const res = await engine.startCapture({ url });
+      const res = await engine.startCapture({ url, title });
       setActiveSessionId(res.sessionId);
       setActiveControlFile(res.controlFile);
       addLogLine(`Capture session active. Session ID: ${res.sessionId}`);
@@ -106,16 +137,7 @@ export function EngineProvider({ children }: { children: ReactNode }) {
       const sessionId = res.sessionId ?? activeSessionId;
       if (sessionId && res.artifactPath) {
         addLogLine(`Packaging complete. Artifact: ${res.artifactPath}`);
-        setArtifacts((prev) => [
-          {
-            id: sessionId,
-            path: res.artifactPath as string,
-            targetUrl,
-            createdAt: new Date().toISOString(),
-            components: ["browser", "http", "actions"],
-          },
-          ...prev,
-        ]);
+        await refreshArtifacts();
       } else {
         addLogLine("[WARN] Capture stopped but no artifact path was returned.");
       }
@@ -147,6 +169,9 @@ export function EngineProvider({ children }: { children: ReactNode }) {
         setTargetUrl,
         logs,
         artifacts,
+        refreshArtifacts,
+        importArtifact,
+        exportArtifact,
         inspectedArtifact,
         openInspectModal,
         closeInspectModal,

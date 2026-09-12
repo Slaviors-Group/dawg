@@ -44,7 +44,7 @@ export const DiffReport: React.FC = () => {
             placeholder="Select a captured .dawg artifact..."
             options={artifacts.map((art) => ({
               value: art.path,
-              label: `${art.id} — ${art.targetUrl}`,
+              label: `${art.title || art.id}${art.targetUrl ? ` — ${art.targetUrl}` : ""}`,
             }))}
           />
 

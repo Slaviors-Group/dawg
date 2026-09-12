@@ -64,6 +64,7 @@ func newCaptureCommand() *cobra.Command {
 	var unsafeSkipSanitize bool
 	var daemon bool
 	var resultFile string
+	var artifactTitle string
 
 	command := &cobra.Command{
 		Use:   "capture",
@@ -82,6 +83,7 @@ func newCaptureCommand() *cobra.Command {
 				PolicyFile:         policyFile,
 				UnsafeSkipSanitize: unsafeSkipSanitize,
 				ResultFile:         resultFile,
+				ArtifactTitle:      artifactTitle,
 			}
 			if unsafeSkipSanitize {
 				hostname := parsedURL.Hostname()
@@ -108,6 +110,7 @@ func newCaptureCommand() *cobra.Command {
 	command.Flags().BoolVar(&unsafeSkipSanitize, "unsafe-skip-sanitize", false, "Skip sanitization (only allowed for localhost targets)")
 	command.Flags().BoolVar(&daemon, "daemon", false, "Run the capture owner process")
 	command.Flags().StringVar(&resultFile, "result-file", "", "Capture daemon result-state file")
+	command.Flags().StringVar(&artifactTitle, "title", "", "Human-readable title for the packaged artifact")
 	_ = command.Flags().MarkHidden("result-file")
 	_ = command.Flags().MarkHidden("daemon")
 	_ = command.MarkFlagRequired("url")
@@ -124,6 +127,7 @@ type captureStartRequest struct {
 	PolicyFile         string
 	UnsafeSkipSanitize bool
 	ResultFile         string
+	ArtifactTitle      string
 }
 
 func launchCaptureDaemon(ctx context.Context, request captureStartRequest) (captureStartResult, error) {
@@ -302,10 +306,24 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 	}
 
 	// Pipeline stage 3: Package
+	capturedAt := time.Now().UTC()
+	artifactTitle := strings.TrimSpace(request.ArtifactTitle)
+	artifactFolderName := ""
+	if artifactTitle == "" {
+		artifactTitle = defaultArtifactTitle(request.TargetURL, capturedAt)
+		artifactFolderName = defaultArtifactDirectoryName(request.TargetURL, capturedAt)
+	} else {
+		artifactFolderName = artifactDirectoryNameForTitle(artifactTitle, capturedAt)
+	}
+	artifactDirectory, err := uniqueArtifactPath(defaultDawgDir("artifacts"), artifactFolderName)
+	if err != nil {
+		pipelineErr = fmt.Errorf("capture: choose artifact directory: %w", err)
+		return pipelineErr
+	}
 	packageRequest := dawgtypes.PackageRequest{
 		SessionDirectory: request.SessionDirectory,
-		OutputDirectory:  defaultDawgDir("artifacts", sessionID),
-		Title:            "Captured Session " + sessionID,
+		OutputDirectory:  artifactDirectory,
+		Title:            artifactTitle,
 		Source: dawgtypes.ManifestSource{
 			Reporter:    "local",
 			Environment: "dev",
@@ -323,6 +341,10 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 		return err
 	}
 	artifactPath = artifact.Directory
+	if err := registerCapturedArtifact(artifactPath, request.TargetURL); err != nil {
+		pipelineErr = fmt.Errorf("capture: register artifact: %w", err)
+		return pipelineErr
+	}
 	return nil
 }
 
@@ -405,8 +427,49 @@ func (c *logComponent) Stop() error {
 	return nil
 }
 
+func defaultArtifactTitle(targetURL string, capturedAt time.Time) string {
+	parsed, err := url.Parse(targetURL)
+	host := "capture"
+	if err == nil && parsed.Hostname() != "" {
+		host = parsed.Hostname()
+	}
+	return fmt.Sprintf("%s capture %s", host, capturedAt.Format("2006-01-02 15:04"))
+}
+
+func defaultArtifactDirectoryName(targetURL string, capturedAt time.Time) string {
+	parsed, err := url.Parse(targetURL)
+	host := "capture"
+	if err == nil && parsed.Hostname() != "" {
+		host = parsed.Hostname()
+	}
+	return artifactDirectoryNameForTitle(host, capturedAt)
+}
+
+func artifactDirectoryNameForTitle(title string, capturedAt time.Time) string {
+	slug := strings.ToLower(strings.TrimSpace(title))
+	var builder strings.Builder
+	lastDash := false
+	for _, character := range slug {
+		if (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9') {
+			builder.WriteRune(character)
+			lastDash = false
+		} else if !lastDash {
+			builder.WriteByte('-')
+			lastDash = true
+		}
+	}
+	slug = strings.Trim(builder.String(), "-")
+	if slug == "" {
+		slug = "capture"
+	}
+	return fmt.Sprintf("%s-%s", capturedAt.Format("20060102-150405"), slug)
+}
+
 func daemonArguments(request captureStartRequest, sessionPath string) []string {
 	arguments := []string{"capture", "--daemon", "--url", request.TargetURL, "--session-dir", sessionPath}
+	if request.ArtifactTitle != "" {
+		arguments = append(arguments, "--title", request.ArtifactTitle)
+	}
 	if request.ResultFile != "" {
 		arguments = append(arguments, "--result-file", request.ResultFile)
 	}

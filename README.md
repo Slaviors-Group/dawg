@@ -5,9 +5,9 @@ result as a portable OCI-layout artifact, and replays the recorded DOM session
 in an isolated Chromium instance. It provides both a Tauri desktop application
 and a Go CLI.
 
-> **Current release label:** `0.2-naughty`
+> **Current release label:** `0.2.3-naughty`
 >
-> Generated application/schema version: `0.2.0-naughty`
+> Generated application/schema version: `0.2.3-naughty`
 
 ---
 
@@ -74,9 +74,9 @@ desktop, extension, bundled Node.js, and bundled mitmproxy versions.
 
 ```json
 {
-  "appVersion": "0.2-naughty",
-  "desktopVersion": "0.2",
-  "extensionVersion": "0.2_naughty"
+  "appVersion": "0.2.3-naughty",
+  "desktopVersion": "0.2.3",
+  "extensionVersion": "0.2.3_naughty"
 }
 ```
 
@@ -92,9 +92,9 @@ strict SemVer:
 
 | `version.json` value | Generated package/schema value |
 | --- | --- |
-| `0.2` | `0.2.0` |
-| `0.2-naughty` | `0.2.0-naughty` |
-| `0.2_naughty` for the extension | Chrome `version: "0.2.0"` plus `version_name: "0.2_naughty"` |
+| `0.2.3` | `0.2.3` |
+| `0.2.3-naughty` | `0.2.3-naughty` |
+| `0.2.3_naughty` for the extension | Chrome `version: "0.2.3"` plus `version_name: "0.2.3_naughty"` |
 
 The synchronizer updates package metadata, Cargo/Tauri metadata, engine/schema
 references and schema filename, the extension manifest, bundle defaults, and
@@ -161,7 +161,7 @@ dawg doctor
 Example of a healthy bundled installation:
 
 ```text
-DAWG Engine Doctor Diagnostics (v0.2.0-naughty)
+DAWG Engine Doctor Diagnostics (v0.2.3-naughty)
 Resource Root: ...\resources (Bundled: true)
 
 ✅ dawg-engine

@@ -1,4 +1,4 @@
-import { Cube, Flask, Info, PlayCircle, StopCircle } from "@phosphor-icons/react";
+import { Cube, Flask, Info, MagnifyingGlass, PlayCircle, StopCircle } from "@phosphor-icons/react";
 import type React from "react";
 import { useMemo, useState } from "react";
 import { useEngine } from "../context/EngineContext";
@@ -7,6 +7,7 @@ import { LogStreamer } from "./LogStreamer";
 import { Button } from "./ui/Button";
 import { Card, CardHeader, CardTitle } from "./ui/Card";
 import { EmptyState } from "./ui/EmptyState";
+import { Input } from "./ui/Input";
 import { PageShell } from "./ui/PageShell";
 import { Select } from "./ui/Select";
 
@@ -19,6 +20,8 @@ const isWindows = typeof navigator !== "undefined" && navigator.userAgent.includ
 export const ReplayViewer: React.FC = () => {
   const { artifacts, addLogLine } = useEngine();
   const [selectedArtifact, setSelectedArtifact] = useState("");
+  const [artifactSearch, setArtifactSearch] = useState("");
+  const [originFilter, setOriginFilter] = useState("all");
   const [isReplaying, setIsReplaying] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
@@ -36,6 +39,18 @@ export const ReplayViewer: React.FC = () => {
         "Replay isolates the captured environment in a rootless Docker Compose project. Run a replay to see live sandbox status in the execution logs.",
     };
   }, []);
+
+  const visibleArtifacts = useMemo(() => {
+    const query = artifactSearch.trim().toLowerCase();
+    return artifacts.filter((artifact) => {
+      if (originFilter !== "all" && artifact.origin !== originFilter) return false;
+      if (!query) return true;
+      return [artifact.title, artifact.id, artifact.targetUrl, artifact.path]
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    });
+  }, [artifactSearch, artifacts, originFilter]);
 
   const handleRunReplay = async () => {
     if (!selectedArtifact || isReplaying) return;
@@ -89,42 +104,75 @@ export const ReplayViewer: React.FC = () => {
         </CardHeader>
 
         <div className="flex flex-col gap-4">
-          <div className="flex gap-3 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_12rem] gap-3">
+            <Input
+              id="artifact-search"
+              label="Search artifacts"
+              placeholder="Name, URL, digest, or path..."
+              value={artifactSearch}
+              onChange={(event) => setArtifactSearch(event.target.value)}
+              iconLeft={<MagnifyingGlass size={14} />}
+            />
+            <Select
+              id="artifact-origin-filter"
+              label="Source"
+              value={originFilter}
+              onChange={setOriginFilter}
+              options={[
+                { value: "all", label: `All artifacts (${artifacts.length})` },
+                { value: "captured", label: "Captured locally" },
+                { value: "imported", label: "Imported archives" },
+                { value: "pulled", label: "Registry pulls" },
+                { value: "legacy", label: "Legacy/local files" },
+              ]}
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
             <Select
               id="artifact-select"
               label="Captured Artifact"
               value={selectedArtifact}
               onChange={setSelectedArtifact}
-              wrapperClassName="flex-1"
-              placeholder="Select a .dawg artifact..."
-              options={artifacts.map((art) => ({
+              wrapperClassName="flex-1 min-w-0 w-full"
+              placeholder={
+                visibleArtifacts.length === 0
+                  ? "No artifacts match this search"
+                  : "Select a .dawg artifact..."
+              }
+              disabled={visibleArtifacts.length === 0}
+              options={visibleArtifacts.map((art) => ({
                 value: art.path,
-                label: `${art.id} — ${art.targetUrl} (${new Date(art.createdAt).toLocaleTimeString()})`,
+                label: `${art.title || art.id}${art.targetUrl ? ` — ${art.targetUrl}` : ""} (${new Date(art.createdAt).toLocaleString()})`,
               }))}
             />
 
-            <Button
-              type="button"
-              variant="primary"
-              onClick={handleRunReplay}
-              disabled={!selectedArtifact || isReplaying}
-              iconLeft={<PlayCircle size={16} />}
-            >
-              {isReplaying ? "Replaying..." : "Run Replay"}
-            </Button>
-
-            {isReplaying && (
-              <Button
-                type="button"
-                variant="danger"
-                onClick={handleCancelReplay}
-                disabled={isCancelling}
-                loading={isCancelling}
-                iconLeft={<StopCircle size={16} />}
-              >
-                {isCancelling ? "Stopping..." : "Stop Replay"}
-              </Button>
-            )}
+            <div className="shrink-0 w-full sm:w-32">
+              {isReplaying ? (
+                <Button
+                  type="button"
+                  variant="danger"
+                  className="w-full"
+                  onClick={handleCancelReplay}
+                  disabled={isCancelling}
+                  loading={isCancelling}
+                  iconLeft={<StopCircle size={16} />}
+                >
+                  {isCancelling ? "Stopping..." : "Stop Replay"}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="primary"
+                  className="w-full"
+                  onClick={handleRunReplay}
+                  disabled={!selectedArtifact}
+                  iconLeft={<PlayCircle size={16} />}
+                >
+                  Run Replay
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </Card>

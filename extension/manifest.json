@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "minimum_chrome_version": "116",
   "name": "DAWG Browser Extension",
-  "version": "0.2.0",
+  "version": "0.2.3",
   "description": "Captures DOM events and frontend network traffic directly for DAWG bug reporting.",
   "permissions": [
     "activeTab",
@@ -44,5 +44,5 @@
       "run_at": "document_start"
     }
   ],
-  "version_name": "0.2_naughty"
+  "version_name": "0.2.3_naughty"
 }

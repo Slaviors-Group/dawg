@@ -88,7 +88,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
           </h4>
           <div className="flex justify-between text-xs text-text-tertiary">
             <span>DAWG Desktop Shell</span>
-            <span className="font-mono">v0.2.0-naughty</span>
+            <span className="font-mono">v0.2.3-naughty</span>
           </div>
           <div className="flex justify-between text-xs text-text-tertiary mt-1">
             <span>Developer</span>

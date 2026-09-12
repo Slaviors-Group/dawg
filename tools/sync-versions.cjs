@@ -26,6 +26,7 @@ const semver = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const majorMinorRelease = /^(\d+)\.(\d+)$/;
 const namedRelease = /^(\d+)\.(\d+)[-_]([0-9A-Za-z._-]+)$/;
 const extensionSemver = /^\d+\.\d+\.\d+(?:\.\d+)?$/;
+const namedExtensionRelease = /^(\d+)\.(\d+)(?:\.(\d+))?[-_]([0-9A-Za-z._-]+)$/;
 
 // Allow convenient MAJOR.MINOR and MAJOR.MINOR-label shorthand in
 // version.json, e.g. "0.2" or "0.2-naughty". Package managers and Tauri
@@ -51,19 +52,19 @@ function normalizeExtensionVersion(value) {
   if (extensionSemver.test(value)) return { version: value, versionName: null };
   const plainMatch = majorMinorRelease.exec(value);
   if (plainMatch) return { version: `${plainMatch[1]}.${plainMatch[2]}.0`, versionName: null };
-  const namedMatch = namedRelease.exec(value);
+  const namedMatch = namedExtensionRelease.exec(value);
   if (namedMatch) {
     // Chrome requires a numeric `version`, but supports an arbitrary display
     // label in `version_name`. Keep the label there while producing a valid
     // installable extension manifest.
     return {
-      version: `${namedMatch[1]}.${namedMatch[2]}.0`,
+      version: `${namedMatch[1]}.${namedMatch[2]}.${namedMatch[3] ?? "0"}`,
       versionName: value,
     };
   }
   throw new Error(
-    `version.json extensionVersion must begin with MAJOR.MINOR ` +
-    `(for example 0.2, 0.2_naughty, or 0.2.0): ${value}`,
+    `version.json extensionVersion must begin with MAJOR.MINOR[.PATCH] ` +
+    `(for example 0.2, 0.2_naughty, 0.2.3, or 0.2.3_naughty): ${value}`,
   );
 }
 

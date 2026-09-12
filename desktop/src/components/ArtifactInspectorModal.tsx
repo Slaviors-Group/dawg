@@ -47,7 +47,7 @@ export const ArtifactInspectorModal: React.FC<Props> = ({ artifact, onClose }) =
       open={!!artifact}
       onClose={onClose}
       title="Artifact Inspector"
-      subtitle={artifact.id}
+      subtitle={artifact.title || artifact.id}
       maxWidth="lg"
     >
       <div className="flex flex-col gap-5">
