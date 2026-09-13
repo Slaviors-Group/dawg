@@ -267,4 +267,4 @@ to validate staged runtime assets and native process handling.
 
 ## 📄 License
 
-Apache-2.0. See [`LICENSE`](LICENSE).
+GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007. See [`LICENSE`](LICENSE).
