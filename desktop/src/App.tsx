@@ -78,7 +78,6 @@ function ShellContent() {
             />
           ))}
 
-          {/* Engine status pill (replacing the old style) */}
           <div className="mt-8 pt-6 border-t border-border">
             <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-2 px-3">
               Engine Status
@@ -117,7 +116,7 @@ function ShellContent() {
           </div>
         </nav>
 
-        {/* Open Source / GitHub Link */}
+        {/* Repository link */}
         <div className="relative p-5 rounded-2xl overflow-hidden shadow-card shrink-0">
           {/* Gradient Background */}
           <div className="absolute inset-0 bg-gradient-to-br from-brand-600 to-brand-400" />
@@ -140,7 +139,7 @@ function ShellContent() {
               <span className="font-bold text-sm text-white">Open Source</span>
             </div>
             <p className="text-xs text-brand-50 leading-relaxed font-medium">
-              DAWG is completely free and open-source. Help us improve!
+              Source code, releases, and issue tracking.
             </p>
             <a
               href="https://github.com/Slaviors-Group/dawg"
@@ -148,7 +147,7 @@ function ShellContent() {
               rel="noopener noreferrer"
               className="mt-1 px-4 py-1.5 bg-white text-brand-700 hover:bg-brand-50 font-semibold text-xs rounded-full shadow-sm transition-colors w-full text-center block"
             >
-              Star on GitHub
+              Open GitHub
             </a>
           </div>
         </div>

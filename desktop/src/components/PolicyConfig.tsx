@@ -52,7 +52,7 @@ export const PolicyConfig: React.FC = () => {
   return (
     <PageShell
       title="Sanitizer Policy Configuration"
-      subtitle="OPA Rego Policy Gating & Secret Redaction Rules (PRD §6.2 / architecture.md §Schema)"
+      subtitle="Built-in OPA Rego policy and secret-redaction examples"
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {(Object.keys(POLICIES) as Array<keyof typeof POLICIES>).map((key) => {

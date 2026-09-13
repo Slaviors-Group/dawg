@@ -1,11 +1,5 @@
 import { CircleNotch } from "@phosphor-icons/react";
-/**
- * Button — primary interaction primitive.
- *
- * Variants: primary | secondary | ghost | danger
- * Sizes: sm | md | lg
- * States: default | loading | disabled
- */
+
 import { type ButtonHTMLAttributes, forwardRef } from "react";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";

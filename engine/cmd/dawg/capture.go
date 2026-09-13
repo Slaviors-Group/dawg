@@ -281,15 +281,14 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 		return err
 	}
 
-	// Pipeline stage 2: Sanitize
 	if !request.UnsafeSkipSanitize {
 		_, err = sanitize.SanitizeDirectory(ctx, request.SessionDirectory, request.PolicyFile, "1.0.0")
 		if err != nil {
 			pipelineErr = err
-			return err // ErrExportBlocked is naturally propagated here
+			return err
 		}
 	} else {
-		// Write dummy report to satisfy the packager
+		// Record the explicit sanitizer bypass in the packaged report.
 		dummyReport := dawgtypes.SanitizeReport{
 			PolicyVersion:  "skipped",
 			PolicyFile:     "skipped",
@@ -305,7 +304,6 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 		_ = os.WriteFile(reportPath, append(reportBytes, '\n'), 0o600)
 	}
 
-	// Pipeline stage 3: Package
 	capturedAt := time.Now().UTC()
 	artifactTitle := strings.TrimSpace(request.ArtifactTitle)
 	artifactFolderName := ""

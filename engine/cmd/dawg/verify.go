@@ -29,13 +29,11 @@ func newVerifyCommand() *cobra.Command {
 			}
 			defer os.RemoveAll(tmpDir)
 
-			// Execute Replay Pipeline
 			out, err := ExecuteReplay(ctx, layoutDir, tmpDir)
 			if err != nil {
 				return fmt.Errorf("verify: replay failed: %w", err)
 			}
 
-			// Run Verification Checks
 			manifestPath := filepath.Join(layoutDir, "dawg-manifest.json")
 			m, err := manifest.Read(manifestPath)
 			if err != nil {
@@ -48,12 +46,11 @@ func newVerifyCommand() *cobra.Command {
 				return fmt.Errorf("verify: run checks: %w", err)
 			}
 
-			// If user specifies a branch, record it
+			// The against value labels the report; it does not select an environment.
 			if against != "" {
 				result.VerifiedAgainst = against
 			}
 
-			// Output
 			if outputFormat == "json" {
 				b, _ := json.MarshalIndent(result, "", "  ")
 				fmt.Fprintln(os.Stdout, string(b))
@@ -73,7 +70,7 @@ func newVerifyCommand() *cobra.Command {
 					fmt.Printf("    Expected: %v\n", check.Expected)
 					fmt.Printf("    Actual:   %v\n", check.Actual)
 					if !check.Passed {
-						// Only show threshold details if it failed and applies
+
 						if check.Threshold > 0 {
 							fmt.Printf("    Diff Pixels: %d (Threshold: %d)\n", check.DiffPixels, check.Threshold)
 						}

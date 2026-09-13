@@ -308,9 +308,8 @@ async function performStartCapture(requestedUrl, requestedToken) {
       });
       return publicState();
     }
-    // A daemon can disappear without completing its stop handshake (host
-    // shutdown, crash, or update). A new authenticated command supersedes that
-    // stale local state and starts a fresh rrweb snapshot for the new session.
+    // A new token-bearing start command replaces state left by a daemon that
+    // exited before completing its stop handshake.
     if (recordingTabId !== null) {
       await chrome.tabs.sendMessage(recordingTabId, { type: "STOP_RECORDING" }).catch(() => {});
     }
@@ -527,8 +526,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       const activeTab = tabs[0];
       if (!activeTab?.url) throw new Error("no recordable active tab was found");
-      // Popup starts are retained for diagnostics, but a recorder session still
-      // needs a daemon-issued token. The normal product path starts in desktop.
+      // Legacy popup start requests still require a daemon-issued token.
       if (!message.sessionToken) throw new Error("start capture from the DAWG desktop app");
       return startCaptureForTarget(message.targetUrl || activeTab.url, message.sessionToken);
     })().then(sendResponse).catch((error) => sendResponse({ ...publicState(), error: error.message }));

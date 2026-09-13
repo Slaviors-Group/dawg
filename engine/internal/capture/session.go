@@ -1,4 +1,4 @@
-// Package capture implements PRD §6.1 session recording and environment snapshots.
+// Package capture records sessions and environment snapshots.
 package capture
 
 import (
@@ -29,7 +29,7 @@ type SessionOptions struct {
 	Components []SessionComponent
 }
 
-// Session orchestrates capture source startup and shutdown for PRD §6.1.
+// Session coordinates capture source startup and shutdown.
 // A session deliberately does not merge source streams: each source preserves its own ordering and timestamps.
 type Session struct {
 	options SessionOptions

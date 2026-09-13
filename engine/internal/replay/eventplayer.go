@@ -12,8 +12,7 @@ import (
 	"github.com/Slaviors-Group/dawg/engine/internal/procutil"
 )
 
-// EventPlayer orchestrates the playback of a recorded browser session using Playwright.
-// Implements PRD §6.5 (Replay Engine) browser replay layer.
+// EventPlayer replays a recorded browser session through Playwright.
 type EventPlayer struct {
 	NodeBinary    string
 	ScriptPath    string

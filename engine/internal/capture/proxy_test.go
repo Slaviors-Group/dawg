@@ -126,5 +126,3 @@ func productionProxyAddon(t *testing.T) string {
 	}
 	return filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", "..", "scripts", "capture-proxy.py"))
 }
-
-

@@ -24,7 +24,6 @@ func TestSandboxWindowsNativeMode(t *testing.T) {
 	}
 }
 
-
 func TestEnsurePinnedComposeImagesRejectsTag(t *testing.T) {
 	path := writeCompose(t, "services:\n  app:\n    image: example/app:latest\n")
 	err := ensurePinnedComposeImages(path)

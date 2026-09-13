@@ -25,4 +25,3 @@ func waitForNonEmptyFile(t *testing.T, path string, timeout time.Duration) {
 		}
 	}
 }
-

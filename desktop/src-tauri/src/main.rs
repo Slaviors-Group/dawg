@@ -1,4 +1,4 @@
-// Prevents additional console window on Windows in release, DO NOT REMOVE!!
+// Release builds use the Windows GUI subsystem to avoid a second console window.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {

@@ -60,6 +60,11 @@ pipeline {
                          rustc --version && \
                          cargo --version && \
                          npm ci && \
+                         npm run check:versions && \
+                         node --check ../extension/background/service_worker.js && \
+                         node --check ../extension/content/recorder.js && \
+                         node --check ../extension/popup/popup.js && \
+                         node --test ../extension/tests/service_worker.test.cjs && \
                          test -x /root/.cache/ms-playwright/chromium-1193/chrome-linux/chrome && \
                          gofmt -l . > /tmp/dawg-gofmt-files && \
                          test ! -s /tmp/dawg-gofmt-files && \

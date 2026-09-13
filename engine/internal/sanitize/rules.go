@@ -1,4 +1,4 @@
-// Package sanitize implements PRD §6.2 redaction and export gating for captured data.
+// Package sanitize applies redaction rules and policy checks to captured data.
 package sanitize
 
 import (

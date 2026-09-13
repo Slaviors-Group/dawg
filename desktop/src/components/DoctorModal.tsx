@@ -1,8 +1,5 @@
 import { ArrowsClockwise, CheckCircle, XCircle } from "@phosphor-icons/react";
-/**
- * DoctorModal — DAWG Engine diagnostics dialog.
- * Shows engine path, resource root, and component status table.
- */
+
 import { useEngine } from "../context/EngineContext";
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
@@ -14,7 +11,6 @@ interface DoctorModalProps {
 }
 
 export function DoctorModal({ open, onClose }: DoctorModalProps) {
-  // Touch file to resolve TS caching issue
   const { doctorReport, refetchEngineStatus, isCheckingEngine } = useEngine();
 
   return (

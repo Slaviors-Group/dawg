@@ -1,10 +1,10 @@
-import { type ReactNode, createContext, useContext, useCallback, useEffect, useState } from "react";
+import { type ReactNode, createContext, useCallback, useContext, useEffect, useState } from "react";
 import {
   type DoctorReport,
   type EngineStatusInfo,
   useEngineStatus,
 } from "../hooks/useEngineStatus";
-import { engine, type ArtifactItem } from "../lib/engine";
+import { type ArtifactItem, engine } from "../lib/engine";
 
 export type { ArtifactItem } from "../lib/engine";
 
@@ -53,14 +53,14 @@ export function EngineProvider({ children }: { children: ReactNode }) {
   ]);
   const [artifacts, setArtifacts] = useState<ArtifactItem[]>([]);
 
-  const addLogLine = (line: string) => {
+  const addLogLine = useCallback((line: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setLogs((prev) => [...prev, `[${timestamp}] ${line}`]);
-  };
+  }, []);
 
-  const clearLogs = () => {
+  const clearLogs = useCallback(() => {
     setLogs([]);
-  };
+  }, []);
 
   const refreshArtifacts = useCallback(async () => {
     try {
@@ -69,32 +69,38 @@ export function EngineProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       addLogLine(`[WARN] Unable to load saved artifacts: ${String(err)}`);
     }
-  }, []);
+  }, [addLogLine]);
 
   useEffect(() => {
     void refreshArtifacts();
   }, [refreshArtifacts]);
 
-  const importArtifact = async (archive: string) => {
-    try {
-      const artifact = await engine.importArtifact(archive);
-      addLogLine(`Imported artifact ${artifact.id} from ${archive}.`);
-      await refreshArtifacts();
-    } catch (err) {
-      addLogLine(`[ERROR] Import artifact failed: ${String(err)}`);
-      throw err;
-    }
-  };
+  const importArtifact = useCallback(
+    async (archive: string) => {
+      try {
+        const artifact = await engine.importArtifact(archive);
+        addLogLine(`Imported artifact ${artifact.id} from ${archive}.`);
+        await refreshArtifacts();
+      } catch (err) {
+        addLogLine(`[ERROR] Import artifact failed: ${String(err)}`);
+        throw err;
+      }
+    },
+    [addLogLine, refreshArtifacts],
+  );
 
-  const exportArtifact = async (artifact: ArtifactItem, output: string) => {
-    try {
-      const result = await engine.exportArtifact(artifact.path, output);
-      addLogLine(`Exported artifact ${artifact.id} to ${result.output}.`);
-    } catch (err) {
-      addLogLine(`[ERROR] Export artifact failed: ${String(err)}`);
-      throw err;
-    }
-  };
+  const exportArtifact = useCallback(
+    async (artifact: ArtifactItem, output: string) => {
+      try {
+        const result = await engine.exportArtifact(artifact.path, output);
+        addLogLine(`Exported artifact ${artifact.id} to ${result.output}.`);
+      } catch (err) {
+        addLogLine(`[ERROR] Export artifact failed: ${String(err)}`);
+        throw err;
+      }
+    },
+    [addLogLine],
+  );
 
   const openInspectModal = (artifact: ArtifactItem) => {
     setInspectedArtifact(artifact);

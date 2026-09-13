@@ -6,10 +6,7 @@ use std::process::{Command, Stdio};
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager};
 
-/// Windows CREATE_NO_WINDOW process creation flag. Without this, every engine
-/// subprocess invocation pops up its own visible console host window (e.g.
-/// Windows Terminal) since the Tauri desktop shell has no console of its own
-/// to inherit.
+/// Windows flag for starting engine processes without a console window.
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
@@ -27,24 +24,11 @@ pub struct CommandOutput {
     pub payload: serde_json::Value,
 }
 
-/// Tracks DAWG engine background processes that outlive a single Tauri
-/// command invocation, so they can be (a) cancelled mid-flight by the user
-/// and (b) forcibly cleaned up if the desktop window is closed while they
-/// are still running. Without this, a stuck `dawg run` replay (and its
-/// node/Chromium/mitmdump child processes) or an in-progress capture daemon
-/// would keep running as an orphan after the app exits.
+/// Tracks replay and capture processes for cancellation and exit cleanup.
 #[derive(Default)]
 struct ProcessRegistry {
-    /// PID of the currently in-flight `dawg run` (replay) subprocess, if any.
     replay_pid: Mutex<Option<u32>>,
-    /// Set once `cancel_replay` force-kills the tracked replay process, so
-    /// `run_replay` can report a clean "cancelled" outcome instead of a
-    /// generic subprocess failure once the killed process's `wait` returns.
     replay_cancelled: Mutex<bool>,
-    /// PID of the detached capture daemon launched by `dawg capture`, if a
-    /// capture session is currently active. It outlives the short-lived
-    /// `dawg capture --url` launcher process that spawned it, so it must be
-    /// tracked separately from `replay_pid`.
     capture_daemon_pid: Mutex<Option<u32>>,
 }
 
@@ -86,10 +70,7 @@ impl ProcessRegistry {
         *self.capture_daemon_pid.lock().unwrap() = None;
     }
 
-    /// Force-kills every DAWG background process this app session is aware
-    /// of. Called when the desktop window is closed so no orphaned engine
-    /// subprocess (a stuck replay's node/Chromium/mitmdump tree, or an
-    /// active capture daemon) keeps running after the user closes DAWG.
+    /// Terminates all replay and capture processes tracked by this session.
     fn kill_all(&self) {
         if let Some(pid) = self.replay_pid.lock().unwrap().take() {
             kill_process_tree(pid);
@@ -100,10 +81,7 @@ impl ProcessRegistry {
     }
 }
 
-/// Forcibly terminates `pid` and its full descendant process tree. Used both
-/// for user-initiated replay cancellation and for cleaning up orphaned
-/// background processes (replay's node/Chromium/mitmdump tree, capture's
-/// daemon) when the desktop window is closed.
+/// Terminates `pid` and its descendant processes.
 fn kill_process_tree(pid: u32) {
     #[cfg(windows)]
     {
@@ -159,17 +137,8 @@ pub struct DoctorReport {
 /// Helper to determine the resource root given a resolved binary path.
 fn infer_resource_dir(engine_path: &Path) -> Option<PathBuf> {
     if let Some(parent) = engine_path.parent() {
-        // If engine is at .../resources/binaries/dawg.exe -> resource dir is .../resources
-        if parent.ends_with("binaries") {
-            if let Some(grandparent) = parent.parent() {
-                return Some(grandparent.to_path_buf());
-            }
-        }
-        // If engine is at .../bin/dawg.exe in repo -> resource dir is ...
-        if parent.ends_with("bin") {
-            if let Some(grandparent) = parent.parent() {
-                return Some(grandparent.to_path_buf());
-            }
+        if parent.ends_with("binaries") || parent.ends_with("bin") {
+            return parent.parent().map(Path::to_path_buf);
         }
         // Check if there is a sibling "resources", "scripts", or "schema" folder
         if parent.join("scripts").exists() || parent.join("schema").exists() {
@@ -190,20 +159,20 @@ fn query_registry_path(hive: &str, subkey: &str) -> Vec<PathBuf> {
     let output = reg_cmd.output();
 
     let mut paths = Vec::new();
-    if let Ok(out) = output {
-        if out.status.success() {
-            let text = String::from_utf8_lossy(&out.stdout);
-            for line in text.lines() {
-                if line.contains("REG_SZ") || line.contains("REG_EXPAND_SZ") {
-                    let parts: Vec<&str> = line.split_whitespace().collect();
-                    if parts.len() >= 3 {
-                        // The PATH value may contain spaces and semicolons
-                        let path_val = parts[2..].join(" ");
-                        for p in path_val.split(';') {
-                            let trimmed = p.trim();
-                            if !trimmed.is_empty() {
-                                paths.push(PathBuf::from(trimmed));
-                            }
+    let Ok(out) = output else {
+        return paths;
+    };
+    if out.status.success() {
+        let text = String::from_utf8_lossy(&out.stdout);
+        for line in text.lines() {
+            if line.contains("REG_SZ") || line.contains("REG_EXPAND_SZ") {
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 3 {
+                    let path_val = parts[2..].join(" ");
+                    for p in path_val.split(';') {
+                        let trimmed = p.trim();
+                        if !trimmed.is_empty() {
+                            paths.push(PathBuf::from(trimmed));
                         }
                     }
                 }
@@ -243,24 +212,25 @@ fn resolve_engine_binary(app: &AppHandle) -> (PathBuf, Option<PathBuf>, bool) {
     }
 
     // 2. Check sibling of current desktop executable
-    if let Ok(current_exe) = std::env::current_exe() {
-        if let Some(parent) = current_exe.parent() {
-            let candidates = [
-                parent
-                    .join("resources")
-                    .join("resources")
-                    .join("binaries")
-                    .join(exe_name),
-                parent.join("resources").join("binaries").join(exe_name),
-                parent.join("binaries").join(exe_name),
-                parent.join("resources").join(exe_name),
-                parent.join(exe_name),
-            ];
-            for candidate in &candidates {
-                if candidate.exists() {
-                    let res = infer_resource_dir(candidate).unwrap_or_else(|| parent.to_path_buf());
-                    return (candidate.clone(), Some(res), true);
-                }
+    if let Some(parent) = std::env::current_exe()
+        .ok()
+        .and_then(|path| path.parent().map(Path::to_path_buf))
+    {
+        let candidates = [
+            parent
+                .join("resources")
+                .join("resources")
+                .join("binaries")
+                .join(exe_name),
+            parent.join("resources").join("binaries").join(exe_name),
+            parent.join("binaries").join(exe_name),
+            parent.join("resources").join(exe_name),
+            parent.join(exe_name),
+        ];
+        for candidate in &candidates {
+            if candidate.exists() {
+                let res = infer_resource_dir(candidate).unwrap_or_else(|| parent.clone());
+                return (candidate.clone(), Some(res), true);
             }
         }
     }
@@ -301,12 +271,14 @@ fn resolve_engine_binary(app: &AppHandle) -> (PathBuf, Option<PathBuf>, bool) {
         PathBuf::from("../engine/bin").join(exe_name),
     ];
     for dev_path in &dev_candidates {
-        if dev_path.exists() {
-            if let Ok(abs) = dev_path.canonicalize() {
-                let res_dir = infer_resource_dir(&abs);
-                return (abs, res_dir, false);
-            }
+        if !dev_path.exists() {
+            continue;
         }
+        let Ok(abs) = dev_path.canonicalize() else {
+            continue;
+        };
+        let res_dir = infer_resource_dir(&abs);
+        return (abs, res_dir, false);
     }
 
     // 5. Query Windows Registry for real-time updated User/System PATH
@@ -490,8 +462,6 @@ async fn stop_capture(
         args.push(cf);
     }
     let result = execute_engine_cmd(app, "capture".to_string(), args).await;
-    // The daemon has been asked to stop (gracefully or otherwise); either way
-    // it's no longer our responsibility to force-kill it on app exit.
     registry.clear_capture_daemon();
     result
 }
@@ -603,6 +573,38 @@ async fn verify_result(
     .await
 }
 
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
+        .manage(ProcessRegistry::default())
+        .invoke_handler(tauri::generate_handler![
+            check_engine_installed,
+            get_doctor_report,
+            start_capture,
+            stop_capture,
+            inspect_artifact,
+            list_artifacts,
+            import_artifact,
+            export_artifact,
+            run_replay,
+            cancel_replay,
+            verify_result
+        ])
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            // Terminate tracked engine work when the application exits.
+            if !matches!(event, tauri::RunEvent::ExitRequested { .. }) {
+                return;
+            }
+            if let Some(registry) = app_handle.try_state::<ProcessRegistry>() {
+                registry.kill_all();
+            }
+        });
+}
+
 #[cfg(test)]
 mod tests {
     use super::has_output_argument;
@@ -632,38 +634,4 @@ mod tests {
 
         assert!(!has_output_argument(&args));
     }
-}
-
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_dialog::init())
-        .manage(ProcessRegistry::default())
-        .invoke_handler(tauri::generate_handler![
-            check_engine_installed,
-            get_doctor_report,
-            start_capture,
-            stop_capture,
-            inspect_artifact,
-            list_artifacts,
-            import_artifact,
-            export_artifact,
-            run_replay,
-            cancel_replay,
-            verify_result
-        ])
-        .build(tauri::generate_context!())
-        .expect("error while building tauri application")
-        .run(|app_handle, event| {
-            // If the desktop window is closed while a replay or capture is
-            // still active, force-kill every tracked DAWG background
-            // process (replay's node/Chromium/mitmdump tree, capture
-            // daemon) instead of leaving them running as orphans.
-            if let tauri::RunEvent::ExitRequested { .. } = event {
-                if let Some(registry) = app_handle.try_state::<ProcessRegistry>() {
-                    registry.kill_all();
-                }
-            }
-        });
 }

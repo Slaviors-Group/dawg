@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# build-bundle.sh — Assembles the self-contained DAWG AppImage for Linux
+# build-bundle.sh — Assembles the self-contained DAWG Linux AppImage.
 set -euo pipefail
 
 SKIP_DOWNLOAD=false
@@ -29,7 +29,7 @@ for arg in "$@"; do
 done
 
 echo "========================================================"
-echo "  DAWG Desktop Linux Monolithic Assembly Pipeline"
+echo "  DAWG Desktop Linux AppImage Bundle"
 echo "========================================================"
 
 DESKTOP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -173,9 +173,8 @@ export PLAYWRIGHT_BROWSERS_PATH="${BROWSERS_TARGET_DIR}"
 if [ "${SKIP_TAURI}" = false ]; then
   echo -e "\nBuilding Tauri Linux AppImage..."
   cd "${DESKTOP_DIR}"
-  # Tauri and linuxdeploy each reuse generated resource staging across attempts.
-  # Recreate both layers so removed runtimes or P1 resources cannot leak into
-  # the next AppImage.
+  # Recreate generated resource staging so removed files cannot remain in the
+  # next AppImage.
   rm -rf \
     "${DESKTOP_DIR}/src-tauri/target/release/resources" \
     "${DESKTOP_DIR}/src-tauri/target/release/bundle/appimage/DAWG.AppDir" \
@@ -197,7 +196,7 @@ if [ "${SKIP_TAURI}" = false ]; then
   # the native libgiognutls module enters an x86_64 AppDir.
   PATH="${DESKTOP_DIR}/scripts/linuxdeploy:${PATH}" \
     NO_STRIP=1 npm run tauri build -- --bundles appimage
-  echo -e "\n🎉 DAWG Desktop AppImage created successfully!"
+  echo -e "\nDAWG Desktop AppImage created."
 else
   echo -e "\nBundle staging complete (Tauri build skipped)."
 fi

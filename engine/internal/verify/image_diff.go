@@ -23,7 +23,7 @@ func CompareImages(img1Path, img2Path string) (int, error) {
 	bounds1 := img1.Bounds()
 	bounds2 := img2.Bounds()
 
-	// If bounds differ, count all extra pixels as differences
+	// Pixels outside either image's bounds count as differences.
 	diffPixels := 0
 	maxX := bounds1.Max.X
 	if bounds2.Max.X > maxX {
@@ -76,6 +76,6 @@ func colorMatch(c1, c2 color.Color) bool {
 	r1, g1, b1, a1 := c1.RGBA()
 	r2, g2, b2, a2 := c2.RGBA()
 
-	// For MVP, exact match only. Can add tolerance later.
+	// Pixel channels must match exactly.
 	return r1 == r2 && g1 == g2 && b1 == b2 && a1 == a2
 }

@@ -1,17 +1,14 @@
-/**
- * Input — single-line text/url/number input with label, hint, and error states.
- */
 import { type InputHTMLAttributes, forwardRef, useId } from "react";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   hint?: string;
   error?: string;
-  /** Phosphor icon to render inside the left edge */
+
   iconLeft?: React.ReactNode;
-  /** Phosphor icon or node to render inside the right edge */
+
   iconRight?: React.ReactNode;
-  /** Wrapper className */
+
   wrapperClassName?: string;
 }
 

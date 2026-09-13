@@ -1,10 +1,4 @@
-import {
-  ArrowsLeftRight,
-  Browser,
-  Globe,
-  Record,
-  StopCircle,
-} from "@phosphor-icons/react";
+import { ArrowsLeftRight, Browser, Globe, Record, StopCircle } from "@phosphor-icons/react";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { useEngine } from "../context/EngineContext";
@@ -62,7 +56,7 @@ export const CaptureControls: React.FC = () => {
       interval = setInterval(() => {
         setPackagingProgress((prev) => {
           if (prev < 95) {
-            // Slow down as it gets closer to 95%
+            // Reserve completion for the engine's stop response.
             const increment = prev > 80 ? 0.5 : 1.2;
             return Math.min(95, prev + increment);
           }

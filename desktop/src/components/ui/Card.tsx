@@ -1,13 +1,8 @@
-/**
- * Card — base surface container.
- * All card-like elements in the app are built on this.
- */
 import { type HTMLAttributes, forwardRef } from "react";
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  /** Apply a thicker brand-coloured left border accent */
   accent?: boolean;
-  /** Remove default padding */
+
   noPad?: boolean;
 }
 
@@ -34,7 +29,6 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
 );
 Card.displayName = "Card";
 
-/** Preset card header section with optional border-bottom */
 export function CardHeader({
   className = "",
   children,
@@ -57,7 +51,6 @@ export function CardHeader({
   );
 }
 
-/** Section heading + subtitle inside a Card */
 export function CardTitle({
   title,
   subtitle,

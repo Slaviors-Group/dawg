@@ -1,4 +1,4 @@
-# build-bundle.ps1 — Assembles the self-contained monolithic DAWG desktop bundle (Strategy A)
+# build-bundle.ps1 — Assembles the self-contained DAWG Windows bundle.
 [CmdletBinding()]
 param(
     [switch]$SkipDownload,
@@ -10,7 +10,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 Write-Host "========================================================" -ForegroundColor Cyan
-Write-Host "  DAWG Desktop Monolithic Assembly Pipeline (Strategy A)" -ForegroundColor Cyan
+Write-Host "  DAWG Desktop Windows Bundle" -ForegroundColor Cyan
 Write-Host "========================================================" -ForegroundColor Cyan
 
 $desktopDir = $PSScriptRoot
@@ -249,7 +249,7 @@ $env:DAWG_RESOURCES_DIR = $resourcesDir
 if ($LASTEXITCODE -ne 0) {
     Write-Error "DAWG doctor reported degraded status; refusing to package an incomplete bundle."
 } else {
-    Write-Host "  Staged bundle passed all health checks! 🎉" -ForegroundColor Green
+    Write-Host "  Staged bundle passed all health checks." -ForegroundColor Green
 }
 
 # -------------------------------------------------------------------
@@ -270,7 +270,7 @@ if (-Not $SkipTauri) {
     if ($LASTEXITCODE -ne 0) {
         Write-Error "Tauri packaging build failed!"
     }
-    Write-Host "`n🎉 Monolithic DAWG Desktop installer created successfully!" -ForegroundColor Green
+    Write-Host "`nDAWG Desktop installer created." -ForegroundColor Green
 } else {
     Write-Host "`nBundle staging complete (Tauri build skipped by flag)." -ForegroundColor Cyan
     Write-Host "Run '.\node_modules\.bin\tauri.cmd build --bundles nsis' inside 'desktop/' to compile the Windows installer." -ForegroundColor DarkGray

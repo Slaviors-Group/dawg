@@ -52,9 +52,9 @@ func newDoctorCommand() *cobra.Command {
 
 			fmt.Println()
 			if report.Status == "ready" {
-				fmt.Println("All required runtime components are healthy and ready! 🚀")
+				fmt.Println("All required runtime components are available.")
 			} else {
-				fmt.Println("⚠️  Some components are missing or degraded. Check details above.")
+				fmt.Println("Some components are missing or degraded. Check the details above.")
 			}
 
 			return nil

@@ -11,10 +11,7 @@ import { Input } from "./ui/Input";
 import { PageShell } from "./ui/PageShell";
 import { Select } from "./ui/Select";
 
-// The desktop shell has no reliable IPC signal for host OS yet, so this is a
-// best-effort UI hint only. The engine itself is the source of truth: it
-// already falls back to a native (non-containerized) replay path on bare
-// Windows instead of hard-failing (see replay.Sandbox.Start / cmd/dawg/run.go).
+// UI-only OS detection; the engine selects the actual replay mode.
 const isWindows = typeof navigator !== "undefined" && navigator.userAgent.includes("Windows");
 
 export const ReplayViewer: React.FC = () => {
