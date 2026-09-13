@@ -21,7 +21,7 @@ import (
 
 const defaultProxyStartupTimeout = 15 * time.Second
 
-// ProxyManager manages the mitmproxy capture sidecar required by PRD §6.1.
+// ProxyManager manages the mitmproxy capture sidecar.
 type ProxyManager struct {
 	Executable     string
 	AddonPath      string

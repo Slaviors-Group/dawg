@@ -1,7 +1,3 @@
-/**
- * Toggle (Switch) — binary on/off control with label.
- * Used for settings like animations enabled, etc.
- */
 import { useId } from "react";
 
 interface ToggleProps {

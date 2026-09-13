@@ -1,11 +1,6 @@
-/**
- * ProgressBar — linear progress indicator.
- * Used to show capture session duration, replay progress, etc.
- */
 interface ProgressBarProps {
-  /** 0–100 */
   value: number;
-  /** Animate the fill? */
+
   animated?: boolean;
   label?: string;
   size?: "sm" | "md";

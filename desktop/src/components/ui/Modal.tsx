@@ -1,9 +1,6 @@
 import { X } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "framer-motion";
-/**
- * Modal — full-screen backdrop + centered dialog.
- * Manages focus trap and Escape key dismissal.
- */
+
 import { type ReactNode, useEffect } from "react";
 import { Button } from "./Button";
 
@@ -13,9 +10,9 @@ interface ModalProps {
   title: string;
   subtitle?: string;
   children: ReactNode;
-  /** Extra content to render in the footer, to the left of the Close button */
+
   footerLeft?: ReactNode;
-  /** Replace the default Close footer with a custom footer */
+
   footer?: ReactNode;
   maxWidth?: "sm" | "md" | "lg";
 }

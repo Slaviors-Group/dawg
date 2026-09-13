@@ -9,6 +9,8 @@ import (
 	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
 )
 
+const screenshotDiffPixelThreshold = 100
+
 // Verifier executes checks against a replay outcome to determine reproduction status.
 type Verifier struct{}
 
@@ -18,11 +20,11 @@ func (v *Verifier) Verify(ctx context.Context, replay dawgtypes.ReplayOutput, or
 		ArtifactID:      replay.ArtifactID,
 		VerifiedAt:      time.Now(),
 		VerifiedAgainst: "local",
-		Result:          "pass", // default to pass until a check fails
+		Result:          "pass",
 		Checks:          []dawgtypes.Check{},
 	}
 
-	// 1. Exit Code Check
+	// Check the replay process exit code.
 	exitCheck := dawgtypes.Check{
 		Type:     dawgtypes.CheckTypeExitCode,
 		Expected: 0,
@@ -31,8 +33,7 @@ func (v *Verifier) Verify(ctx context.Context, replay dawgtypes.ReplayOutput, or
 	}
 	result.Checks = append(result.Checks, exitCheck)
 
-	// 2. HTTP Response Diff Check
-	// Compare replayed frontend.jsonl with original frontend.jsonl
+	// Compare captured and replay HTTP response status codes.
 	expectedHTTPPath := filepath.Join(originalSessionDir, "http", "frontend.jsonl")
 	actualHTTPPath := replay.Outcomes.HTTPResponses
 	if actualHTTPPath != "" {
@@ -48,14 +49,13 @@ func (v *Verifier) Verify(ctx context.Context, replay dawgtypes.ReplayOutput, or
 		}
 	}
 
-	// 3. Screenshot Diff Check (if original screenshot existed)
-	// For MVP, if no expected assertion screenshot, we skip image diff.
+	// Compare screenshots only when the manifest declares an assertion file.
 	if len(replay.Outcomes.Screenshots) > 0 && expected.AssertionFile != "" {
 		baselinePath := filepath.Join(originalSessionDir, expected.AssertionFile)
 		actualScreenshot := replay.Outcomes.Screenshots[0]
 		diffPixels, err := CompareImages(baselinePath, actualScreenshot)
 		if err == nil {
-			threshold := 100 // Arbitrary MVP threshold
+			threshold := screenshotDiffPixelThreshold
 			screenshotCheck := dawgtypes.Check{
 				Type:       dawgtypes.CheckTypeScreenshot,
 				File:       actualScreenshot,
@@ -67,7 +67,7 @@ func (v *Verifier) Verify(ctx context.Context, replay dawgtypes.ReplayOutput, or
 		}
 	}
 
-	// Calculate overall result
+	// Fail the overall result when any recorded check fails.
 	passedCount := 0
 	for _, check := range result.Checks {
 		if check.Passed {

@@ -1,7 +1,3 @@
-/**
- * StatCard — dashboard metric tile.
- * Shows a label, large numeric/text value, optional badge and trend indicator.
- */
 import type { ReactNode } from "react";
 
 interface StatCardProps {

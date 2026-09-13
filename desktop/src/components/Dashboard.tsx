@@ -1,7 +1,7 @@
 import { Archive, Cpu, Record, ShieldCheck, UploadSimple } from "@phosphor-icons/react";
-import type React from "react";
-import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import type React from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useEngine } from "../context/EngineContext";
 import { chooseArtifactArchive } from "../lib/artifactDialogs";
 import { ArtifactInspectorModal } from "./ArtifactInspectorModal";
@@ -14,21 +14,31 @@ import { PageShell } from "./ui/PageShell";
 import { StatCard } from "./ui/StatCard";
 
 export const Dashboard: React.FC = () => {
-  const { engineStatus, artifacts, addLogLine, importArtifact, inspectedArtifact, closeInspectModal, isCapturing } =
-    useEngine();
+  const {
+    engineStatus,
+    artifacts,
+    addLogLine,
+    importArtifact,
+    inspectedArtifact,
+    closeInspectModal,
+    isCapturing,
+  } = useEngine();
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const importArchive = async (archive: string) => {
-    if (!archive.toLowerCase().endsWith(".dawg")) {
-      addLogLine("[WARN] Only .dawg artifact archives can be imported.");
-      return;
-    }
-    try {
-      await importArtifact(archive);
-    } catch {
-      // EngineContext records the actionable error in the shared log stream.
-    }
-  };
+  const importArchive = useCallback(
+    async (archive: string) => {
+      if (!archive.toLowerCase().endsWith(".dawg")) {
+        addLogLine("[WARN] Only .dawg artifact archives can be imported.");
+        return;
+      }
+      try {
+        await importArtifact(archive);
+      } catch {
+        // EngineContext records the actionable error in the shared log stream.
+      }
+    },
+    [addLogLine, importArtifact],
+  );
 
   const handleImport = async () => {
     const archive = await chooseArtifactArchive();
@@ -60,7 +70,7 @@ export const Dashboard: React.FC = () => {
       disposed = true;
       unlisten?.();
     };
-  }, [addLogLine]);
+  }, [addLogLine, importArchive]);
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "short",
@@ -93,7 +103,12 @@ export const Dashboard: React.FC = () => {
               <span className="text-xs font-semibold text-text-tertiary bg-canvas-subtle px-2 py-1 rounded-full border border-border">
                 {artifacts.length} total
               </span>
-              <Button variant="secondary" size="sm" onClick={handleImport} iconLeft={<UploadSimple size={14} />}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleImport}
+                iconLeft={<UploadSimple size={14} />}
+              >
                 Import
               </Button>
             </div>
@@ -107,7 +122,9 @@ export const Dashboard: React.FC = () => {
             ].join(" ")}
           >
             <p className="text-xs font-medium">Drop a .dawg archive here to import it</p>
-            <p className="mt-1 text-[11px] text-text-tertiary">or use the Import button to choose a file</p>
+            <p className="mt-1 text-[11px] text-text-tertiary">
+              or use the Import button to choose a file
+            </p>
           </div>
           <ArtifactList />
 

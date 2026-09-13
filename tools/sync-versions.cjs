@@ -6,9 +6,7 @@
  *   node tools/sync-versions.cjs          # update tracked metadata
  *   node tools/sync-versions.cjs --check  # report drift without modifying files
  *
- * Third-party dependency versions (Playwright, rrweb, Rust crates) deliberately
- * remain in their own lockfiles/package manifests. Updating those requires a
- * dependency upgrade workflow, not a release-version bump.
+ * Dependency versions remain managed by package manifests and lockfiles.
  */
 const fs = require("node:fs");
 const path = require("node:path");
@@ -177,11 +175,6 @@ replaceRequired(
   path.join(root, "desktop", "src", "components", "ui", "SettingsPanel.tsx"),
   /v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?/,
   `v${appVersion}`,
-);
-replaceRequired(
-  path.join(root, "desktop", "src", "components", "ArtifactInspectorModal.tsx"),
-  /nodeVersion: "[^"]+"/,
-  `nodeVersion: "${versions.runtime.node}"`,
 );
 
 // Schema-version references must change as a group with its filename. This

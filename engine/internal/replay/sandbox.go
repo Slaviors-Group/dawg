@@ -1,4 +1,4 @@
-// Package replay implements PRD §6.5 sandboxed deterministic artifact replay.
+// Package replay runs browser and environment replay operations.
 package replay
 
 import (

@@ -1,5 +1,7 @@
 import type React from "react";
+import { useEffect, useState } from "react";
 import type { ArtifactItem } from "../context/EngineContext";
+import { type InspectResult, engine } from "../lib/engine";
 import { Badge } from "./ui/Badge";
 import { CodeBlock } from "./ui/CodeBlock";
 import { Modal } from "./ui/Modal";
@@ -10,48 +12,51 @@ interface Props {
 }
 
 export const ArtifactInspectorModal: React.FC<Props> = ({ artifact, onClose }) => {
-  if (!artifact) return null;
+  const [manifest, setManifest] = useState<InspectResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const sampleManifest = {
-    sessionId: artifact.id,
-    startedAt: artifact.createdAt,
-    stoppedAt: new Date(new Date(artifact.createdAt).getTime() + 5 * 60000).toISOString(),
-    targetUrl: artifact.targetUrl,
-    capturedComponents: artifact.components,
-    environment: {
-      repoCommit: "a1b2c3d",
-      branch: "main",
-      nodeVersion: "22.14.0",
-      goVersion: "1.25.1",
-      dockerComposeFile: "env/compose.yaml",
-      imageDigests: {
-        backend: "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        postgres: "sha256:7d85572974441f14ae28cf856b3e6e5493a952e7d04e515487af920b2d35ef26",
-      },
-    },
-    determinism: {
-      clockFrozenAt: artifact.createdAt,
-      randomSeed: 42,
-    },
-    layers: [
-      { mediaType: "application/vnd.dawg.env.v1+zstd", size: 1024 },
-      { mediaType: "application/vnd.dawg.trace.v1+zstd", size: 45092 },
-      { mediaType: "application/vnd.dawg.http.v1+zstd", size: 12048 },
-      { mediaType: "application/vnd.dawg.dbdiff.v1+zstd", size: 3020 },
-      { mediaType: "application/vnd.dawg.logs.v1+zstd", size: 8192 },
-    ],
-  };
+  useEffect(() => {
+    let disposed = false;
+    if (!artifact) {
+      setManifest(null);
+      setError(null);
+      return () => {
+        disposed = true;
+      };
+    }
+
+    setLoading(true);
+    setManifest(null);
+    setError(null);
+    void engine
+      .inspectArtifact({ path: artifact.path })
+      .then((result) => {
+        if (!disposed) setManifest(result);
+      })
+      .catch((inspectError) => {
+        if (!disposed) setError(String(inspectError));
+      })
+      .finally(() => {
+        if (!disposed) setLoading(false);
+      });
+
+    return () => {
+      disposed = true;
+    };
+  }, [artifact]);
+
+  if (!artifact) return null;
 
   return (
     <Modal
-      open={!!artifact}
+      open
       onClose={onClose}
       title="Artifact Inspector"
       subtitle={artifact.title || artifact.id}
       maxWidth="lg"
     >
       <div className="flex flex-col gap-5">
-        {/* Metadata Grid */}
         <div className="grid grid-cols-2 gap-3 p-4 bg-canvas-subtle rounded-md border border-border text-xs">
           <div>
             <span className="block text-[10px] font-medium text-text-tertiary uppercase tracking-wider mb-1">
@@ -63,7 +68,9 @@ export const ArtifactInspectorModal: React.FC<Props> = ({ artifact, onClose }) =
             <span className="block text-[10px] font-medium text-text-tertiary uppercase tracking-wider mb-1">
               Target URL
             </span>
-            <span className="font-medium text-brand-600">{artifact.targetUrl}</span>
+            <span className="font-medium text-brand-600">
+              {artifact.targetUrl || "Not recorded"}
+            </span>
           </div>
           <div>
             <span className="block text-[10px] font-medium text-text-tertiary uppercase tracking-wider mb-1">
@@ -78,25 +85,22 @@ export const ArtifactInspectorModal: React.FC<Props> = ({ artifact, onClose }) =
               Components
             </span>
             <div className="flex flex-wrap gap-1 mt-0.5">
-              {artifact.components.map((comp) => (
-                <Badge key={comp} size="sm">
-                  {comp}
+              {artifact.components.map((component) => (
+                <Badge key={component} size="sm">
+                  {component}
                 </Badge>
               ))}
             </div>
           </div>
         </div>
 
-        {/* JSON Manifest */}
         <div>
-          <h4 className="text-xs font-semibold text-text-secondary mb-2">
-            Manifest JSON (.dawg/meta.json)
-          </h4>
-          <CodeBlock
-            code={JSON.stringify(sampleManifest, null, 2)}
-            language="json"
-            maxHeight="24rem"
-          />
+          <h4 className="text-xs font-semibold text-text-secondary mb-2">DAWG manifest</h4>
+          {loading && <p className="text-sm text-text-secondary">Loading manifest…</p>}
+          {error && <p className="text-sm text-error-text">{error}</p>}
+          {manifest && (
+            <CodeBlock code={JSON.stringify(manifest, null, 2)} language="json" maxHeight="24rem" />
+          )}
         </div>
       </div>
     </Modal>

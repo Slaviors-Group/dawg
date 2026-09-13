@@ -58,18 +58,8 @@ func unpackLayer(mediaType dawgtypes.MediaType, contents []byte, targetDirectory
 		contents = decompressed
 	}
 
-	if !strings.Contains(string(mediaType), "+tar") {
-		// Not an archive, nothing to unpack directly into filesystem structure.
-		// Usually trace layer is jsonl.zstd, wait, in contracts.md:
-		// "application/vnd.dawg.trace.rrweb+jsonl.zstd" -> wait, trace layer includes multiple files in our packager?
-		// Let's check layers.go: trace layer has directories []string{"traces", "http", "logs"}
-		// and uses archiveDirectories. Wait, archiveDirectories creates a tar!
-		// BUT the media type is application/vnd.dawg.trace.rrweb+jsonl.zstd. That's a naming mismatch in architecture vs implementation.
-		// Actually, if it was tarred, it must be untarred.
-	}
-
-	// For MVP, all our packaged capture data is actually tarred.
-	// layers.go: archiveDirectories is called for all layers.
+	// Every current layer is a tar stream, including media types ending in
+	// +jsonl.zstd, because layer construction archives source directories.
 	reader := tar.NewReader(bytes.NewReader(contents))
 	for {
 		header, err := reader.Next()

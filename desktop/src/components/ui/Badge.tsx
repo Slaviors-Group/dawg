@@ -1,11 +1,3 @@
-/**
- * Badge — compact semantic label.
- *
- * Variants: default | success | warning | error | info | brand
- * Sizes: sm | md
- * Optional dot indicator prefix.
- */
-
 type Variant = "default" | "success" | "warning" | "error" | "info" | "brand";
 type Size = "sm" | "md";
 

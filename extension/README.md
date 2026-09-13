@@ -1,100 +1,143 @@
-# DAWG Browser Extension
+# 🧩 DAWG Browser Extension
 
-The DAWG Browser Extension is the **capture-side** component of DAWG. It is a
-Manifest V3 extension that records one desktop-selected browser tab and streams
-capture data to the local DAWG engine.
+The DAWG Browser Extension is the capture component used by the desktop
+application and CLI. It records one engine-selected tab and delivers events to
+the local capture daemon.
 
-> Current configured label: `0.2_naughty`
+> Manifest: `3` · Minimum Chrome/Chromium: `116`
 >
-> Chrome install version: `0.2.0` (`version_name` retains the release label)
+> Install version: `0.2.3` · Display version: `0.2.3_naughty`
 
-Playwright and DAWG-bundled Chromium are used only for **artifact replay**.
-Capture does not launch, control, or connect to a Playwright browser.
+Playwright and bundled Chromium are replay dependencies. Capture runs in the
+user's installed Chrome or Chromium browser.
 
----
+## 📥 Install for Development
 
-## Install for Development
-
-1. Open `chrome://extensions` in Chrome, Chromium, or a compatible browser.
+1. Open `chrome://extensions`.
 2. Enable **Developer mode**.
-3. Choose **Load unpacked**.
+3. Select **Load unpacked**.
 4. Select this `extension/` directory.
-5. After changing extension source or installing a newly built DAWG desktop
-   bundle, click **Reload** for the DAWG extension before capturing again.
+5. Reload the extension after source changes or a desktop application update.
 
-The desktop bundle also stages a copy at
-`desktop/src-tauri/resources/extension/`; use the source directory during
-extension development and the staged copy when distributing the desktop app.
+The bundle scripts stage a distribution copy at
+`desktop/src-tauri/resources/extension/`. Use this source directory while
+working on the extension.
 
----
+## 🔐 Permissions
 
-## Capture Protocol
+The manifest declares:
 
-The engine starts a local extension server at:
+- `activeTab`, `tabs`, and `scripting` to find, focus/open, and initialize the
+  selected target tab;
+- `webRequest` to collect request and response metadata;
+- `storage` to retain capture state across Manifest V3 worker restarts;
+- `<all_urls>` host access for content-script and request observation.
+
+The recorder is initialized only for the tab selected by the active DAWG
+session. Content-script injection defaults to the top-level document because the
+manifest does not enable `all_frames`.
+
+## 🔌 Capture Protocol
+
+The engine listens on loopback:
 
 ```text
-ws://127.0.0.1:8082/ws
+WebSocket: ws://127.0.0.1:8082/ws
+HTTP fallback: http://127.0.0.1:8082/api/v1/stream/event
 ```
 
-The extension connects to that local server and performs a session handshake:
+A normal session proceeds as follows:
 
-1. The desktop/CLI starts `dawg capture --url <target>`.
-2. The engine waits for the extension and sends `DAWG_COMMAND_START` with a
-   target URL and session token.
-3. The extension focuses a matching tab or opens the target URL.
-4. It injects the rrweb recorder into the **top-level document only** and
-   acknowledges capture after the recorder is running.
-5. It streams `DAWG_RRWEB_EVENT`, `DAWG_ACTION_EVENT`, and
-   `DAWG_HTTP_EVENT` envelopes to the engine.
-6. On stop, the extension stops recording, drains pending deliveries, sends a
-   session-stop message, and waits for the engine acknowledgement before the
-   artifact is sanitized and packaged.
+1. `dawg capture --url <target>` starts the local daemon.
+2. The extension connects and sends `DAWG_EXTENSION_READY`.
+3. The engine sends `DAWG_COMMAND_START` with the target URL and a random session
+   token.
+4. The extension focuses an exact normalized URL match or opens a new tab,
+   starts the recorder, and sends `DAWG_SESSION_START`.
+5. It delivers `DAWG_RRWEB_EVENT`, `DAWG_ACTION_EVENT`, and `DAWG_HTTP_EVENT`
+   envelopes. A `DAWG_KEEPALIVE` is sent every 20 seconds while connected.
+6. On stop, the extension stops rrweb, waits for pending deliveries, sends
+   `DAWG_SESSION_STOP`, and waits up to 3.5 seconds for
+   `DAWG_SESSION_STOP_ACK`.
+7. The engine drains the stream, sanitizes the capture, packages the OCI
+   artifact, and updates the local catalog.
 
-The extension includes an HTTP delivery fallback when its WebSocket is not
-available. Capture data is accepted only for the active session token and the
-selected tab.
+When WebSocket delivery is unavailable, envelopes are POSTed to the HTTP
+fallback with a two-second request timeout. The engine accepts data only for the
+active session token; WebSocket delivery is also bound to the selected extension
+connection.
 
----
+## 🎥 Recorded Data
 
-## What Is Recorded
+### rrweb stream
 
-- **rrweb DOM trace** — a full initial snapshot plus subsequent mutations and
-  browser interaction state needed for deterministic visual replay.
-- **User actions** — click and input metadata for the selected tab.
-- **Frontend request metadata** — request/response records associated with the
-  active capture tab.
+- Initial DOM snapshot and incremental rrweb events
+- Input fields masked through `maskAllInputs: true`
 
-Input values are masked by the recorder. The engine applies its additional
-sanitizer and policy gate before packaging any artifact. Structural rrweb values
-such as the DOCTYPE and SVG geometry are preserved so sanitization cannot break
-replay rendering.
+### Action stream
 
----
+- Click timestamp and a basic element selector
+- Input timestamp, selector, field name, input type, and entered value
 
-## Operational Notes
+### HTTP stream
 
-- The extension records only the tab selected by DAWG; it is not a general
-  browser-history recorder.
-- If the extension was installed before a desktop update, reload it from
-  `chrome://extensions` to use the updated manifest and scripts.
-- If capture waits for the extension, verify that it is enabled, the target tab
-  is an `http://` or `https://` page, and no firewall/security tool blocks the
-  local loopback connection to port `8082`.
-- Closing the desktop application terminates DAWG-owned background work. If a
-  capture remains active, start DAWG again and verify the extension state before
-  beginning the next session.
+- URL, method, start time, duration, available request/response headers, status,
+  and direction
+- Request body from the first raw body chunk or encoded form data when Chrome
+  exposes it
+- Response metadata only; response bodies are not captured
 
----
+Failed requests are discarded. Header visibility follows Chrome's `webRequest`
+API behavior, and duplicate header names collapse to one value in the stored
+map.
 
-## Versioning
+## ⚠️ Data Handling
 
-Do not edit `manifest.json` version fields independently. Update
-[`../version.json`](../version.json) and run:
+rrweb input masking does not apply to the separate action stream. Input action
+values, available headers, and request bodies reach the local engine before its
+sanitizer processes the session. The engine applies secret/PII classification
+and the configured OPA policy before packaging, but captured artifacts should
+still be inspected before distribution.
+
+The sanitizer preserves rrweb document-type names and SVG `viewBox`/`points`
+geometry because those fields are required to reconstruct valid DOM/SVG nodes.
+
+## 🩺 Troubleshooting
+
+- If capture remains waiting, confirm the extension is enabled and reloaded, the
+  target uses `http://` or `https://`, and loopback port `8082` is not blocked.
+- The popup reports current state and can stop an active recording. Capture must
+  be started by the desktop app or CLI so the extension receives a daemon-issued
+  session token.
+- Closing the selected tab sends a session error and stops extension recording.
+- A service-worker restart restores session-scoped capture state; the content
+  script wakes the worker while a normal page remains open.
+
+## 🔢 Versioning
+
+Do not edit `manifest.json` version fields separately. Update
+[`../version.json`](../version.json), then run:
 
 ```powershell
 cd ..\engine
 npm run sync:versions
+npm run check:versions
 ```
 
-For an extension label such as `0.2_naughty`, the synchronizer generates the
-Chrome-required numeric `version` and stores the label in `version_name`.
+Chrome requires a numeric install version. The synchronizer converts
+`0.2.3_naughty` to `version: "0.2.3"` and
+`version_name: "0.2.3_naughty"`.
+
+## ✅ Validation
+
+From the repository root:
+
+```powershell
+node --check extension/background/service_worker.js
+node --check extension/content/recorder.js
+node --check extension/popup/popup.js
+node --test extension/tests/service_worker.test.cjs
+```
+
+The automated test uses mocked Chrome APIs. Complete validation still requires a
+manual Chrome/Chromium capture, stop, package, and replay cycle.

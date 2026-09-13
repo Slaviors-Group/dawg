@@ -1,9 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
-/**
- * Typed IPC bridge for DAWG Engine CLI subprocess invocations.
- * Implements IPC contract table from architecture.md §Desktop ↔ Engine IPC Contract.
- */
+/** Typed IPC bridge for DAWG engine subprocess commands. */
 
 export interface ComponentStatus {
   name: string;
@@ -122,13 +119,13 @@ export interface VerifyCheck {
   passed: boolean;
   expected: unknown;
   actual: unknown;
-  diff_pixels?: number;
+  diffPixels?: number;
   threshold?: number;
 }
 
 export interface VerifyResult {
-  artifact_id: string;
-  verified_against: string;
+  artifactId: string;
+  verifiedAgainst: string;
   result: "pass" | "fail";
   summary: string;
   checks: VerifyCheck[];
@@ -194,7 +191,10 @@ export class EngineBridge {
     }
   }
 
-  async exportArtifact(artifact: string, output: string): Promise<{ status: "exported"; output: string }> {
+  async exportArtifact(
+    artifact: string,
+    output: string,
+  ): Promise<{ status: "exported"; output: string }> {
     try {
       const res = await invoke<CommandOutput<{ status: "exported"; output: string }>>(
         "export_artifact",

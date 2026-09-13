@@ -21,7 +21,7 @@ const (
 	defaultBrowserStopTimeout    = 5 * time.Second
 )
 
-// BrowserRecorder manages the canonical Node.js Playwright-over-CDP capture process for PRD §6.1.
+// BrowserRecorder manages a Node.js Playwright-over-CDP capture process.
 type BrowserRecorder struct {
 	NodeBinary              string
 	ScriptPath              string

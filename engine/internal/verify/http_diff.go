@@ -14,7 +14,7 @@ import (
 func CompareHTTPResponses(expectedPath, actualPath string) (int, error) {
 	expectedPairs, err := loadHTTPPairs(expectedPath)
 	if err != nil {
-		// If baseline doesn't exist, we can't diff, but maybe that's fine.
+		// A missing baseline produces no HTTP comparison.
 		if os.IsNotExist(err) {
 			return 0, nil
 		}
@@ -24,27 +24,25 @@ func CompareHTTPResponses(expectedPath, actualPath string) (int, error) {
 	actualPairs, err := loadHTTPPairs(actualPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return len(expectedPairs), nil // all missing
+			return len(expectedPairs), nil
 		}
 		return 0, fmt.Errorf("verify: load actual http pairs: %w", err)
 	}
 
 	mismatches := 0
-	// For MVP, simply compare the sequences.
-	// A more robust approach would correlate by URL/method.
+	// Response status codes are compared in capture order.
 	for i := 0; i < len(expectedPairs); i++ {
 		if i >= len(actualPairs) {
 			mismatches++
 			continue
 		}
 
-		// Simple status code check for MVP
 		if expectedPairs[i].Response.Status != actualPairs[i].Response.Status {
 			mismatches++
 		}
 	}
 
-	// Any extra responses are also mismatches
+	// Extra responses are mismatches.
 	if len(actualPairs) > len(expectedPairs) {
 		mismatches += len(actualPairs) - len(expectedPairs)
 	}

@@ -1,6 +1,3 @@
-/**
- * Separator — horizontal rule with optional label.
- */
 interface SeparatorProps {
   label?: string;
   className?: string;

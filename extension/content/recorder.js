@@ -53,8 +53,8 @@
 
     if (typeof rrweb !== "undefined" && typeof rrweb.record === "function") {
       stopRecord = rrweb.record({
-        // Replayable fill actions are captured separately and sanitized by the
-        // engine. Never persist raw form values inside the DOM snapshot stream.
+        // Mask values in rrweb snapshots. The separate action stream is
+        // sanitized by the engine before packaging.
         maskAllInputs: true,
         emit(event) {
           if (!isRecording) return;
@@ -92,7 +92,7 @@
     }
   });
 
-  // Query status on initialization
+
   chrome.runtime.sendMessage({ type: "CHECK_RECORDING_STATE" }, (response) => {
     if (chrome.runtime.lastError) return;
     if (response && response.isRecording) {

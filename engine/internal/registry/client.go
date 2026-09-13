@@ -1,4 +1,4 @@
-// Package registry implements PRD §6.4 OCI artifact push and pull.
+// Package registry transfers DAWG artifacts through OCI registries.
 package registry
 
 import (

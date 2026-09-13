@@ -11,7 +11,7 @@ import (
 	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
 )
 
-// SchemaVersion is the P0 DAWG manifest schema version.
+// SchemaVersion is the current DAWG manifest schema version.
 const SchemaVersion = "0.2.3-naughty"
 
 // Manifest is the OCI config document for a DAWG artifact.
@@ -28,7 +28,7 @@ type Manifest struct {
 	ExpectedOutcome dawgtypes.ExpectedOutcome   `json:"expectedOutcome"`
 }
 
-// Provenance reserves the signed artifact fields implemented in P1.
+// Provenance contains optional artifact-signing metadata.
 type Provenance struct {
 	SignedBy    string `json:"signedBy"`
 	Attestation string `json:"attestation"`

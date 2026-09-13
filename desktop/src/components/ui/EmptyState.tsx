@@ -1,6 +1,3 @@
-/**
- * EmptyState — dashed-border placeholder for empty lists/panels.
- */
 import type { ReactNode } from "react";
 
 interface EmptyStateProps {

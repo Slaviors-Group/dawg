@@ -127,7 +127,7 @@ html.dark {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    /* Hide scrollbars globally for a sleek desktop app look */
+    /* Preserve scrolling while hiding native scrollbar tracks. */
     -ms-overflow-style: none;
     scrollbar-width: none;
   }

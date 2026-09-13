@@ -33,7 +33,6 @@ func newRunCommand() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("replay: create temp directory: %w", err)
 			}
-			// Retain tmpDir for inspection if needed, but PRD implies ephemeral. We'll clean it up.
 			defer os.RemoveAll(tmpDir)
 
 			out, err := ExecuteReplay(ctx, layoutDir, tmpDir)
@@ -73,7 +72,6 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string) (dawgtypes.Rep
 	out.ReplayedAt = time.Now()
 	out.Status = "started"
 
-	// Determinism
 	envVars := replay.ConfigureDeterminism(m.Determinism)
 	for _, ev := range envVars {
 		parts := strings.SplitN(ev, "=", 2)
@@ -138,12 +136,8 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string) (dawgtypes.Rep
 
 	outcome, replayErr := player.Replay(ctx, tmpDir)
 
-	// Explicit sequential cleanup: stop the cassette replayer and tear down
-	// the Docker sandbox BEFORE the caller removes tmpDir. Stacked defers run
-	// in LIFO order, but because the caller defers os.RemoveAll(tmpDir) before
-	// calling us, relying on defers here would let Docker / mitmdump hold file
-	// handles into an already-deleted directory — corrupting the project state
-	// and causing "start replay error" on the next replay attempt.
+	// Stop external processes before returning so the caller can remove the
+	// temporary directory without active Docker or mitmdump file handles.
 	if replayer != nil {
 		_ = replayer.Stop()
 	}
@@ -156,13 +150,12 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string) (dawgtypes.Rep
 	}
 
 	out.Status = "completed"
-	out.Outcomes.ExitCode = 0 // Assuming success if it reached here
+	out.Outcomes.ExitCode = 0
 	out.Outcomes.AppLogs = outcome.Output
 	if outcome.ScreenshotPath != "" {
 		out.Outcomes.Screenshots = []string{outcome.ScreenshotPath}
 	}
 
-	// Check if frontend HTTP responses were captured
 	httpResponsesPath := filepath.Join(tmpDir, "http", "frontend.jsonl")
 	if _, err := os.Stat(httpResponsesPath); err == nil {
 		out.Outcomes.HTTPResponses = httpResponsesPath

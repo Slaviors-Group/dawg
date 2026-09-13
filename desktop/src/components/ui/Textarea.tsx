@@ -1,6 +1,3 @@
-/**
- * Textarea — multi-line text input with label, hint, error.
- */
 import { type TextareaHTMLAttributes, forwardRef, useId } from "react";
 
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {

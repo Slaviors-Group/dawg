@@ -1,6 +1,3 @@
-/**
- * Kbd — keyboard shortcut display tag.
- */
 interface KbdProps {
   children: React.ReactNode;
   className?: string;

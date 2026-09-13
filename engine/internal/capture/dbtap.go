@@ -22,7 +22,7 @@ type DBDiffCaptureResult struct {
 }
 
 // CaptureDBDiffs validates normalized ORM change entries and writes db/diff.jsonl.
-// A nil source means no supported DB adapter is configured and is a non-fatal P0 skip.
+// A nil source skips database capture without failing the session.
 func CaptureDBDiffs(ctx context.Context, source io.Reader, sessionDirectory string, logger *slog.Logger) (DBDiffCaptureResult, error) {
 	if source == nil {
 		captureLogger(logger).Warn("DB capture skipped", "component", "capture", "reason", "no supported ORM adapter configured")

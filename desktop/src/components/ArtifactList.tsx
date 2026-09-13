@@ -1,4 +1,4 @@
-import { Archive, CheckCircle, Export, MagnifyingGlass, PlayCircle } from "@phosphor-icons/react";
+import { Archive, Export, MagnifyingGlass } from "@phosphor-icons/react";
 import { useEngine } from "../context/EngineContext";
 import { chooseArtifactExportPath, defaultArtifactExportName } from "../lib/artifactDialogs";
 import { Badge } from "./ui/Badge";
@@ -12,14 +12,6 @@ export function ArtifactList() {
   const handleInspect = (art: Parameters<typeof openInspectModal>[0]) => {
     addLogLine(`Inspecting artifact ID ${art.id} at path ${art.path}...`);
     openInspectModal(art);
-  };
-
-  const handleReplay = (id: string) => {
-    addLogLine(`Triggering sandboxed replay for artifact ID ${id}...`);
-  };
-
-  const handleVerify = (id: string) => {
-    addLogLine(`Triggering diff verification for artifact ID ${id}...`);
   };
 
   const handleExport = async (artifact: (typeof artifacts)[number]) => {
@@ -57,7 +49,10 @@ export function ArtifactList() {
         >
           <div className="flex flex-col gap-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="font-semibold text-text-primary text-sm truncate" title={art.title || art.id}>
+              <span
+                className="font-semibold text-text-primary text-sm truncate"
+                title={art.title || art.id}
+              >
                 {art.title || art.id}
               </span>
               <Badge variant="brand" size="sm">
@@ -67,14 +62,18 @@ export function ArtifactList() {
                 {originLabel[art.origin]}
               </Badge>
             </div>
-            <div className="text-[11px] text-text-tertiary font-mono truncate max-w-md" title={art.path}>
+            <div
+              className="text-[11px] text-text-tertiary font-mono truncate max-w-md"
+              title={art.path}
+            >
               {art.path}
             </div>
             <div className="flex flex-wrap items-center gap-2 text-xs text-text-secondary mt-1">
               {art.targetUrl && (
                 <>
                   <span>
-                    Target: <strong className="text-text-primary font-medium">{art.targetUrl}</strong>
+                    Target:{" "}
+                    <strong className="text-text-primary font-medium">{art.targetUrl}</strong>
                   </span>
                   <span className="text-border-strong">•</span>
                 </>
@@ -99,22 +98,6 @@ export function ArtifactList() {
               iconLeft={<Export size={14} />}
             >
               Export
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => handleReplay(art.id)}
-              iconLeft={<PlayCircle size={14} />}
-            >
-              Replay
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => handleVerify(art.id)}
-              iconLeft={<CheckCircle size={14} />}
-            >
-              Verify
             </Button>
           </div>
         </Card>

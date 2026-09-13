@@ -1,7 +1,3 @@
-/**
- * NavItem — sidebar navigation link button.
- * Shows icon + label with active/hover states.
- */
 import type { ReactNode } from "react";
 
 interface NavItemProps {

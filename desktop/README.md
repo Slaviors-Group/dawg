@@ -1,117 +1,147 @@
-# DAWG Desktop Shell
+# 🖥️ DAWG Desktop
 
-The DAWG desktop application is a Tauri v2 shell for the DAWG engine. It is
-built with **Rust**, **React 19**, **Vite**, and **Tailwind CSS**, and packages a
-self-contained Windows/Linux runtime for capture artifact replay.
+DAWG Desktop is the Tauri v2 interface for the Go engine. It uses Rust, React 19,
+Vite 7, Tailwind CSS 4, Framer Motion, and Phosphor icons.
 
-> Current generated desktop package version: `0.2.0`
+> Application package: `0.2.3-naughty` · Tauri/Cargo package: `0.2.3`
 >
-> Current engine/schema release version: `0.2.0-naughty`
+> Bundled Node.js: `22.14.0` · Bundled mitmproxy: `12.2.3`
 
----
+The current [`0.2.3-naughty` prerelease](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-2)
+provides a Windows x64 NSIS installer. Linux targets are configured but must
+currently be built from source.
 
-## Desktop Responsibilities
+## 🧭 Current Desktop Scope
 
-The desktop shell intentionally keeps pipeline behavior in the Go engine. It
-provides the UI, starts engine commands through typed IPC, manages process
-lifecycle, and resolves bundled resources.
+The engine remains responsible for capture, sanitization, OCI packaging, replay,
+verification, and registry operations. The desktop application currently
+provides engine status, capture controls, a persistent artifact browser, archive
+import/export, replay controls, logs, and runtime diagnostics.
 
-- **Capture** — selects a target URL and asks `dawg capture` to begin an
-  extension-driven capture session.
-- **Replay** — invokes `dawg run <artifact>`, displays replay diagnostics, and
-  exposes **Stop Replay** while Chromium is running.
-- **Safe shutdown** — tracks replay and capture-daemon PIDs. Closing the DAWG
-  window force-terminates DAWG-owned background processes, including the replay
-  engine, Node.js, Chromium, mitmdump, and an active capture daemon.
-- **Doctor** — invokes `dawg doctor` and displays component health for the
-  staged/bundled runtime.
+- **Capture:** starts `dawg capture` with a URL and optional title, tracks the
+  detached capture daemon, and waits for packaging when capture stops.
+- **Artifact catalog:** loads validated artifacts from the engine at startup and
+  refreshes after capture or import.
+- **Import/export:** uses native `.dawg` file dialogs; the dashboard also accepts
+  a dropped `.dawg` archive.
+- **Replay:** runs `dawg run <artifact>` and exposes **Stop Replay** while the
+  subprocess is active.
+- **Process cleanup:** tracks replay and capture-daemon PIDs. Windows cancellation
+  uses `taskkill /T /F`; application exit attempts to terminate tracked work.
+- **Doctor:** displays `dawg doctor --output json` component status.
+- **Preferences:** stores theme and motion settings in browser local storage.
 
----
+The Sanitizer Policy screen currently displays built-in policy examples; it does
+not edit the engine policy. The Diff & Verify screen is currently a UI preview
+and does not execute verification. Use `dawg verify` from the CLI for the current
+engine implementation.
 
-## Architecture
+## 🧱 Architecture
 
 | Area | Location | Responsibility |
 | --- | --- | --- |
-| React UI | `src/` | Capture, replay, logs, artifact selection, settings, diagnostics |
-| Typed IPC | `src/lib/engine.ts` | TypeScript bridge to Tauri commands |
-| Engine context | `src/context/EngineContext.tsx` | Application state, sessions, artifacts, UI logs |
-| Tauri backend | `src-tauri/src/lib.rs` | Engine resolution, resource environment, subprocess tracking/cancellation |
-| Staged runtime | `src-tauri/resources/` | Engine, Node.js, mitmdump, Playwright modules, Chromium, schema, policy, extension |
-| Bundle scripts | `build-bundle.ps1`, `build-bundle.sh` | Runtime staging, health check, platform package build |
+| Application shell | `src/App.tsx` | Navigation, providers, settings, doctor modal |
+| Feature views | `src/components/` | Dashboard, capture, replay, diagnostics, logs |
+| Engine state | `src/context/EngineContext.tsx` | Capture state, catalog, imports/exports, shared logs |
+| Typed IPC | `src/lib/engine.ts` | TypeScript wrappers for Tauri commands |
+| Native backend | `src-tauri/src/lib.rs` | Engine discovery, resource environment, subprocesses, cancellation |
+| Staged runtime | `src-tauri/resources/` | Engine and replay/capture dependencies assembled by bundle scripts |
+| Packaging | `build-bundle.ps1`, `build-bundle.sh` | Runtime downloads/staging, doctor check, Tauri build |
 
-### Replay Lifecycle
+Engine output is buffered until each command completes; the current UI does not
+stream subprocess stdout/stderr live. Capture progress shown before stop/package
+completion is a UI estimate rather than engine-reported progress.
 
-1. The UI invokes `run_replay` with the selected artifact path.
-2. Tauri starts `dawg run` and records its PID.
-3. The engine launches `replay-browser.cjs` through the bundled Node.js and
-   Chromium runtime.
-4. Replay logs include rrweb event shape, viewport metadata, in-page errors,
-   and the visible-text length of the reconstructed document.
-5. **Stop Replay** kills the tracked process tree. Closing the application does
-   the same as a final safety measure.
+## 🔁 Runtime Flow
 
-A successful rrweb replay normally has one Meta event, one FullSnapshot, one
-replay iframe, and a positive visible-text length. Warnings about malformed SVG
-geometry from older artifacts indicate they were sanitized before the current
-SVG-preservation fix; recapture those sessions.
+### Capture
 
----
+1. React invokes `start_capture` with the target URL and optional title.
+2. Tauri executes `dawg capture --url ... --title ... --output json`.
+3. The engine launches its detached capture daemon and returns its PID and
+   control-file path.
+4. Tauri registers the daemon PID for exit cleanup.
+5. Stop invokes `dawg capture stop`; that command waits for extension drain,
+   sanitization, OCI packaging, and catalog registration.
+6. The desktop refreshes the catalog after a packaged artifact is returned.
 
-## Development
+### Replay
 
-### Prerequisites
+1. React invokes `run_replay` with the selected artifact directory.
+2. Tauri starts `dawg run <artifact> --output json` and registers the PID.
+3. The engine unpacks the OCI layers and launches the replay script with the
+   staged Node.js/Playwright/Chromium runtime.
+4. The completed command returns replay diagnostics and outcome metadata.
+5. **Stop Replay** terminates the tracked process tree. Application exit performs
+   the same cleanup for tracked replay and capture processes.
 
-- Node.js 20+
-- Rust toolchain supported by Tauri v2
-- Go 1.22+ to build the engine
-- The DAWG browser extension loaded from `../extension/` for capture testing
+On Windows, replay runs in native compatibility mode: Docker Compose sandboxing
+and database restoration are skipped. Supported non-Windows environment replay
+requires rootless Docker.
 
-### Install dependencies
+## 🧑‍💻 Development
 
-```bash
-npm install
-```
+### Requirements
 
-### Run the native application with live reload
+- Node.js `^20.19.0` or `>=22.12.0` (Vite 7 requirement)
+- npm
+- Go `1.25.1` to build the engine
+- Rust `1.85+` with a Tauri v2-compatible toolchain
+- Chrome or Chromium `116+` with `../extension/` loaded for capture testing
 
-```bash
+Additional native dependencies:
+
+- **Windows:** MSVC Rust target, Visual Studio C++ Build Tools, WebView2, and
+  PowerShell.
+- **Linux:** a C/C++ toolchain plus the WebKitGTK, GTK, AppIndicator, librsvg,
+  and GStreamer development/runtime packages required by Tauri and the configured
+  AppImage media bundle. The bundle script also uses Bash, `curl`, `tar`, and xz.
+
+### Install and run
+
+```powershell
+npm ci
 npm run tauri dev
 ```
 
-To run the frontend alone in a browser:
+The native app resolves the engine from staged resources when available, then
+checks executable-relative installation paths, repository build locations, and
+`PATH`.
 
-```bash
-npm run dev
+To build only the frontend:
+
+```powershell
+npm run build
 ```
 
-The development shell resolves the engine from the staged resource directory
-when present, then falls back to repository and PATH locations. Run the bundle
-staging command after engine/runtime changes so desktop development uses current
-assets.
+`npm run dev` starts only Vite. Engine IPC and native file dialogs are unavailable
+in a normal browser tab.
 
----
+## 📦 Build a Self-Contained Distribution
 
-## Build a Monolithic Distribution
-
-The bundle scripts stage all replay dependencies, run `dawg doctor`, then build
-the platform distribution.
+The bundle scripts build the Go engine, stage Node.js, mitmdump, Playwright,
+Chromium, replay scripts, schema/policy files, and the extension, run
+`dawg doctor`, then optionally invoke Tauri packaging.
 
 ### Windows
-
-From this directory:
 
 ```powershell
 .\build-bundle.ps1
 ```
 
-For an already-populated cache/resource tree:
+Use cached/staged dependencies:
 
 ```powershell
 .\build-bundle.ps1 -SkipDownload
 ```
 
-The script invokes the local Tauri CLI directly, preserving the NSIS bundle
-argument on Windows. The installer is written below:
+Stage resources without building the installer:
+
+```powershell
+.\build-bundle.ps1 -SkipTauri
+```
+
+The NSIS installer is written below:
 
 ```text
 src-tauri/target/release/bundle/nsis/
@@ -124,62 +154,70 @@ chmod +x ./build-bundle.sh
 ./build-bundle.sh
 ```
 
-Linux package output is written below:
+The helper script builds an AppImage under:
 
 ```text
-src-tauri/target/release/bundle/
+src-tauri/target/release/bundle/appimage/
 ```
 
-### Staged Resources
+The Tauri configuration declares a Debian target, but this helper does not build
+it.
 
-A healthy staged resource tree contains:
+Use `./build-bundle.sh --skip-tauri` to stage and check resources without
+building packages.
+
+### Staged resources
 
 ```text
 src-tauri/resources/
-├── binaries/dawg.exe            # Platform-specific engine executable
-├── binaries/mitmdump/           # Standalone mitmdump
-├── binaries/node/               # Portable Node.js
-├── node_modules/                # Playwright and rrweb dependencies
+├── binaries/
+│   ├── dawg[.exe]
+│   ├── mitmdump/
+│   └── node/
+├── node_modules/                # Playwright and rrweb packages
 ├── browsers/chromium-*/         # Playwright Chromium
-├── scripts/replay-browser.cjs   # Browser replay launcher
+├── scripts/replay-browser.cjs
 ├── schema/                      # Manifest schema and OPA policy
-└── extension/                   # Installable DAWG browser extension
+└── extension/                   # Installable MV3 extension
 ```
 
----
+`src-tauri/resources/` is generated/staged content and may be absent in a clean
+source checkout.
 
-## Versioning
+## 🔢 Versioning
 
-Do not manually update package, Cargo, Tauri, or extension manifest versions.
-[`../version.json`](../version.json) is the source of truth.
+[`../version.json`](../version.json) is the source for application, desktop,
+extension, and bundled runtime versions.
 
-```bash
+```powershell
 npm run sync:versions
 npm run check:versions
 ```
 
-The synchronizer accepts convenient labels such as `0.2-naughty` and emits
-strict SemVer (`0.2.0-naughty`) wherever Tauri, Cargo, npm, and the artifact
-schema require it. Chrome extension labels are emitted through `version_name`
-while the extension's installable version remains numeric.
+The desktop npm package uses the labeled application version
+`0.2.3-naughty`; Cargo and Tauri use numeric version `0.2.3`.
 
----
+## ✅ Validation
 
-## Useful Validation Commands
-
-```bash
-# Verify generated metadata matches version.json
+```powershell
+npm ci
 npm run check:versions
+npx biome check .
+npm run build
+cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path src-tauri/Cargo.toml
+```
 
-# Type-check the React frontend
-npx tsc --noEmit
+After staging a bundle, check its resources:
 
-# Build the Rust desktop backend
-cargo build --manifest-path src-tauri/Cargo.toml
-
-# Verify staged runtime resources
+```powershell
 .\src-tauri\resources\binaries\dawg.exe doctor
 ```
 
-For project-wide workflow and CLI instructions, see the
-[repository README](../README.md).
+A native smoke test should cover capture start/stop, catalog persistence,
+`.dawg` import/export, replay cancellation, and application exit during active
+capture or replay.
+
+For engine commands, release downloads, and the complete project workflow, see
+the [repository README](../README.md).

@@ -8,9 +8,8 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-# The `_lib` suffix may seem redundant but it is necessary
-# to make the lib name unique and wouldn't conflict with the bin name.
-# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+# Keep the library name distinct from the binary on Windows.
+# See https://github.com/rust-lang/cargo/issues/8519.
 name = "desktop_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
