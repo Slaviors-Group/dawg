@@ -10,11 +10,13 @@ import HomeCodeCli from './components/HomeCodeCli.vue'
 import HomeResources from './components/HomeResources.vue'
 import HomeFinalCta from './components/HomeFinalCta.vue'
 import HomeFooter from './components/HomeFooter.vue'
+import NotFound from './components/NotFound.vue'
 
 const { Layout: DefaultLayout } = DefaultTheme
-const { frontmatter } = useData()
+const { frontmatter, page } = useData()
 
 const isHome = computed(() => frontmatter.value.layout === 'home')
+const isNotFound = computed(() => page.value.isNotFound)
 </script>
 
 <template>
@@ -27,8 +29,17 @@ const isHome = computed(() => frontmatter.value.layout === 'home')
         <HomeCodeCli />
         <HomeResources />
         <HomeFinalCta />
-        <HomeFooter />
       </div>
+    </template>
+    
+    <template #not-found>
+      <div class="dawg-home">
+        <NotFound />
+      </div>
+    </template>
+
+    <template #layout-bottom>
+      <HomeFooter v-if="isHome || isNotFound" />
     </template>
   </DefaultLayout>
 </template>

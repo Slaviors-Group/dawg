@@ -15,6 +15,7 @@ export default defineConfig({
     id: {
       label: 'Bahasa Indonesia',
       lang: 'id',
+      link: '/id/',
       description: "Platform Artefak Reproduksi Bug Web yang Portabel dan Berversi",
       themeConfig: {
         nav: [
@@ -81,10 +82,6 @@ export default defineConfig({
               ],
             },
           ],
-        },
-        footer: {
-          message: "Dirilis di bawah Lisensi Apache-2.0.",
-          copyright: "Hak Cipta © 2026 Slaviors-Group",
         },
         editLink: {
           pattern: "https://github.com/Slaviors-Group/dawg/edit/staging/web/:path",
@@ -201,11 +198,6 @@ export default defineConfig({
       pattern:
         "https://github.com/Slaviors-Group/dawg/edit/staging/web/:path",
       text: "Edit this page on GitHub",
-    },
-
-    footer: {
-      message: "Released under the Apache-2.0 License.",
-      copyright: "Copyright © 2026 Slaviors-Group",
     },
   },
 });
