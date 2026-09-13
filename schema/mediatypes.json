@@ -1,0 +1,7 @@
+{
+  "manifest": "application/vnd.dawg.manifest.v0+json",
+  "envLockfile": "application/vnd.dawg.env.lockfile+tar",
+  "dbFixture": "application/vnd.dawg.db.fixture+tar.zstd",
+  "trace": "application/vnd.dawg.trace.rrweb+jsonl.zstd",
+  "cassette": "application/vnd.dawg.cassette+tar.zstd"
+}
