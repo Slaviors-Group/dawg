@@ -116,7 +116,7 @@ export default defineConfig({
 
     editLink: {
       pattern:
-        "https://github.com/Slaviors-Group/dawg/edit/main/web/:path",
+        "https://github.com/Slaviors-Group/dawg/edit/update-web/web/:path",
       text: "Edit this page on GitHub",
     },
   },
