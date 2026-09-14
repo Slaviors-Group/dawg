@@ -8,8 +8,8 @@ head:
   - [meta, { property: "og:type", content: "website" }]
   - [meta, { property: "og:title", content: "DAWG - Desktop Web-app Bug Capture" }]
   - [meta, { property: "og:description", content: "Capture one browser tab, sanitize it, and share the validated OCI artifact as a portable .dawg archive." }]
-  - [meta, { property: "og:url", content: "https://dawg.vercel.app" }]
-  - [meta, { property: "og:image", content: "https://dawg.vercel.app/og-image.png" }]
+  - [meta, { property: "og:url", content: "https://dawg.slaviors.id" }]
+  - [meta, { property: "og:image", content: "https://dawg.slaviors.id/og-image.png" }]
   - [meta, { property: "og:image:type", content: "image/png" }]
   - [meta, { property: "og:image:width", content: "1200" }]
   - [meta, { property: "og:image:height", content: "630" }]
@@ -17,7 +17,7 @@ head:
   - [meta, { name: "twitter:card", content: "summary_large_image" }]
   - [meta, { name: "twitter:title", content: "DAWG - Desktop Web-app Bug Capture" }]
   - [meta, { name: "twitter:description", content: "Capture, sanitize, catalog, import, export, and replay portable .dawg artifacts." }]
-  - [meta, { name: "twitter:image", content: "https://dawg.vercel.app/og-image.png" }]
+  - [meta, { name: "twitter:image", content: "https://dawg.slaviors.id/og-image.png" }]
   - [meta, { name: "twitter:image:alt", content: "DAWG — Digs Any Web-app Glitch" }]
 home: true
 ---
