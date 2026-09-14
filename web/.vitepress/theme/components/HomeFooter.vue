@@ -39,8 +39,10 @@
         <div class="dh-foot-social">
           <!-- Phospor icons for social links -->
           <a href="https://github.com/Slaviors-Group/dawg" target="_blank" aria-label="GitHub"><i class="ph ph-github-logo"></i></a>
+          <!-- Social links disabled until the project URLs are available.
           <a href="#" aria-label="Discord"><i class="ph ph-discord-logo"></i></a>
           <a href="#" aria-label="X / Twitter"><i class="ph ph-x-logo"></i></a>
+          -->
         </div>
       </div>
     </div>

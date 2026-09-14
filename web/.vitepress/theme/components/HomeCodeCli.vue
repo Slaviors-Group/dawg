@@ -5,8 +5,8 @@ const { isRevealed, sectionRef } = useScrollReveal()
 
 const features = [
   {
-    title: 'Local Capture & Replay',
-    desc: 'Inspect what was captured with no replay needed. Push to your team registry instantly.',
+    title: 'Portable Artifact Workflows',
+    desc: 'List local artifacts, export portable .dawg archives, import validated archives, or exchange OCI artifacts through a registry.',
     mockType: 'table'
   },
   {
@@ -22,7 +22,7 @@ const features = [
     <div class="dh-inner">
       <div class="dh-head">
         <h2 class="dh-h2">Ship with tooling that does<br/>what you expect.</h2>
-        <p class="dh-sub">Single static binary — no daemon, no server. Human-readable output with JSON underneath.</p>
+        <p class="dh-sub">One engine powers the desktop and CLI, with readable output and JSON modes for automation.</p>
       </div>
 
       <!-- Two Columns -->
@@ -62,8 +62,8 @@ const features = [
           </div>
         </div>
         <div class="dh-feature-text">
-          <h3>Verify Fixes Locally</h3>
-          <p>Capture the bug, then stop when it appears. Verify the fix on your local branch against the actual recorded failure.</p>
+          <h3>Inspect, Replay, and Verify</h3>
+          <p>Inspect artifact metadata, replay the recorded browser session, and compare replay outcomes with automation-friendly exit codes.</p>
         </div>
       </div>
 

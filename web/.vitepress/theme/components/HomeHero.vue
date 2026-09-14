@@ -33,13 +33,13 @@ function tiltStyle() {
         </h1>
 
         <p class="dh-sub">
-          DAWG packages sanitized, deterministic web-app bug reproductions
-          into portable OCI artifacts — so the failure on your screen
-          reproduces byte-for-byte on anyone's machine.
+          DAWG captures browser sessions through its desktop app and extension,
+          sanitizes them locally, and packages them as validated OCI artifacts
+          that can be cataloged, shared, and replayed.
         </p>
 
         <div class="dh-hero-ctas">
-          <a class="dh-cta dh-cta-lg" href="/docs/getting-started">Book a Demo</a>
+          <a class="dh-cta dh-cta-lg" href="/docs/getting-started">Get Started</a>
           <a class="dh-ghost dh-ghost-lg" href="https://github.com/Slaviors-Group/dawg" target="_blank" rel="noopener noreferrer">View on GitHub</a>
         </div>
       </div>

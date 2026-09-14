@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+// Theme imports are preserved for when dark mode is repaired.
+// import { ref, onMounted, onUnmounted } from 'vue'
 
 const navLinks = [
   { label: 'Guide', link: '/docs/getting-started' },
@@ -8,48 +9,52 @@ const navLinks = [
   { label: 'Changelog', link: '/docs/changelog' },
 ]
 
-const icons = {
-  moon: '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />',
-  sun: '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" /><path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7" />'
-}
-
-/* ── Theme Switching Logic ── */
-const isDark = ref(false)
-
-function applyTheme(dark: boolean) {
-  isDark.value = dark
-  if (dark) {
-    document.documentElement.classList.add('dark')
-  } else {
-    document.documentElement.classList.remove('dark')
-  }
-}
-
-function toggleTheme() {
-  const newDark = !isDark.value
-  applyTheme(newDark)
-  localStorage.setItem('dawg-theme', newDark ? 'dark' : 'light')
-}
-
-function handleStorage(e: StorageEvent) {
-  if (e.key === 'dawg-theme') {
-    applyTheme(e.newValue === 'dark')
-  }
-}
-
-onMounted(() => {
-  const stored = localStorage.getItem('dawg-theme')
-  if (stored) {
-    applyTheme(stored === 'dark')
-  } else {
-    applyTheme(false)
-  }
-  window.addEventListener('storage', handleStorage)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('storage', handleStorage)
-})
+/*
+ * Theme switching is intentionally disabled while dark mode is incomplete.
+ * VitePress's built-in appearance handling is also disabled in config.mts.
+ *
+ * const icons = {
+ *   moon: '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />',
+ *   sun: '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" /><path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7" />'
+ * }
+ *
+ * const isDark = ref(false)
+ *
+ * function applyTheme(dark: boolean) {
+ *   isDark.value = dark
+ *   if (dark) {
+ *     document.documentElement.classList.add('dark')
+ *   } else {
+ *     document.documentElement.classList.remove('dark')
+ *   }
+ * }
+ *
+ * function toggleTheme() {
+ *   const newDark = !isDark.value
+ *   applyTheme(newDark)
+ *   localStorage.setItem('dawg-theme', newDark ? 'dark' : 'light')
+ * }
+ *
+ * function handleStorage(e: StorageEvent) {
+ *   if (e.key === 'dawg-theme') {
+ *     applyTheme(e.newValue === 'dark')
+ *   }
+ * }
+ *
+ * onMounted(() => {
+ *   const stored = localStorage.getItem('dawg-theme')
+ *   if (stored) {
+ *     applyTheme(stored === 'dark')
+ *   } else {
+ *     applyTheme(false)
+ *   }
+ *   window.addEventListener('storage', handleStorage)
+ * })
+ *
+ * onUnmounted(() => {
+ *   window.removeEventListener('storage', handleStorage)
+ * })
+ */
 </script>
 
 <template>
@@ -63,9 +68,11 @@ onUnmounted(() => {
         <a v-for="l in navLinks" :key="l.link" :href="l.link">{{ l.label }}</a>
       </nav>
       <div class="dh-nav-actions">
+        <!-- Theme toggle disabled until dark mode is ready.
         <button class="dh-theme-toggle" @click="toggleTheme" :aria-label="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="isDark ? icons.sun : icons.moon" />
         </button>
+        -->
         <a class="dh-nav-signin" href="https://github.com/Slaviors-Group/dawg" target="_blank" rel="noopener noreferrer">GitHub</a>
         <a class="dh-cta dh-cta-sm" href="/docs/getting-started">Get started</a>
       </div>

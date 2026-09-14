@@ -7,7 +7,9 @@ export default defineConfig({
   description:
     "A Portable, Versioned Bug-Reproduction Artifact Platform for Deterministic Full-Stack Web Application Debugging",
 
-
+  // Keep the site light-only until the custom dark theme is ready.
+  // This also disables VitePress's system-theme detection and appearance switch.
+  appearance: false,
 
   head: [
     ["link", { rel: "preconnect", href: "https://fonts.googleapis.com" }],
@@ -56,7 +58,7 @@ export default defineConfig({
       },
       { text: "Changelog", link: "/docs/changelog" },
       {
-        text: "v0.1.2-alpha",
+        text: "v0.2.3-naughty",
         items: [
           {
             text: "Releases",
@@ -114,7 +116,7 @@ export default defineConfig({
 
     editLink: {
       pattern:
-        "https://github.com/Slaviors-Group/dawg/edit/staging/web/:path",
+        "https://github.com/Slaviors-Group/dawg/edit/main/web/:path",
       text: "Edit this page on GitHub",
     },
   },

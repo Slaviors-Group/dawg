@@ -1,348 +1,255 @@
 # Installation
 
-DAWG can be installed as a standalone desktop application (recommended) or used as a CLI tool for development and CI/CD integration.
+DAWG is available as a self-contained desktop application or as source for engine, desktop, and extension development. The desktop application is the recommended way to use the complete workflow.
 
-## Desktop Application (Recommended)
+## Current Release
 
-The desktop app is distributed as a **monolithic standalone bundle** — zero manual prerequisites required. All runtimes including `mitmdump`, `node`, Playwright scripts, and schemas are embedded.
+The current prerelease is [`0.2.3-naughty`](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-2), published as the `naughty-2` release.
+
+| Platform | Package | SHA-256 |
+|---|---|---|
+| **Windows x64** | [`DAWG_0.2.3_x64-setup.exe`](https://github.com/Slaviors-Group/dawg/releases/download/naughty-2/DAWG_0.2.3_x64-setup.exe) | `d7168931f748499f3e49f9a1b306a0ac31edd047cd9340a11427fe5217334e87` |
+
+Linux targets are configured, but no Linux package is attached to this release. Build the AppImage from source with `desktop/build-bundle.sh`.
+
+See [all releases](https://github.com/Slaviors-Group/dawg/releases) for older prereleases and assets.
+
+## Desktop Application
 
 ### Windows
 
-Download the installer from the release page for your version:
+1. Download and run the Windows x64 NSIS installer.
+2. Launch DAWG.
+3. Open the runtime diagnostics and confirm the engine reports **Ready**.
+4. Install the browser extension before starting a capture.
 
-| Version | Date | Installer | Download |
-|---|---|---|---|
-| **v0.1.2-alpha** (latest) | 2026-09-06 | `DAWG_0.1.2-alpha_x64-setup.exe` (NSIS) | [alpha-3](https://github.com/Slaviors-Group/dawg/releases/tag/alpha-3) |
-| v0.1.1-alpha | 2026-09-04 | `DAWG_0.1.1-alpha_x64-setup.exe` (NSIS) | [alpha-2](https://github.com/Slaviors-Group/dawg/releases/tag/alpha-2) |
-| v0.1.0-alpha | 2026-09-04 | `DAWG_0.1.0-alpha_x64-setup.exe` (NSIS) / `DAWG_0.1.0-alpha_x64_en-US.msi` | [alpha](https://github.com/Slaviors-Group/dawg/releases/tag/alpha) |
+The package stages the Go engine, Node.js, mitmdump, Playwright and Chromium for replay, schemas, policies, and the browser extension. These components do not require separate system installation for the packaged application.
 
-Run the installer and follow the prompts. DAWG will be installed to your Program Files directory with Start Menu shortcuts.
+### Browser Extension
 
-> **Note:** MSI distribution was deprecated after v0.1.0-alpha — newer releases ship NSIS (`.exe`) only.
+DAWG capture requires Chrome or Chromium **116 or newer** and the Manifest V3 extension included with the project.
 
-### Linux
+1. Open `chrome://extensions`.
+2. Enable **Developer mode**.
+3. Select **Load unpacked**.
+4. In DAWG, open **Engine Doctor**, find the `browser-extension` component, and select the parent directory of its displayed `manifest.json` path. For source development, select the repository's `extension/` directory.
+5. Reload the extension after updating the desktop app or extension source.
 
-Prebuilt Linux packages are not yet available. Build from source:
+The extension requests `<all_urls>` host access so the engine can select an `http://` or `https://` target tab and observe that tab's browser events and request metadata. Recording starts only after the desktop app or CLI creates a token-bearing capture session.
 
-```bash
-# Clone the repository
-git clone https://github.com/Slaviors-Group/dawg.git
-cd dawg/engine
-
-# Build the Go engine
-go build -o ../bin/dawg ./cmd/dawg
-
-# Build the desktop app
-cd ../desktop
-npm install
-npm run build
-```
-
-See [Building from Source](#building-from-source) for detailed instructions.
+> `dawg doctor` checks that an installable extension manifest is present in the runtime resources. Browser installation and enablement must still be checked in `chrome://extensions`.
 
 ---
 
-## Engine CLI (Standalone)
+## Build and Run from Source
 
-For developers who want to use DAWG from the command line or integrate it into CI/CD pipelines.
+### Toolchain Requirements
 
-### Prerequisites
-
-| Dependency | Version | Purpose |
+| Tool | Required version or scope | Used for |
 |---|---|---|
-| **Go** | 1.22+ | Engine compilation |
-| **Node.js** | 20+ | Playwright browser automation |
-| **Python** | 3.10+ | mitmproxy for HTTP capture |
-| **mitmproxy** | 12+ | Backend HTTP traffic interception |
+| **Go** | `1.25.1` | Engine build and tests (`engine/go.mod`) |
+| **Node.js** | `^20.19.0` or `>=22.12.0` | Vite 7 desktop toolchain |
+| **npm** | Compatible with the selected Node.js release | Locked JavaScript dependencies |
+| **Rust** | `1.85+`, stable Tauri v2-compatible toolchain | Desktop native shell |
+| **Chrome/Chromium** | `116+` | Extension-driven capture |
+| **mitmdump** | Available on `PATH` for an unstaged CLI runtime | HTTP cassette replay and diagnostics |
+| **Docker Engine + Compose** | Rootless, on supported non-Windows hosts | Captured environment replay and database restore |
 
-### Install from Source
+Direct engine development also needs the Playwright and rrweb versions locked by `engine/package-lock.json` and a Playwright Chromium installation. The current self-contained bundle pins:
 
-```bash
-# Clone the repository
-git clone https://github.com/Slaviors-Group/dawg.git
-cd dawg/engine
+- Node.js `22.14.0`
+- mitmproxy `12.2.3`
+- Playwright `1.55.1`
+- rrweb `2.0.0-alpha.18`
 
-# Build the engine binary
-go build -o ../bin/dawg ./cmd/dawg
+Python is not required to build the bundled desktop package because the bundle scripts download standalone mitmdump archives. If you run the CLI against a system mitmproxy installation, follow mitmproxy's platform installation requirements.
 
-# Install Node.js dependencies (for Playwright scripts)
-npm install
+### Platform Build Dependencies
 
-# Add to PATH (optional)
-export PATH="$PWD/../bin:$PATH"
-```
+**Windows** development requires the MSVC Rust target, Visual Studio C++ Build Tools, WebView2, and PowerShell in addition to the toolchain above.
 
-### Verify Installation
+**Linux** development requires a C/C++ toolchain and the WebKitGTK, GTK, AppIndicator, librsvg, and GStreamer development/runtime packages used by Tauri and the configured AppImage media bundle. The bundle helper also uses Bash, `curl`, `tar`, and xz.
 
-Run the built-in diagnostic tool to verify your environment:
-
-```bash
-dawg doctor
-```
-
-Expected output:
-
-```
-DAWG Engine Doctor Diagnostics (v0.1.2-alpha)
-Resource Root: /path/to/dawg/bin (Bundled: false)
-
-✅ dawg-engine          (v0.1.2-alpha)
-✅ mitmdump             (v12.2.3)
-✅ node                 (v22.14.0)
-✅ script:capture-browser.cjs
-✅ script:capture-proxy.py
-✅ script:replay-browser.cjs
-✅ policy:default.rego
-✅ schema:manifest      (v0.1.2-alpha)
-
-All required runtime components are healthy and ready!
-```
-
----
-
-## Bundling from Source
-
-Building DAWG is **one linear pipeline**, not separate builds: compile the engine → stage the runtimes (mitmdump, Node) → copy scripts, schemas, and node modules into the bundle → verify → build the installer. The `build-bundle` scripts automate the whole flow.
-
-### Prerequisites
-
-| Tool | Version | Needed for |
-|---|---|---|
-| Go | 1.22+ | Compiling the engine |
-| Node.js + npm | 20+ | Desktop frontend, Playwright deps |
-| Rust toolchain + Tauri CLI | stable | Building the installer |
-| Docker (rootless) | 24+ | Replay sandbox (runtime, not build) |
+### Clone the Repository
 
 ```bash
-# Clone the repository
 git clone https://github.com/Slaviors-Group/dawg.git
 cd dawg
 ```
 
-### Option A — One-command bundle (recommended)
+### Engine Development Setup
 
-**Windows (PowerShell):**
+Install the locked JavaScript dependencies, provision Chromium, test the Go engine, and build the executable.
+
+**Windows PowerShell:**
 
 ```powershell
-# Full pipeline: compile + stage runtimes + build the Tauri installer
-.\desktop\build-bundle.ps1
+Set-Location engine
+npm ci
+npx playwright install chromium --no-shell
+npm run check:versions
+go test ./...
+New-Item -ItemType Directory -Force ..\bin | Out-Null
+go build -o ..\bin\dawg.exe ./cmd/dawg
+..\bin\dawg.exe doctor
+```
 
-# Reuse already-staged runtimes instead of re-downloading
+**Linux:**
+
+```bash
+cd engine
+npm ci
+npx playwright install chromium --no-shell
+npm run check:versions
+go test ./...
+mkdir -p ../bin
+go build -o ../bin/dawg ./cmd/dawg
+../bin/dawg doctor
+```
+
+For this unstaged setup, make sure `mitmdump` is available on `PATH` before running `doctor` or replaying an artifact with an HTTP cassette.
+
+### Desktop Development Setup
+
+Build the engine into `bin/` first, then install the desktop dependencies and start the native Tauri application:
+
+```bash
+cd desktop
+npm ci
+npm run build
+npm run tauri dev
+```
+
+`npm run dev` starts only the Vite frontend at `http://localhost:1420`. Tauri IPC, native import/export dialogs, and engine commands require `npm run tauri dev`.
+
+For capture testing, load the repository's `extension/` directory as an unpacked extension and reload it after source changes.
+
+---
+
+## Build a Self-Contained Distribution
+
+The bundle helpers compile the Go engine, stage Node.js and mitmdump, install the locked Playwright/rrweb dependencies and Chromium, copy the replay script, schema, policies, and extension, run `dawg doctor`, and then invoke the platform-specific Tauri package build.
+
+Install desktop dependencies before running either helper:
+
+```bash
+cd desktop
+npm ci
+cd ..
+```
+
+### Windows NSIS Installer
+
+Run from the repository root in PowerShell:
+
+```powershell
+.\desktop\build-bundle.ps1
+```
+
+Useful options:
+
+```powershell
+# Reuse complete, current cached/staged dependencies
 .\desktop\build-bundle.ps1 -SkipDownload
 
-# Stage the bundle only, build the installer manually later
+# Stage and validate resources without invoking Tauri
 .\desktop\build-bundle.ps1 -SkipTauri
-cd desktop
-npm run tauri build
 
-# Override the pinned runtime versions (defaults shown)
+# Override the versions normally sourced from version.json
 .\desktop\build-bundle.ps1 -MitmVersion "12.2.3" -NodeVersion "22.14.0"
 ```
 
-**Linux (Bash):**
+`-SkipDownload` fails when required caches or staged dependencies are missing or stale. The installer is written under:
+
+```text
+desktop/src-tauri/target/release/bundle/nsis/
+```
+
+### Linux AppImage
+
+Run from the repository root:
 
 ```bash
 chmod +x ./desktop/build-bundle.sh
-
-# Full pipeline
 ./desktop/build-bundle.sh
+```
 
-# Same flags, sh-style
+Useful options:
+
+```bash
 ./desktop/build-bundle.sh --skip-download
 ./desktop/build-bundle.sh --skip-tauri
 ./desktop/build-bundle.sh --mitm-version=12.2.3 --node-version=22.14.0
 ```
 
-| Flag (ps1 / sh) | Effect |
-|---|---|
-| `-SkipDownload` / `--skip-download` | Reuses staged binaries and `.cache/` archives instead of re-downloading |
-| `-SkipTauri` / `--skip-tauri` | Stops after staging; run `npm run tauri build` inside `desktop/` yourself |
-| `-MitmVersion` / `--mitm-version=` | Pin mitmproxy version (default `12.2.3`) |
-| `-NodeVersion` / `--node-version=` | Pin portable Node.js version (default `22.14.0`) |
+The helper explicitly builds an AppImage under:
 
-**Installer outputs:**
-
-| OS | Output |
-|---|---|
-| Windows | `desktop/src-tauri/target/release/bundle/nsis/DAWG_x64-setup.exe` |
-| Linux | `desktop/src-tauri/target/release/bundle/appimage/DAWG_amd64.AppImage` (+ `.deb`) |
-
-### Option B — Manual walkthrough (same pipeline, step by step)
-
-Use this when debugging the bundle or porting to a new platform. Each step feeds the next — don't skip ahead.
-
-**Step 1 — Compile the engine into the bundle**
-
-```bash
-cd engine
-go test ./...   # engine test suite must pass first
+```text
+desktop/src-tauri/target/release/bundle/appimage/
 ```
 
-```powershell
-# Windows: binary lands straight in the staged bundle
-go build -o ../desktop/src-tauri/resources/binaries/dawg.exe ./cmd/dawg
-```
+Tauri also declares a Debian target, but `build-bundle.sh` does not build it.
 
-```bash
-# Linux: same, without the .exe extension
-go build -o ../desktop/src-tauri/resources/binaries/dawg ./cmd/dawg
-chmod +x ../desktop/src-tauri/resources/binaries/dawg
-```
+### Staged Resources
 
-**Step 2 — Stage standalone mitmdump**
-
-No system mitmproxy install needed — fetch the portable archive (cached under `desktop/.cache/` on repeat runs):
-
-```powershell
-# Windows: zip from downloads.mitmproxy.org (fallback: GitHub Releases),
-# extract mitmdump.exe into the bundle (or copy your local mitmdump.exe)
-Invoke-WebRequest -Uri "https://downloads.mitmproxy.org/12.2.3/mitmproxy-12.2.3-windows-x86_64.zip" -OutFile "desktop/.cache/mitmproxy-12.2.3.zip"
-Expand-Archive -Path "desktop/.cache/mitmproxy-12.2.3.zip" -DestinationPath "desktop/.cache/mitm_extract"
-Copy-Item "desktop/.cache/mitm_extract/mitmdump.exe" "desktop/src-tauri/resources/binaries/mitmdump/mitmdump.exe"
-```
-
-```bash
-# Linux: tarball, extract only the mitmdump binary
-curl -fsSL "https://downloads.mitmproxy.org/12.2.3/mitmproxy-12.2.3-linux-x86_64.tar.gz" -o "desktop/.cache/mitmproxy-12.2.3-linux.tar.gz"
-tar -xzf "desktop/.cache/mitmproxy-12.2.3-linux.tar.gz" -C "desktop/src-tauri/resources/binaries/mitmdump" mitmdump
-chmod +x "desktop/src-tauri/resources/binaries/mitmdump/mitmdump"
-```
-
-**Step 3 — Stage portable Node.js**
-
-```powershell
-# Windows
-Invoke-WebRequest -Uri "https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip" -OutFile "desktop/.cache/node-v22.14.0-win-x64.zip"
-Expand-Archive -Path "desktop/.cache/node-v22.14.0-win-x64.zip" -DestinationPath "desktop/.cache/node_extract"
-Copy-Item "desktop/.cache/node_extract/*/node.exe" "desktop/src-tauri/resources/binaries/node/node.exe"
-```
-
-```bash
-# Linux
-curl -fsSL "https://nodejs.org/dist/v22.14.0/node-v22.14.0-linux-x64.tar.xz" -o "desktop/.cache/node-v22.14.0-linux-x64.tar.xz"
-mkdir -p "desktop/.cache/node_extract"
-tar -xf "desktop/.cache/node-v22.14.0-linux-x64.tar.xz" -C "desktop/.cache/node_extract" --strip-components=1
-cp "desktop/.cache/node_extract/bin/node" "desktop/src-tauri/resources/binaries/node/node"
-chmod +x "desktop/src-tauri/resources/binaries/node/node"
-```
-
-**Step 4 — Provision Playwright & rrweb modules**
-
-If `engine/node_modules` already exists it gets copied over; otherwise install directly into the bundle:
-
-```bash
-cd engine
-npm install   # playwright + rrweb (or: hoisted from a previous install)
-cp -r node_modules ../desktop/src-tauri/resources/node_modules
-# ...or fresh: cp package.json ../desktop/src-tauri/resources/ && (cd ../desktop/src-tauri/resources && npm install --omit=dev)
-```
-
-**Step 5 — Copy engine scripts and schema**
-
-```bash
-# From the repo root:
-cp -r engine/scripts/* desktop/src-tauri/resources/scripts/
-cp -r schema/* desktop/src-tauri/resources/schema/
-```
-
-The staged bundle now looks like this:
+A successful staging run creates a generated resource tree similar to:
 
 ```text
 desktop/src-tauri/resources/
 ├── binaries/
-│   ├── dawg(.exe)              # ← step 1
-│   ├── mitmdump/mitmdump(.exe) # ← step 2
-│   └── node/node(.exe)         # ← step 3
-├── node_modules/               # ← step 4 (playwright, rrweb)
-├── scripts/                    # ← step 5 (capture-browser.cjs, capture-proxy.py, replay-browser.cjs)
-└── schema/                     # ← step 5 (manifest JSON schema, OPA policies)
+│   ├── dawg[.exe]
+│   ├── mitmdump/
+│   └── node/
+├── node_modules/
+├── browsers/chromium-*/
+├── scripts/replay-browser.cjs
+├── schema/
+└── extension/
 ```
 
-**Step 6 — Verify the staged bundle**
-
-Point `dawg doctor` at the staged resources — every check must pass before building the installer:
-
-```bash
-DAWG_RESOURCES_DIR=desktop/src-tauri/resources ./desktop/src-tauri/resources/binaries/dawg doctor
-```
-
-```powershell
-$env:DAWG_RESOURCES_DIR = "desktop/src-tauri/resources"
-& "desktop/src-tauri/resources/binaries/dawg.exe" doctor
-```
-
-**Final — Build the installer**
-
-```bash
-cd desktop
-npm run tauri build
-```
-
-Outputs are listed in [Option A](#option-a-one-command-bundle-recommended).
-
-### Desktop development mode
-
-For UI iteration (no bundling needed — uses your system toolchain):
-
-```bash
-cd desktop
-npm install
-npm run dev        # Vite web dev server (http://localhost:1420)
-npm run tauri dev  # Tauri window with live-reloading
-```
-
-### Run the end-to-end smoke test
-
-```powershell
-.\test\smoke_test.ps1
-```
+`desktop/src-tauri/resources/` is generated content and may be absent from a clean source checkout.
 
 ---
 
-## Docker Sandbox (for Replay)
+## Runtime Storage and Platform Boundaries
 
-The replay engine requires Docker for sandboxed execution:
+By default, DAWG keeps runtime state in the user's home directory:
 
-- **Windows**: WSL2 with Rootless Docker
-- **Linux**: Docker with rootless mode enabled
-
-```bash
-# Verify Docker is running
-docker info
-
-# Enable rootless mode (if not already)
-dockerd-rootless-setuptool.sh install
+```text
+~/.dawg/
+├── artifacts/
+├── captures/
+├── policies/
+├── artifact-catalog.json
+├── capture-control.json
+└── capture-result.json
 ```
 
-On bare Windows hosts without WSL2, DAWG falls back to native mock sandbox mode.
+Set `DAWG_STATE_DIR` to move this state root. Runtime resource overrides include `DAWG_RESOURCES_DIR`, `DAWG_NODE_PATH`, `DAWG_MITMDUMP_PATH`, `DAWG_CHROMIUM_EXECUTABLE_PATH`, and `DAWG_POLICY_PATH`.
 
----
+On Windows, replay runs Chromium natively and skips Docker Compose isolation and database fixture restoration. On supported non-Windows hosts, environment replay requires rootless Docker.
 
 ## Troubleshooting
 
-### "CLI Not Detected" in Desktop App
+### Engine Not Found in Desktop Development
 
-The Desktop app looks for the `dawg` binary in these locations (in order):
+Build the engine into the repository's `bin/` directory before starting `npm run tauri dev`. The desktop checks bundled resources, executable-relative install locations, repository build locations, the Windows registry `PATH`, and the process `PATH`.
 
-1. Bundled resources (inside the app)
-2. `./bin/dawg` (relative to working directory)
-3. `$PATH`
-4. Windows Registry (Windows only)
+### Capture Waits for the Extension
 
-Build the engine first: `cd engine && go build -o ../bin/dawg ./cmd/dawg`
+Confirm that:
 
-### Playwright Browser Not Found
+- Chrome or Chromium is version 116 or newer;
+- the unpacked DAWG extension is enabled and was reloaded after the last update;
+- the target begins with `http://` or `https://`;
+- loopback port `8082` is not blocked.
 
-```bash
-# Install Playwright browsers
-npx playwright install chromium
-```
+### Runtime Reports Degraded
 
-### mitmproxy Not Found
+Run:
 
 ```bash
-# Install via pip
-pip install mitmproxy
-
-# Or on Windows, ensure mitmdump.exe is in PATH
+dawg doctor
 ```
+
+For a source runtime, verify that Node.js, mitmdump, Playwright Chromium, `replay-browser.cjs`, the extension manifest, schema, and policy are discoverable. For a staged bundle, do not use the skip-download option until all cached and generated resources are complete and current.

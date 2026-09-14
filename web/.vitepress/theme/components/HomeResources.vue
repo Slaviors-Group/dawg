@@ -60,7 +60,7 @@ const { isRevealed, sectionRef } = useScrollReveal()
         <div class="dh-masonry-col" style="transition-delay: 0.6s">
           <a href="/docs/sanitizer-policy" class="dh-res-card">
             <h3>Sanitizer Policy</h3>
-            <p>Rego gates, redaction rules, synthetic data. Keep your sensitive data strictly local.</p>
+            <p>Understand the built-in redaction rules, deterministic replacements, OPA gate, reports, and security boundaries.</p>
             <span class="dh-learn-more">Learn More &rarr;</span>
           </a>
           <a href="/docs/contributing" class="dh-res-card">

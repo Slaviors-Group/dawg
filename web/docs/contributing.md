@@ -1,252 +1,283 @@
 # Contributing
 
-Thank you for your interest in contributing to DAWG! This guide covers development setup, coding standards, and the PR workflow.
+Thank you for your interest in contributing to DAWG! This guide covers the current repository layout, development setup, validation commands, version management, and pull request workflow.
 
 ## Development Setup
 
-### Prerequisites
+### Requirements
 
-| Tool | Version | Purpose |
+| Tool | Version or scope | Purpose |
 |---|---|---|
-| **Go** | 1.22+ | Engine compilation |
-| **Node.js** | 20+ | Desktop app & Playwright |
-| **Rust** | stable | Tauri desktop shell |
-| **Python** | 3.10+ | mitmproxy |
-| **Biome** | 1.9.4 | Formatting & linting |
+| **Go** | `1.25.1` | Engine compilation, vetting, and tests |
+| **Node.js** | `^20.19.0` or `>=22.12.0` | Vite 7 desktop toolchain |
+| **npm** | Compatible with the selected Node.js release | Locked engine and desktop dependencies |
+| **Rust** | `1.85+`, stable Tauri v2-compatible toolchain | Desktop backend |
+| **Chrome/Chromium** | `116+` | Extension capture testing |
+| **Docker Engine + Compose** | Rootless where environment replay is supported | Non-Windows sandbox and database restore testing |
 
-### Clone & Build
+Windows desktop work also requires the MSVC Rust target, Visual Studio C++ Build Tools, WebView2, and PowerShell. Linux desktop work requires the native WebKitGTK, GTK, AppIndicator, librsvg, and GStreamer dependencies expected by Tauri and the AppImage build.
+
+### Clone and Install
 
 ```bash
-# Clone the repository
 git clone https://github.com/Slaviors-Group/dawg.git
 cd dawg
-
-# Build the Go engine
-cd engine
-go build -o ../bin/dawg ./cmd/dawg
-npm install  # Playwright dependencies
-go test ./...
-
-# Build the desktop app
-cd ../desktop
-npm install
-npm run dev
 ```
 
-### Pre-commit Hooks
-
-DAWG uses pre-commit hooks for code quality:
-
-```yaml
-# .pre-commit-config.yaml
-repos:
-  - repo: local
-    hooks:
-      - id: gofmt
-        name: gofmt
-        entry: gofmt -w
-        language: system
-        files: \.go$
-      - id: go-vet
-        name: go vet
-        entry: go vet
-        language: system
-        files: \.go$
-      - id: biome
-        name: biome
-        entry: npx biome check --write
-        language: system
-        files: \.(ts|tsx|css|json)$
-```
-
-Install pre-commit:
+Install each package from its lockfile:
 
 ```bash
-pip install pre-commit
+cd engine
+npm ci
+
+cd ../desktop
+npm ci
+```
+
+Build the engine into the repository's `bin/` directory before running the native desktop app. For complete source runtime diagnostics, also install Playwright Chromium and make `mitmdump` available on `PATH`; see [Installation](/docs/installation).
+
+### Run the Desktop App
+
+```bash
+cd desktop
+npm run build
+npm run tauri dev
+```
+
+`npm run dev` starts only the Vite frontend. Use `npm run tauri dev` when testing engine IPC, native `.dawg` file dialogs, drag-and-drop, capture, or replay.
+
+Load `extension/` as an unpacked extension from `chrome://extensions` for capture development. Reload it after changing extension source.
+
+### Optional Pre-commit Hooks
+
+The checked-in `.pre-commit-config.yaml` defines local hooks for:
+
+- `gofmt -w` on Go files;
+- `go vet ./...` from `engine/`;
+- `npx biome check --write` on JavaScript, JSX, TypeScript, TSX, and JSON files.
+
+After installing `pre-commit`, enable and run the hooks with:
+
+```bash
 pre-commit install
+pre-commit run --all-files
 ```
 
 ---
 
 ## Project Structure
 
-```
+```text
 dawg/
-├── engine/          # Go Engine CLI (core logic)
-│   ├── cmd/dawg/    # CLI entry point (Cobra)
-│   └── internal/    # Pipeline components
-├── desktop/         # Tauri v2 Desktop Shell
-│   ├── src/         # React 19 frontend
-│   └── src-tauri/   # Rust backend
-├── schema/          # OCI Manifest + OPA policies
-├── web/             # VitePress documentation
-└── test/            # E2E smoke tests
+├── version.json          # Application, desktop, extension, and runtime versions
+├── engine/               # Go CLI and capture/sanitize/package/replay pipeline
+├── extension/            # Chromium Manifest V3 capture extension
+├── desktop/              # React 19 frontend and Tauri v2 backend
+├── schema/               # Artifact schema, media types, and OPA policy
+├── tools/                # Version synchronization utility
+└── web/                  # VitePress documentation site
 ```
 
-### Language-per-Concern Rule
+### Language by Concern
 
 | Concern | Language | Location |
 |---|---|---|
-| Engine CLI | Go | `engine/` |
-| Desktop shell | TypeScript/React | `desktop/src/` |
-| Desktop backend | Rust | `desktop/src-tauri/` |
-| Schema | JSON Schema + Rego | `schema/` |
+| Engine CLI and pipeline | Go | `engine/` |
+| Browser capture | JavaScript | `extension/` |
+| Desktop UI | TypeScript/React | `desktop/src/` |
+| Desktop native backend | Rust | `desktop/src-tauri/` |
+| Artifact validation and policy | JSON Schema/Rego | `schema/` |
+| Documentation | Markdown/Vue/TypeScript | `web/` |
 
-Do not mix languages across concerns. Each component has a clear boundary.
+Keep changes within the component that owns the behavior. Desktop IPC commands should remain thin wrappers around engine operations where practical.
 
 ---
 
 ## Coding Standards
 
-### Go (Engine)
+### Go
 
-- Follow standard Go conventions (`gofmt`, `go vet`)
-- Use `slog` for structured logging with `component` + `artifact_id` fields
-- Write table-driven tests
-- Keep packages focused — one responsibility per package
-- No external dependencies unless approved (check `DECISIONS.md`)
+- Format with `gofmt` and keep `go vet ./...` clean.
+- Use table-driven tests where multiple cases exercise the same behavior.
+- Keep packages focused and errors actionable.
+- Use the existing structured logging and error types instead of introducing parallel patterns.
 
-### TypeScript/React (Desktop)
+### TypeScript and React
 
-- Use Biome for formatting (100 char line width, 2-space indent)
-- Functional components with hooks
-- Props interfaces defined inline or co-located
-- Tailwind CSS for styling (no inline styles)
-- Framer Motion for animations
+- Use the checked-in Biome configuration.
+- Prefer functional components and hooks.
+- Keep typed IPC payloads aligned with the engine's emitted JSON field names.
+- Use the existing UI primitives and Tailwind styles.
 
-### Rust (Tauri Backend)
+### Rust
 
-- Standard `cargo fmt` and `cargo clippy`
-- Keep IPC commands thin — delegate to CLI or Rust libraries
-- Error handling with `Result` types
+- Run `cargo fmt`, `cargo clippy`, and tests for native backend changes.
+- Keep subprocess ownership and cleanup explicit.
+- Return actionable `Result` errors across Tauri command boundaries.
+
+### Browser Extension
+
+- Keep the Manifest V3 service worker restart-safe.
+- Preserve session-token checks and selected-tab scoping.
+- Remember that rrweb input masking does not mask the separate action stream; sanitization occurs in the engine before packaging.
 
 ---
 
-## Testing
+## Validation
 
-### Engine Tests
+Run the checks for every component you change. The commands below match the current package scripts and CI coverage.
+
+### Engine and Version Metadata
+
+From `engine/`:
 
 ```bash
-cd engine
+npm ci
+npm run check:versions
+gofmt -w .
+go vet ./...
 go test ./...
+go build ./cmd/dawg
 ```
 
-All Go packages have corresponding `_test.go` files. Aim for:
+### Browser Extension
 
-- Unit tests for pure functions
-- Integration tests for pipeline components
-- Table-driven tests where applicable
-
-### Desktop Tests
+From the repository root:
 
 ```bash
-cd desktop
-npm run lint
+node --check extension/background/service_worker.js
+node --check extension/content/recorder.js
+node --check extension/popup/popup.js
+node --test extension/tests/service_worker.test.cjs
 ```
 
-### End-to-End Smoke Test
+The automated extension test mocks Chrome APIs. Capture changes still require a manual Chrome/Chromium 116+ start, event delivery, stop, package, and replay cycle.
+
+### Desktop
+
+From `desktop/`:
+
+```bash
+npm ci
+npx --no-install biome check .
+npm run build
+cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path src-tauri/Cargo.toml
+```
+
+For CI parity, also ensure the Rust package passes a locked check:
+
+```bash
+cargo check --locked --manifest-path src-tauri/Cargo.toml
+```
+
+### Documentation Site
+
+From `web/`:
+
+```bash
+npm ci
+npm run docs:build
+```
+
+### Bundle and Native Smoke Testing
+
+Stage the complete runtime when a change affects discovery, packaging, or native process behavior:
 
 ```powershell
-.\test\smoke_test.ps1
+.\desktop\build-bundle.ps1 -SkipTauri
 ```
 
-### Writing New Tests
+```bash
+./desktop/build-bundle.sh --skip-tauri
+```
 
-- Place tests in the same package as the code
-- Use descriptive test names: `TestSanitize_FieldNameMatch`
-- Use table-driven patterns for multiple cases
-- Mock external dependencies (Docker, filesystem) where possible
+Do not use the skip-download option unless the runtime cache and staged dependencies are already complete and current.
+
+A manual native smoke test should cover the paths affected by the change, including capture start/stop, catalog persistence, `.dawg` import/export, replay, replay cancellation, and application exit during active work.
+
+---
+
+## Version Management
+
+[`version.json`](https://github.com/Slaviors-Group/dawg/blob/main/version.json) is the source for application, desktop, extension, Node.js, and mitmproxy versions.
+
+The current release values are:
+
+| Field | Value |
+|---|---|
+| Application and schema | `0.2.3-naughty` |
+| Desktop/Tauri/Cargo | `0.2.3` |
+| Extension display version | `0.2.3_naughty` |
+| Extension install version | `0.2.3` |
+| Bundled Node.js | `22.14.0` |
+| Bundled mitmproxy | `12.2.3` |
+
+After changing `version.json`, run the synchronizer and consistency check from either `engine/` or `desktop/`:
+
+```bash
+npm run sync:versions
+npm run check:versions
+```
+
+The synchronizer updates the engine and desktop package metadata, lockfiles, CLI constant, Cargo and Tauri versions, extension manifest, bundle runtime pins, settings display, schema filename, and schema references. Do not edit those generated version fields independently.
+
+Chrome requires a numeric extension version, so `0.2.3_naughty` becomes `version: "0.2.3"` with `version_name: "0.2.3_naughty"`. Dependency versions remain managed by package manifests and lockfiles.
 
 ---
 
 ## Pull Request Workflow
 
-### 1. Create a Branch
+### 1. Create a Focused Branch
+
+The repository integrates work through `staging` before `main`. Start from the current remote staging branch:
 
 ```bash
-git checkout -b feature/my-feature staging
+git fetch origin
+git switch --create feature/my-feature origin/staging
 ```
 
-Branch naming:
-- `feature/description` — new features
-- `fix/description` — bug fixes
-- `docs/description` — documentation changes
+Use a descriptive prefix such as `feature/`, `fix/`, or `docs/`.
 
-### 2. Make Changes
+### 2. Make Focused Changes
 
-- Follow the coding standards above
-- Add tests for new functionality
-- Update documentation if behavior changes
+- Follow the component boundaries and coding standards above.
+- Add or update tests for behavior changes.
+- Update documentation when commands, requirements, security boundaries, or user workflows change.
+- Avoid committing generated build outputs or staged runtime resources.
 
 ### 3. Verify Locally
 
-```bash
-# Engine
-cd engine && go test ./...
+Run the narrowest relevant checks first, then the broader component checks. Include native and manual browser validation when automated tests cannot exercise the changed path.
 
-# Desktop
-cd desktop && npm run lint
+### 4. Commit Clearly
 
-# Full smoke test
-.\test\smoke_test.ps1
-```
+Use a short imperative subject that describes the change. Add a concise body only when it explains useful context, constraints, or migration details that the subject cannot capture.
 
-### 4. Commit
+### 5. Open the Pull Request
 
-Write clear, concise commit messages:
+Target `staging` and include:
 
-```
-feat: add cassette replay for third-party APIs
-
-- Implement mitmproxy cassette mode for HTTP replay
-- Add canonical body fingerprint matching
-- Block outbound requests during replay
-
-Closes #42
-```
-
-### 5. Open a PR
-
-Target the `staging` branch. Include:
-
-- Description of changes
-- Related issue number
-- Screenshots (for UI changes)
-- Test results
-
-### 6. Review & Merge
-
-- At least 1 approval required
-- All CI checks must pass
-- Squash merge to keep history clean
-
----
-
-## Architectural Decisions
-
-All architectural decisions are recorded in `DECISIONS.md` files:
-
-- `agent/implement-p0/core-engine-abim/DECISIONS.md` — Engine decisions
-- `agent/implement-p0/desktop-abim/DECISIONS.md` — Desktop decisions
-- `agent/implement-integration+bundling/DECISIONS.md` — Integration decisions
-
-If you make an architectural decision, document it in the appropriate file following the format in `Instruction.md`.
-
----
+- a concise description of the behavior changed;
+- the related issue, when applicable;
+- screenshots for visible desktop or documentation changes;
+- the exact validation commands and manual checks performed;
+- known platform-specific limitations.
 
 ## Reporting Issues
 
-Found a bug or have a feature request? Open an issue on [GitHub Issues](https://github.com/Slaviors-Group/dawg/issues).
+Open an issue on [GitHub Issues](https://github.com/Slaviors-Group/dawg/issues) and include:
 
-Include:
+- reproduction steps and target URL shape without secrets;
+- expected and actual behavior;
+- operating system and browser version;
+- `dawg doctor` output;
+- relevant desktop/engine logs;
+- whether the artifact was captured, imported, or pulled.
 
-- Steps to reproduce (for bugs)
-- Expected vs actual behavior
-- Environment details (OS, Go version, Node version)
-- DAWG version (`dawg doctor` output)
-
----
+Do not attach an artifact until you have inspected it for sensitive data. Sanitization reduces exposure but is not a confidentiality guarantee.
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the Apache-2.0 License.
+By contributing, you agree that your contribution is licensed under the repository's [GNU General Public License v3.0](https://github.com/Slaviors-Group/dawg/blob/main/LICENSE).

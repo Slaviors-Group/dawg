@@ -1,216 +1,212 @@
 # Sanitizer Policy
 
-DAWG's sanitizer removes sensitive data from captured artifacts before export. It uses a deny-by-default approach powered by Open Policy Agent (OPA) Rego policies.
+DAWG `0.2.3-naughty` sanitizes supported capture streams before packaging and then evaluates an Open Policy Agent (OPA) allow decision. Detection is heuristic: sanitization reduces exposure, but it is not a confidentiality or no-leak guarantee.
 
-## How It Works
+## Processing Flow
 
-```
-Capture Output ──▶ Rule Engine ──▶ OPA Policy Gate ──▶ Sanitized Artifact
-                    (field-name     (deny-by-default)    (safe to export)
-                     matching +
-                     regex)
-```
-
-**Core principle:** If the sanitizer can't identify a field as public, it redacts it. Export is blocked (not warned) if the OPA policy fails.
-
----
-
-## Detection Layers
-
-### 1. Field-Name Matching
-
-Matches field names against known patterns:
-
-```yaml
-# Patterns that trigger redaction
-password
-*.password
-secret
-*.secret
-token
-*.token
-authorization
-*.authorization
-cookie
-*.cookie
-session_id
-*.session_id
-api_key
-*.api_key
-credit_card
-*.credit_card
+```mermaid
+flowchart LR
+    A[Supported JSONL] --> B[Parse each record]
+    B --> C[Classify field paths and values]
+    C --> D[Redact or synthesize]
+    D --> E[Write through temporary file]
+    E --> F[Evaluate OPA allow]
+    F --> G[Write sanitize report]
+    G --> H[Allow or block packaging]
 ```
 
-### 2. Regex Patterns
+The sanitizer processes these files when they exist:
 
-Detects sensitive data by content pattern:
+- `http/frontend.jsonl`
+- `http/backend.jsonl`
+- `db/diff.jsonl`
+- `logs/structured.jsonl`
+- `traces/rrweb.jsonl`
+- `actions/browser.jsonl`
+- `cassettes/thirdparty.jsonl`
 
-| Pattern | Type | Example |
-|---|---|---|
-| `\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b` | Credit card | `4111 1111 1111 1111` |
-| `eyJ[A-Za-z0-9-_]+\.eyJ[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+` | JWT | `eyJhbGci...` |
-| `[A-Za-z0-9]{32,}` | Generic secret | Long alphanumeric strings |
-| `\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z\|a-z]{2,}\b` | Email | `user@example.com` |
+Other file formats are not sanitized by this pass. Each supported file is replaced only after its complete temporary output succeeds. Invalid JSONL aborts sanitization and leaves the original file intact.
 
-### 3. Gitleaks Patterns
+## Detection Rules
 
-Reuses Gitleaks' battle-tested secret detection rules:
+The rule engine recursively inspects JSON field paths and string values. It uses its own fixed heuristics rather than an external secret-scanning rule set, and it does not redact every unmatched field.
 
-- AWS access keys
-- GitHub/GitLab tokens
-- Slack webhooks
-- Private keys (PEM format)
-- API keys for common services
+### Sensitive Field Paths
 
-### 4. Format-Preserving Faker
+A field is treated as sensitive when its normalized path contains one of these substrings:
 
-When a field is redacted, DAWG replaces it with synthetic data that maintains the same format:
+- credentials and sessions: `password`, `authorization`, `cookie`, `token`, `secret`, `api_key`, `api-key`, `apikey`, `session`
+- identity: `ssn`, `social_security`, `passport`, `national_id`, `tax_id`
+- personal data: `date_of_birth`, `birthdate`, `address`
 
-| Original | Replacement | Format preserved |
-|---|---|---|
-| `john@example.com` | `uq4k7m@x8v2j.io` | Yes (valid email) |
-| `555-123-4567` | `555-987-6543` | Yes (valid phone) |
-| `John Smith` | `Alex Johnson` | Yes (valid name) |
-| `4111-1111-1111-1111` | `5555-4444-3333-2222` | Yes (valid card format) |
+Email, phone, card, and name handling also uses field paths:
 
-This ensures replay validation still passes with synthetic data.
+- email paths or anchored email values
+- `phone` or `mobile` paths, or anchored phone values
+- `card` or `credit` paths, or anchored payment-card values
+- any non-structural path containing `name`
 
----
+### Sensitive Values
+
+String values are recognized as secrets when they match:
+
+- the `Bearer ` prefix
+- a JWT-like three-segment value
+- an AWS access key ID
+- a GCP API key
+- a GitHub token
+- a generic private-key header
+- a Slack token
+
+Email, phone, and card values have separate anchored patterns. There is no generic rule that treats every long alphanumeric string as a secret.
+
+### Context and Structural Exceptions
+
+To avoid corrupting rrweb structure, these path suffixes are preserved:
+
+- `tagName`
+- `nodeName`
+- `localName`
+- `fieldName`
+- `inputType`
+- `selector`
+
+The sanitizer also preserves doctype `name` and SVG `viewBox` and `points` values.
+
+For an action field named `value`, the associated `selector`, `fieldName`, and `inputType` are added to the classification context. This allows values from password-like action targets to be detected even though the generic structural keys remain unchanged.
+
+A string-valued `body` field is recursively sanitized only when its contents parse as JSON. Non-JSON body strings receive ordinary field/value classification rather than recursive parsing.
+
+## Replacement Behavior
+
+| Category | Replacement |
+|---|---|
+| Email | `user_<8 lowercase hex>@example.com` |
+| Phone | `+1555` followed by 7 deterministic digits |
+| Name | `User <8 uppercase hex>` |
+| Secrets, cards, and other sensitive values | `[REDACTED]` |
+
+Email, phone, and name replacements are deterministic SHA-256-derived values based on the category and original value. The same category and input produce the same replacement. Payment-card data is not format-preserving.
+
+Only email, phone, and name classifications produce synthetic values. Deterministic replacement can preserve some application behavior, but it does not guarantee that every application-specific validation rule will accept the result.
 
 ## OPA Policy Gate
 
-The OPA policy is the **hard gate** for export. It evaluates the entire sanitized output and determines whether the artifact is safe to export.
-
-### Default Policy (`default.rego`)
+The engine evaluates exactly this decision:
 
 ```text
-package dawg.sanitize
-
-default allow = false
-
-# Allow export if no unredacted secrets remain
-allow {
-    count(secrets) == 0
-}
-
-# Allow export if all secrets were redacted
-allow {
-    count(unredacted_secrets) == 0
-}
-
-secrets[field] {
-    field := input.captured_data[_]
-    is_secret(field)
-}
-
-unredacted_secrets[field] {
-    field := secrets[field]
-    not field.redacted
-}
+data.dawg.sanitizer.allow
 ```
 
-### Policy Behavior
+A custom policy must therefore declare this package:
 
-| Condition | Result |
-|---|---|
-| No secrets detected | ✅ Export allowed |
-| All secrets redacted | ✅ Export allowed |
-| Any secret unredacted | ❌ **Export blocked** |
-| Policy file missing | ❌ **Export blocked** |
+```text
+package dawg.sanitizer
+```
 
-### Policy Presets
-
-The Desktop UI provides preset policies:
-
-| Preset | Strictness | Use case |
-|---|---|---|
-| **Default** | Standard | General web-app debugging |
-| **Strict** | Maximum | Security-sensitive environments |
-| **Minimal** | Low | Internal/trusted networks only |
-
----
-
-## Sanitization Report
-
-Every sanitized artifact includes a `sanitize-report.json`:
+OPA does not receive the complete sanitized capture. Its input is limited to:
 
 ```json
 {
-  "policyVersion": "1.2.0",
-  "fieldsRedacted": 14,
-  "fieldsSynthetic": 8,
-  "secretsDetected": 3,
-  "secretsRedacted": 3,
-  "reviewedBy": "auto",
-  "timestamp": "2026-09-06T12:00:00Z",
-  "redactions": [
-    {
-      "path": "http_pairs[3].request.headers.authorization",
-      "type": "secret",
-      "action": "redacted",
-      "replacement": "[REDACTED]"
-    },
-    {
-      "path": "db_diff[0].rows[2].email",
-      "type": "pii",
-      "action": "synthetic",
-      "replacement": "uq4k7m@x8v2j.io"
-    }
-  ]
+  "fieldsRedacted": 0,
+  "blockedFields": []
 }
 ```
 
----
+`fieldsRedacted` is the number of redacted or synthesized fields. `blockedFields` is passed to the report and policy, but the current heuristic scanner initializes it empty and does not add residual or unrecognized sensitive fields.
 
-## Custom Policies
+### Bundled Default Policy
 
-### Writing Custom Rego Policies
-
-Create a `.rego` file in your project:
+`schema/policies/default.rego` contains:
 
 ```text
-package dawg.sanitize
+package dawg.sanitizer
 
-default allow = false
+import rego.v1
 
-# Your custom rules here
-allow {
-    # Allow if all PII fields are redacted
-    count(input.unredacted_pii) == 0
-}
+default allow := false
 
-# Block export of specific fields
-deny {
-    field := input.captured_data[_]
-    field.path == "payment.card_number"
+allow if {
+  input.fieldsRedacted >= 0
+  count(input.blockedFields) == 0
 }
 ```
 
-### Applying Custom Policies
+With the current input construction, this policy allows every successfully completed sanitization pass. It does not independently scan output for remaining secrets.
 
-```yaml
-# dawg.config.yaml
-sanitize:
-  policy: ./my-custom-policy.rego
-  deny_unmatched: true
+A missing or invalid policy fails before the report is written. An explicit policy denial writes a report with `exportAllowed: false` and blocks packaging.
+
+::: warning Generated policy
+`dawg init` writes a separate state policy containing `default allow = true`. The current CLI does not load `dawg.config.yaml`; select a custom policy for capture with `dawg capture --policy-file <file>`.
+:::
+
+### Custom Policy Example
+
+Because policy input contains only a count and a blocked-field list, custom decisions must be written against those values:
+
+```text
+package dawg.sanitizer
+
+import rego.v1
+
+default allow := false
+
+allow if {
+  input.fieldsRedacted <= 100
+  count(input.blockedFields) == 0
+}
 ```
 
----
+Apply it during capture:
 
-## Security Guarantees
+```bash
+dawg capture --url <http-or-https-url> --policy-file ./policy.rego
+```
 
-| Guarantee | Implementation |
-|---|---|
-| **No PII leaks** | Hard OPA gate blocks export if any field is unredacted |
-| **No secret leaks** | Gitleaks patterns + field-name matching + OPA policy |
-| **Audit trail** | `sanitize-report.json` logs every redaction |
-| **Deterministic** | Same input produces same redaction (reproducible) |
-| **Versioned policies** | Policy version tracked in manifest for reproducibility |
+This example limits the number of changed fields; it cannot inspect their original or sanitized values.
 
----
+## Sanitization Report
 
-## Known Limitations
+A completed pass writes `sanitize-report.json`. Capture currently records policy version `1.0.0`.
 
-- **Rule-based detection is not 100%** — novel PII patterns may be missed. Mitigation: `deny_unmatched: true` redacts unknown fields.
-- **ORM-tap blind spot** — raw SQL queries outside the ORM are not captured. Planned upgrade: Debezium CDC (P1).
-- **Format preservation** — some synthetic replacements may break strict validation. Manual review recommended for critical fields.
+```json
+{
+  "policyVersion": "1.0.0",
+  "policyFile": "/path/to/default.rego",
+  "opaResult": "allow",
+  "fieldsScanned": 42,
+  "fieldsRedacted": 1,
+  "redactions": [
+    {
+      "file": "actions/browser.jsonl",
+      "line": 1,
+      "field": "value",
+      "reason": "secret:token",
+      "action": "redacted"
+    }
+  ],
+  "blockedFields": [],
+  "exportAllowed": true
+}
+```
+
+A synthetic redaction entry additionally includes `syntheticValue`. The report does not contain aggregate `fieldsSynthetic` or `secretsDetected` fields, reviewer metadata, or a timestamp.
+
+Packaging requires both `meta.json` and a sanitization report whose `exportAllowed` value is true.
+
+## Unsafe Localhost Bypass
+
+`--unsafe-skip-sanitize` is accepted only when capturing a localhost target. It leaves captured content unchanged and writes an allowed report with `policyVersion` and `policyFile` set to `skipped`, while `opaResult` remains `allow`.
+
+Use this option only for controlled local data. The resulting artifact can contain credentials, personal data, and any other values present in the capture.
+
+## Security Boundaries
+
+- Detection depends on the documented field substrings and value patterns; novel names and formats can pass unchanged.
+- OPA sees counters and blocked-field names, not captured records or residual values.
+- `blockedFields` does not currently represent heuristic misses.
+- String bodies that are not valid JSON are not recursively inspected as structured payloads.
+- rrweb input masking does not protect values copied into the separate browser action stream; that stream relies on sanitizer detection.
+- A successful default policy decision means the configured sanitization pass completed and was allowed. It does not prove that the artifact contains no PII or secrets.
+
+Review capture sources and sanitized artifacts according to your organization's data-handling requirements before sharing or pushing them to a registry.

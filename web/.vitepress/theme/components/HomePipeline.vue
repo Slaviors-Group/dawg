@@ -7,33 +7,33 @@ const features = [
   // Two large features for the top row
   {
     size: 'large',
-    title: 'Capture every glitch as it happens',
-    desc: 'One command opens a real browser and starts recording DOM mutations, network traffic, DB diffs, and structured logs — everything that leads to the bug.',
+    title: 'Capture from the browser you already use',
+    desc: 'The desktop app and Chromium extension record rrweb events, user actions, and frontend request metadata from the tab where the bug occurs.',
     placeholderType: 'window'
   },
   {
     size: 'large',
-    title: 'Sanitize before anything leaves your machine',
-    desc: 'PII and secrets are redacted locally with an OPA hard gate. If the policy fails, export is blocked outright — not just flagged.',
+    title: 'Sanitize before packaging',
+    desc: 'Built-in heuristics replace common PII and secrets, then an OPA policy gates the sanitized capture before DAWG creates the artifact.',
     placeholderType: 'code'
   },
   // Three small features for the bottom row
   {
     size: 'small',
-    title: 'Replay it anywhere',
-    desc: 'Time frozen, random seeded, network served from cassettes. Reproduces on any machine.',
+    title: 'Replay with recorded context',
+    desc: 'Render the captured rrweb timeline in Chromium and inspect replay diagnostics without needing the original application.',
     placeholderType: 'chart'
   },
   {
     size: 'small',
-    title: 'Seamless Integrations',
-    desc: 'Easily connect with your CI/CD pipelines, issue trackers, and team workflows.',
+    title: 'Persistent Artifact Catalog',
+    desc: 'Keep captured, imported, and discovered legacy artifacts available across desktop restarts.',
     placeholderType: 'network'
   },
   {
     size: 'small',
-    title: 'Portable Artifacts',
-    desc: 'Packaged into standard OCI artifacts, you can store and share them like Docker images.',
+    title: 'Portable .dawg Archives',
+    desc: 'Export validated OCI layouts as .dawg files, import them safely, or exchange artifacts through an OCI registry.',
     placeholderType: 'devices'
   }
 ]

@@ -9,9 +9,9 @@ const { isRevealed, sectionRef } = useScrollReveal()
     <div class="dh-inner">
       <div class="dh-final-box">
         <div class="dh-final-content">
-          <h2 class="dh-final-title">Take Control of Your<br/>Policies Today</h2>
-          <p class="dh-final-desc">Grab the desktop bundle or the CLI, capture once, and ship the fix with proof it's actually fixed.</p>
-          <a class="dh-cta dh-cta-lg dh-cta-dark" href="/docs/installation">Get started Now &rarr;</a>
+          <h2 class="dh-final-title">Capture Once.<br/>Investigate With Context.</h2>
+          <p class="dh-final-desc">Install the desktop bundle and extension, capture the failing session, then replay or share the validated artifact.</p>
+          <a class="dh-cta dh-cta-lg dh-cta-dark" href="/docs/installation">Get Started &rarr;</a>
         </div>
         <div class="dh-final-graphic">
           <div class="dh-graphic-circles">
