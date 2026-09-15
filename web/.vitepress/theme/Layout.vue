@@ -10,6 +10,7 @@ import HomeCodeCli from './components/HomeCodeCli.vue'
 import HomeResources from './components/HomeResources.vue'
 import HomeFinalCta from './components/HomeFinalCta.vue'
 import HomeFooter from './components/HomeFooter.vue'
+import MobileNavMenu from './components/MobileNavMenu.vue'
 import NotFound from './components/NotFound.vue'
 
 const { Layout: DefaultLayout } = DefaultTheme
@@ -32,6 +33,10 @@ const isNotFound = computed(() => page.value.isNotFound)
       </div>
     </template>
     
+    <template #nav-screen-content-before>
+      <MobileNavMenu />
+    </template>
+
     <template #not-found>
       <div class="dawg-home">
         <NotFound />
@@ -47,6 +52,10 @@ const isNotFound = computed(() => page.value.isNotFound)
 <style>
 /* Home takes over chrome from the default theme */
 .dh-home-root .VPFooter { display: none !important; }
+
+/* The alpha VitePress theme opens an empty drawer for this navigation config.
+   Our explicit mobile menu above supplies its links instead. */
+.VPNavScreen .VPNavMenu { display: none; }
 .dh-home-root .VPContent { padding-top: 0 !important; }
 .dh-home-root .VPContent.has-sidebar { padding-top: 0 !important; }
 /* VitePress's default .VPHome adds a 6-8rem bottom margin, which left a slab
