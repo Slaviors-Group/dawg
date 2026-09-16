@@ -61,6 +61,7 @@ rm -f \
 echo -e "\n[1/7] Compiling DAWG Go Engine for Linux..."
 cd "${ENGINE_DIR}"
 ENGINE_BIN="${BINARIES_DIR}/dawg"
+
 # A CGO-free PIE stays self-contained, while exposing the ELF interpreter and
 # dynamic table that linuxdeploy expects. A plain static executable makes
 # linuxdeploy treat ldd's expected non-zero result as fatal; Fedora's CGO PIE,
@@ -171,6 +172,16 @@ export PLAYWRIGHT_BROWSERS_PATH="${BROWSERS_TARGET_DIR}"
 "${ENGINE_BIN}" doctor
 
 if [ "${SKIP_TAURI}" = false ]; then
+  echo -e "\nProvisioning desktop build dependencies..."
+  if [ "${SKIP_DOWNLOAD}" = true ]; then
+    if ! npm --prefix "${DESKTOP_DIR}" ls --depth=0 >/dev/null 2>&1; then
+      echo "  Desktop Node dependencies are missing or stale; rerun without --skip-download." >&2
+      exit 1
+    fi
+  else
+    npm --prefix "${DESKTOP_DIR}" ci --no-audit --no-fund
+  fi
+
   echo -e "\nBuilding Tauri Linux AppImage..."
   cd "${DESKTOP_DIR}"
   # Recreate generated resource staging so removed files cannot remain in the
