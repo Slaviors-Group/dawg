@@ -9,32 +9,37 @@ const features = [
     size: 'large',
     title: 'Capture from the browser you already use',
     desc: 'The desktop app and Chromium extension record rrweb events, user actions, and frontend request metadata from the tab where the bug occurs.',
-    placeholderType: 'window'
+    placeholderType: 'window',
+    image: '/assets/images/capture-browser.png'
   },
   {
     size: 'large',
     title: 'Sanitize before packaging',
     desc: 'Built-in heuristics replace common PII and secrets, then an OPA policy gates the sanitized capture before DAWG creates the artifact.',
-    placeholderType: 'code'
+    placeholderType: 'code',
+    image: '/assets/images/sanitize-before-packaging.png'
   },
   // Three small features for the bottom row
   {
     size: 'small',
     title: 'Replay with recorded context',
     desc: 'Render the captured rrweb timeline in Chromium and inspect replay diagnostics without needing the original application.',
-    placeholderType: 'chart'
+    placeholderType: 'chart',
+    image: '/assets/images/replay-recorded-context.png'
   },
   {
     size: 'small',
     title: 'Persistent Artifact Catalog',
     desc: 'Keep captured, imported, and discovered legacy artifacts available across desktop restarts.',
-    placeholderType: 'network'
+    placeholderType: 'network',
+    image: '/assets/images/persistent-artifact-catalog.png'
   },
   {
     size: 'small',
     title: 'Portable .dawg Archives',
     desc: 'Export validated OCI layouts as .dawg files, import them safely, or exchange artifacts through an OCI registry.',
-    placeholderType: 'devices'
+    placeholderType: 'devices',
+    image: '/assets/images/portable-dawg-archives.png'
   }
 ]
 </script>
@@ -63,7 +68,9 @@ const features = [
                  <div class="dh-mock-dot"></div>
                  <div class="dh-mock-dot"></div>
                </div>
-               <div class="dh-mock-body"></div>
+               <div class="dh-mock-body" :class="{ 'dh-mock-body--img': p.image }">
+                 <img v-if="p.image" :src="p.image" :alt="p.title" />
+               </div>
              </div>
           </div>
           
@@ -196,7 +203,11 @@ const features = [
   gap: 6px;
   background: rgba(0,0,0,0.02);
 }
-.dh-mock-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--color-border); }
+.dh-mock-dot { width: 10px; height: 10px; border-radius: 50%; }
+/* macOS traffic-light colors */
+.dh-mock-dot:nth-child(1) { background: #ff5f57; }
+.dh-mock-dot:nth-child(2) { background: #febc2e; }
+.dh-mock-dot:nth-child(3) { background: #28c840; }
 
 .dh-mock-body {
   flex: 1;
@@ -209,5 +220,23 @@ const features = [
     var(--color-border-subtle) 17px
   );
   opacity: 0.5;
+}
+
+/* When a card provides a real screenshot, fill the body instead of showing stripes */
+.dh-mock-body--img {
+  padding: 0;
+  background: none;
+  opacity: 1;
+  overflow: hidden;
+}
+.dh-mock-body--img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  /* Deter right-click menu, drag-to-new-tab, and selection */
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
 }
 </style>

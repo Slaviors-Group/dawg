@@ -3,24 +3,31 @@ import { useScrollReveal } from '../composables/useScrollReveal'
 // Technologies positioned on three concentric half-circle orbits
 // Each entry: { name, logo (SVG URL from CDN), orbit (1=inner, 2=mid, 3=outer), angleDeg }
 // angleDeg: 0 = left horizontal, 90 = top, 180 = right horizontal
+// Tiers: orbit 1 = programming languages, orbit 2 = frameworks & tools, orbit 3 = infra & standards
 
 const orbitTechs = [
-  // Inner orbit (orbit 1) — 3 items
-  { name: 'Docker',     logo: 'https://cdn.simpleicons.org/docker',         orbit: 1, angle: 60 },
-  { name: 'React',      logo: 'https://cdn.simpleicons.org/react',          orbit: 1, angle: 90 },
-  { name: 'OPA',        logo: 'https://cdn.simpleicons.org/openapiinitiative', orbit: 1, angle: 165 },
+  // Inner orbit (orbit 1) — programming languages (5 items, aligned to the 30° grid)
+  { name: 'Go',         logo: 'https://cdn.simpleicons.org/go',             orbit: 1, angle: 30 },
+  { name: 'Rust',       logo: 'https://cdn.simpleicons.org/rust',           orbit: 1, angle: 60 },
+  { name: 'TypeScript', logo: 'https://cdn.simpleicons.org/typescript',     orbit: 1, angle: 90 },
+  { name: 'JavaScript', logo: 'https://cdn.simpleicons.org/javascript',     orbit: 1, angle: 120 },
+  { name: 'Python',     logo: 'https://cdn.simpleicons.org/python',         orbit: 1, angle: 150 },
 
-  // Middle orbit (orbit 2) — 4 items
-  { name: 'Go',         logo: 'https://cdn.simpleicons.org/go',             orbit: 2, angle: 45 },
-  { name: 'Playwright', logo: 'https://iconlogovector.com/uploads/images/2024/12/lg-676c8ff26c74d-Playwright.webp', orbit: 2, angle: 75 },
-  { name: 'Tauri',      logo: 'https://cdn.simpleicons.org/tauri',          orbit: 2, angle: 105 },
-  { name: 'mitmproxy',  logo: 'https://avatars.githubusercontent.com/u/4652787?s=280&v=4', orbit: 2, angle: 135 },
+  // Middle orbit (orbit 2) — infra, capture & policy (5 items, randomized angles)
+  { name: 'OCI',        logo: 'https://cdn.simpleicons.org/opencontainersinitiative', orbit: 2, angle: 18 },
+  { name: 'ORAS',       logo: 'https://cdn.simpleicons.org/cncf',           orbit: 2, angle: 52 },
+  { name: 'rrweb',      logo: 'https://raw.githubusercontent.com/rrweb-io/rrweb/refs/heads/main/packages/web-extension/src/public/icon128.png', orbit: 2, angle: 84 },
+  { name: 'mitmproxy',  logo: 'https://avatars.githubusercontent.com/u/4652787?s=280&v=4', orbit: 2, angle: 123 },
+  { name: 'OPA',        logo: 'https://cdn.simpleicons.org/openapiinitiative', orbit: 2, angle: 161 },
 
-  // Outer orbit (orbit 3) — 4 items
-  { name: 'rrweb',      logo: 'https://raw.githubusercontent.com/rrweb-io/rrweb/refs/heads/main/packages/web-extension/src/public/icon128.png', orbit: 3, angle: 12 },
-  { name: 'OCI',        logo: 'https://cdn.simpleicons.org/opencontainersinitiative', orbit: 3, angle: 65 },
-  { name: 'ORAS',       logo: 'https://cdn.simpleicons.org/cncf',           orbit: 3, angle: 100 },
-  { name: 'GitHub',     logo: 'https://cdn.simpleicons.org/github',         orbit: 3, angle: 150 },
+  // Outer orbit (orbit 3) — frameworks & distribution (7 items, randomized angles)
+  { name: 'React',            logo: 'https://cdn.simpleicons.org/react',          orbit: 3, angle: 16 },
+  { name: 'Tauri',            logo: 'https://cdn.simpleicons.org/tauri',          orbit: 3, angle: 41 },
+  { name: 'VitePress',        logo: 'https://vitepress.dev/vitepress-logo-large.svg', orbit: 3, angle: 63 },
+  { name: 'Playwright',       logo: 'https://iconlogovector.com/uploads/images/2024/12/lg-676c8ff26c74d-Playwright.webp', orbit: 3, angle: 87 },
+  { name: 'Chromium',         logo: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/Chromium_Logo.svg/3840px-Chromium_Logo.svg.png', orbit: 3, angle: 111 },
+  { name: 'GitHub',           logo: 'https://cdn.simpleicons.org/github',         orbit: 3, angle: 164 },
+  { name: 'Chrome Web Store', logo: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/Google_Chrome_Web_Store_icon_2022.svg/1280px-Google_Chrome_Web_Store_icon_2022.svg.png', orbit: 3, angle: 139 },
 ]
 
 // Orbit radii as % of container width (half-circle, rendered as SVG arcs)
@@ -191,6 +198,14 @@ const { isRevealed, sectionRef } = useScrollReveal()
 
 .dh-orbit-chip-bg {
   filter: drop-shadow(0 2px 8px rgba(0,0,0,0.08));
+}
+
+/* Orbit + center logos: deter right-click, drag-to-new-tab, and selection */
+.dh-orbit-node image,
+.dh-center-node {
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
 .dh-orbit-label {
