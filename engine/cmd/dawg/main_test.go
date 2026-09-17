@@ -187,7 +187,7 @@ func TestInspectReturnsValidatedManifestJSON(t *testing.T) {
 	if err := json.Unmarshal(buffer.Bytes(), &value); err != nil {
 		t.Fatalf("decode inspect output: %v", err)
 	}
-	if value["schemaVersion"] != "0.2.3-naughty" || value["title"] == "" {
+	if value["schemaVersion"] != "0.2.5-naughty" || value["title"] == "" {
 		t.Fatalf("unexpected inspect output: %#v", value)
 	}
 }

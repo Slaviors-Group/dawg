@@ -55,7 +55,7 @@
 
 body {
   width: 340px;
-  padding: 12px;
+  padding: 1px;
   background: var(--canvas);
   color: var(--text-primary);
   font-family: "Outfit", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
@@ -69,7 +69,7 @@ body {
   padding: 16px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 18px;
   box-shadow: var(--shadow-card);
 }
 

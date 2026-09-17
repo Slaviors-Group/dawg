@@ -7,9 +7,9 @@ session as an OCI Image Layout, and replays its rrweb DOM trace in Chromium. The
 repository contains a Go CLI, a Tauri desktop application, and a Chromium
 Manifest V3 extension.
 
-> **Current prerelease:** [`0.2.3-naughty`](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-2)
+> **Current prerelease:** [`0.2.5-naughty`](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-2)
 >
-> Application and schema: `0.2.3-naughty` · Desktop: `0.2.3` · Extension: `0.2.3_naughty`
+> Application and schema: `0.2.5-naughty` · Desktop: `0.2.3` · Extension: `0.2.3_naughty`
 
 ## 📦 Install the Current Release
 
@@ -216,7 +216,7 @@ Node.js, and mitmproxy versions.
 
 ```json
 {
-  "appVersion": "0.2.3-naughty",
+  "appVersion": "0.2.5-naughty",
   "desktopVersion": "0.2.3",
   "extensionVersion": "0.2.3_naughty",
   "runtime": {

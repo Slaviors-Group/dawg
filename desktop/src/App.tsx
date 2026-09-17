@@ -1,5 +1,6 @@
 import {
   ArrowCounterClockwise,
+  Browser,
   GearSix,
   GitDiff,
   GithubLogo,
@@ -8,6 +9,7 @@ import {
   SquaresFour,
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "framer-motion";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useState } from "react";
 
 import { CaptureControls } from "./components/CaptureControls";
@@ -28,6 +30,9 @@ import "./App.css";
 
 type Tab = "dashboard" | "capture" | "replay" | "diff" | "policy";
 
+const CHROME_WEB_STORE_EXTENSION_URL =
+  "https://chromewebstore.google.com/detail/peiigoeakholhhbbbbfkeojomekmmokj?utm_source=item-share-cb";
+
 const NAV_ITEMS: {
   id: Tab;
   label: string;
@@ -45,7 +50,15 @@ function ShellContent() {
   const [replayArtifactPath, setReplayArtifactPath] = useState<string | undefined>();
   const [showDoctor, setShowDoctor] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const { engineStatus, isCheckingEngine, isCapturing } = useEngine();
+  const { engineStatus, isCheckingEngine, isCapturing, addLogLine } = useEngine();
+
+  const handleInstallWebExtension = async () => {
+    try {
+      await openUrl(CHROME_WEB_STORE_EXTENSION_URL);
+    } catch (error) {
+      addLogLine(`[ERROR] Could not open the DAWG Web Extension page: ${String(error)}`);
+    }
+  };
 
   return (
     <div className="flex h-screen bg-canvas overflow-hidden">
@@ -113,6 +126,14 @@ function ShellContent() {
             >
               <GearSix size={18} className="text-text-tertiary" />
               <span className="text-xs font-medium">Settings</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleInstallWebExtension()}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-surface-hover transition-colors duration-fast text-text-secondary"
+            >
+              <Browser size={18} className="text-text-tertiary" />
+              <span className="text-xs font-medium">Install DAWG Web Extension</span>
             </button>
           </div>
         </nav>
