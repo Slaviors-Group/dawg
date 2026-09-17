@@ -18,6 +18,7 @@ type EventPlayer struct {
 	ScriptPath    string
 	BrowsersDir   string
 	ChromiumPath  string
+	Interactive   bool
 	ReplayTimeout time.Duration
 }
 
@@ -54,13 +55,22 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 	traceInput := filepath.Join(sessionDirectory, "traces", "rrweb.jsonl")
 	screenshotOutput := filepath.Join(sessionDirectory, "outcome", "screenshot.png")
 
-	replayContext, cancel := context.WithTimeout(ctx, timeout)
+	replayContext := ctx
+	cancel := func() {}
+	if !player.Interactive {
+		replayContext, cancel = context.WithTimeout(ctx, timeout)
+	}
 	defer cancel()
 
-	cmd := exec.CommandContext(replayContext, nodeBinary, scriptPath,
+	arguments := []string{
+		scriptPath,
 		"--rrweb-input", traceInput,
 		"--screenshot-output", screenshotOutput,
-	)
+	}
+	if player.Interactive {
+		arguments = append(arguments, "--interactive")
+	}
+	cmd := exec.CommandContext(replayContext, nodeBinary, arguments...)
 	procutil.HideWindow(cmd)
 	if player.BrowsersDir != "" {
 		cmd.Env = append(os.Environ(), "PLAYWRIGHT_BROWSERS_PATH="+player.BrowsersDir)
@@ -96,8 +106,12 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 		return ReplayOutcome{Output: string(output)}, fmt.Errorf("replay: browser replay failed: %w\n%s", err, string(output))
 	}
 
+	screenshotPath := screenshotOutput
+	if player.Interactive {
+		screenshotPath = ""
+	}
 	return ReplayOutcome{
-		ScreenshotPath: screenshotOutput,
+		ScreenshotPath: screenshotPath,
 		Output:         string(output),
 	}, nil
 }

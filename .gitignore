@@ -17,4 +17,6 @@ __pycache__/
 test/
 .cache/
 resources/
+!desktop/src-tauri/resources/
+!desktop/src-tauri/resources/README.md
 commit-message.txt

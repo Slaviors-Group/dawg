@@ -19,7 +19,7 @@ import { NavItem } from "./components/ui/NavItem";
 import { SettingsPanel } from "./components/ui/SettingsPanel";
 
 import { ToastProvider } from "./components/ui/Toast";
-import { EngineProvider, useEngine } from "./context/EngineContext";
+import { type ArtifactItem, EngineProvider, useEngine } from "./context/EngineContext";
 import { MotionProvider } from "./context/MotionContext";
 import { ThemeProvider } from "./context/ThemeContext";
 
@@ -42,6 +42,7 @@ const NAV_ITEMS: {
 
 function ShellContent() {
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
+  const [replayArtifactPath, setReplayArtifactPath] = useState<string | undefined>();
   const [showDoctor, setShowDoctor] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const { engineStatus, isCheckingEngine, isCapturing } = useEngine();
@@ -169,9 +170,16 @@ function ShellContent() {
               transition={{ duration: 0.2, ease: "easeOut" }}
               className="min-h-full flex flex-col"
             >
-              {activeTab === "dashboard" && <Dashboard />}
+              {activeTab === "dashboard" && (
+                <Dashboard
+                  onReplayArtifact={(artifact: ArtifactItem) => {
+                    setReplayArtifactPath(artifact.path);
+                    setActiveTab("replay");
+                  }}
+                />
+              )}
               {activeTab === "capture" && <CaptureControls />}
-              {activeTab === "replay" && <ReplayViewer />}
+              {activeTab === "replay" && <ReplayViewer selectedArtifactPath={replayArtifactPath} />}
               {activeTab === "diff" && <DiffReport />}
               {activeTab === "policy" && <PolicyConfig />}
             </motion.div>

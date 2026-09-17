@@ -26,6 +26,14 @@ func TestRootCommandPrintsHelp(t *testing.T) {
 	}
 }
 
+func TestRunCommandRegistersInteractiveFlag(t *testing.T) {
+	command := newRunCommand()
+	flag := command.Flags().Lookup("interactive")
+	if flag == nil || flag.DefValue != "false" {
+		t.Fatalf("interactive flag was not registered correctly: %#v", flag)
+	}
+}
+
 func TestRootCommandRejectsUnknownOutput(t *testing.T) {
 	command := newRootCommand()
 	command.SetArgs([]string{"--output", "xml"})

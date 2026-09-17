@@ -21,6 +21,7 @@ import (
 
 func newRunCommand() *cobra.Command {
 	var outputFormat string
+	var interactive bool
 	command := &cobra.Command{
 		Use:   "run <artifact-directory>",
 		Short: "Replay a captured DAWG artifact",
@@ -35,7 +36,7 @@ func newRunCommand() *cobra.Command {
 			}
 			defer os.RemoveAll(tmpDir)
 
-			out, err := ExecuteReplay(ctx, layoutDir, tmpDir)
+			out, err := ExecuteReplay(ctx, layoutDir, tmpDir, interactive)
 			if err != nil {
 				return err
 			}
@@ -43,6 +44,8 @@ func newRunCommand() *cobra.Command {
 			if outputFormat == "json" {
 				b, _ := json.MarshalIndent(out, "", "  ")
 				fmt.Fprintln(os.Stdout, string(b))
+			} else if interactive {
+				fmt.Println("Interactive replay closed.")
 			} else {
 				fmt.Printf("Replay completed successfully.\nFinal screenshot: %s\n", out.Outcomes.Screenshots[0])
 			}
@@ -51,11 +54,12 @@ func newRunCommand() *cobra.Command {
 		},
 	}
 	command.Flags().StringVar(&outputFormat, "output", "text", "Output format (text, json)")
+	command.Flags().BoolVar(&interactive, "interactive", false, "Keep the replay open with playback controls")
 	return command
 }
 
 // ExecuteReplay runs the replay pipeline for an artifact.
-func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string) (dawgtypes.ReplayOutput, error) {
+func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string, interactive bool) (dawgtypes.ReplayOutput, error) {
 	var out dawgtypes.ReplayOutput
 
 	if err := packager.Unpack(layoutDir, tmpDir); err != nil {
@@ -132,6 +136,7 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string) (dawgtypes.Rep
 		ScriptPath:   dawgenv.ResolveScript("replay-browser.cjs"),
 		BrowsersDir:  dawgenv.ResolveBrowsersDir(),
 		ChromiumPath: dawgenv.ResolveChromiumExecutable(),
+		Interactive:  interactive,
 	}
 
 	outcome, replayErr := player.Replay(ctx, tmpDir)

@@ -1,7 +1,21 @@
-import { Cube, Flask, Info, MagnifyingGlass, PlayCircle, StopCircle } from "@phosphor-icons/react";
+import {
+  Cube,
+  Export,
+  Flask,
+  Info,
+  MagnifyingGlass,
+  PlayCircle,
+  StopCircle,
+  UploadSimple,
+} from "@phosphor-icons/react";
 import type React from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useEngine } from "../context/EngineContext";
+import {
+  chooseArtifactArchive,
+  chooseArtifactExportPath,
+  defaultArtifactExportName,
+} from "../lib/artifactDialogs";
 import { engine } from "../lib/engine";
 import { LogStreamer } from "./LogStreamer";
 import { Button } from "./ui/Button";
@@ -14,13 +28,30 @@ import { Select } from "./ui/Select";
 // UI-only OS detection; the engine selects the actual replay mode.
 const isWindows = typeof navigator !== "undefined" && navigator.userAgent.includes("Windows");
 
-export const ReplayViewer: React.FC = () => {
-  const { artifacts, addLogLine } = useEngine();
+interface ReplayViewerProps {
+  selectedArtifactPath?: string;
+}
+
+export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath }) => {
+  const { artifacts, addLogLine, exportArtifact, importArtifact } = useEngine();
   const [selectedArtifact, setSelectedArtifact] = useState("");
   const [artifactSearch, setArtifactSearch] = useState("");
   const [originFilter, setOriginFilter] = useState("all");
   const [isReplaying, setIsReplaying] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  useEffect(() => {
+    if (selectedArtifactPath && artifacts.some((artifact) => artifact.path === selectedArtifactPath)) {
+      setSelectedArtifact(selectedArtifactPath);
+    }
+  }, [artifacts, selectedArtifactPath]);
+
+  const selectedArtifactItem = useMemo(
+    () => artifacts.find((artifact) => artifact.path === selectedArtifact),
+    [artifacts, selectedArtifact],
+  );
 
   const sandboxStatus = useMemo(() => {
     if (isWindows) {
@@ -48,6 +79,41 @@ export const ReplayViewer: React.FC = () => {
         .includes(query);
     });
   }, [artifactSearch, artifacts, originFilter]);
+
+  const handleImportArtifact = async () => {
+    if (isImporting) return;
+    const archive = await chooseArtifactArchive();
+    if (!archive) return;
+
+    setIsImporting(true);
+    try {
+      await importArtifact(archive);
+    } catch {
+      // EngineContext records the actionable error in the shared log stream.
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleExportArtifact = async () => {
+    if (!selectedArtifactItem || isExporting) return;
+    const output = await chooseArtifactExportPath(
+      defaultArtifactExportName(
+        selectedArtifactItem.title || selectedArtifactItem.id,
+        selectedArtifactItem.createdAt,
+      ),
+    );
+    if (!output) return;
+
+    setIsExporting(true);
+    try {
+      await exportArtifact(selectedArtifactItem, output);
+    } catch {
+      // EngineContext records the actionable error in the shared log stream.
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleRunReplay = async () => {
     if (!selectedArtifact || isReplaying) return;
@@ -143,6 +209,31 @@ export const ReplayViewer: React.FC = () => {
                 label: `${art.title || art.id}${art.targetUrl ? ` — ${art.targetUrl}` : ""} (${new Date(art.createdAt).toLocaleString()})`,
               }))}
             />
+
+            <div className="flex gap-2 shrink-0 w-full sm:w-auto">
+              <Button
+                type="button"
+                variant="secondary"
+                className="flex-1 sm:flex-none"
+                onClick={handleImportArtifact}
+                disabled={isReplaying}
+                loading={isImporting}
+                iconLeft={<UploadSimple size={16} />}
+              >
+                Import
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="flex-1 sm:flex-none"
+                onClick={handleExportArtifact}
+                disabled={!selectedArtifactItem || isReplaying}
+                loading={isExporting}
+                iconLeft={<Export size={16} />}
+              >
+                Export
+              </Button>
+            </div>
 
             <div className="shrink-0 w-full sm:w-32">
               {isReplaying ? (

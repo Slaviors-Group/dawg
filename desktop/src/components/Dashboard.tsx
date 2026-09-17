@@ -2,7 +2,7 @@ import { Archive, Cpu, Record, ShieldCheck, UploadSimple } from "@phosphor-icons
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
-import { useEngine } from "../context/EngineContext";
+import { type ArtifactItem, useEngine } from "../context/EngineContext";
 import { chooseArtifactArchive } from "../lib/artifactDialogs";
 import { ArtifactInspectorModal } from "./ArtifactInspectorModal";
 import { ArtifactList } from "./ArtifactList";
@@ -13,7 +13,11 @@ import { Button } from "./ui/Button";
 import { PageShell } from "./ui/PageShell";
 import { StatCard } from "./ui/StatCard";
 
-export const Dashboard: React.FC = () => {
+interface DashboardProps {
+  onReplayArtifact: (artifact: ArtifactItem) => void;
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ onReplayArtifact }) => {
   const {
     engineStatus,
     artifacts,
@@ -126,7 +130,7 @@ export const Dashboard: React.FC = () => {
               or use the Import button to choose a file
             </p>
           </div>
-          <ArtifactList />
+          <ArtifactList onReplayArtifact={onReplayArtifact} />
 
           <div className="mt-4">
             <h3 className="text-base font-bold text-text-primary mb-4">Engine Logs</h3>
