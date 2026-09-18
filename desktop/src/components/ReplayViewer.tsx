@@ -43,7 +43,10 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
-    if (selectedArtifactPath && artifacts.some((artifact) => artifact.path === selectedArtifactPath)) {
+    if (
+      selectedArtifactPath &&
+      artifacts.some((artifact) => artifact.path === selectedArtifactPath)
+    ) {
       setSelectedArtifact(selectedArtifactPath);
     }
   }, [artifacts, selectedArtifactPath]);

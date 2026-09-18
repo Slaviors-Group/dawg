@@ -49,7 +49,9 @@ class FakeWebSocket {
 }
 
 const runtimeMessages = new ChromeEvent();
+const actionClicked = new ChromeEvent();
 const tabMessages = [];
+const scriptExecutions = [];
 const stored = {};
 
 globalThis.__DAWG_TEST_MODE__ = true;
@@ -67,8 +69,7 @@ globalThis.chrome = {
   },
   scripting: {
     async executeScript({ target, files }) {
-      assert.equal(target.tabId, 7);
-      assert.deepEqual(files, ["lib/rrweb.min.js", "content/recorder.js"]);
+      scriptExecutions.push({ target, files });
     }
   },
   tabs: {
@@ -87,6 +88,7 @@ globalThis.chrome = {
     },
     onRemoved: new ChromeEvent()
   },
+  action: { onClicked: actionClicked },
   windows: { async update() {} },
   webRequest: {
     onBeforeRequest: new ChromeEvent(),
@@ -135,6 +137,13 @@ test("daemon starts and stops one target tab with an acknowledged drain", async 
   assert.equal(globalThis.__DAWG_EXTENSION_TEST__.publicState().recordingTabId, 7);
   assert.equal(socket.sent.find((item) => item.type === "DAWG_SESSION_START").sessionToken, "session-test");
   assert.ok(tabMessages.some(({ tabId, message }) => tabId === 7 && message.type === "START_RECORDING"));
+  assert.ok(
+    scriptExecutions.some(
+      ({ target, files }) =>
+        target.tabId === 7 &&
+        files.join(",") === "lib/rrweb.min.js,content/recorder.js"
+    )
+  );
 
   const runtimeListener = runtimeMessages.listeners[0];
   runtimeListener(
@@ -153,4 +162,17 @@ test("daemon starts and stops one target tab with an acknowledged drain", async 
   await waitFor(() => socket.sent.some((item) => item.type === "DAWG_SESSION_STOP"), "extension did not send the ordered stop marker");
   await waitFor(() => !globalThis.__DAWG_EXTENSION_TEST__.publicState().isRecording, "extension did not leave recording state");
   assert.ok(tabMessages.some(({ tabId, message }) => tabId === 7 && message.type === "STOP_RECORDING"));
+});
+
+test("toolbar action injects and toggles the in-page capture panel", async () => {
+  await actionClicked.listeners[0]({ id: 7 });
+
+  assert.ok(
+    scriptExecutions.some(
+      ({ target, files }) => target.tabId === 7 && files.join(",") === "content/popup-panel.js"
+    )
+  );
+  assert.ok(
+    tabMessages.some(({ tabId, message }) => tabId === 7 && message.type === "DAWG_TOGGLE_PANEL")
+  );
 });

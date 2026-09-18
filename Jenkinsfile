@@ -2,159 +2,142 @@ pipeline {
     agent any
 
     options {
-        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '2'))
+        disableConcurrentBuilds(abortPrevious: true)
+        skipDefaultCheckout(true)
         timestamps()
-        skipDefaultCheckout(false)
+        timeout(time: 150, unit: 'MINUTES')
     }
 
     environment {
-        BUILD_SERVER = '192.168.18.8'
-        BUILD_USER = 'root'
-        REMOTE_ROOT = '/opt/jenkins'
+        BUILD_HOST = 'x220-builder'
+        REMOTE_ROOT = '/home/dawg-builder/jenkins-workspaces/dawg'
+        DAWG_CI_NODE_VERSION = '24.18.0'
     }
 
     stages {
-        stage('Add Host Key') {
+        stage('Checkout') {
             steps {
-                sh '''
-                    set -e
-                    ssh-keyscan -H "${BUILD_SERVER}" >> ~/.ssh/known_hosts
-                '''
-            }
-        }
-        stage('Prepare remote workspace') {
-            steps {
-                sh '''
-                    set -e
-                    REMOTE_DIR="${REMOTE_ROOT}/dawg-${BUILD_TAG}"
-                    ssh -o BatchMode=yes "${BUILD_USER}@${BUILD_SERVER}" \
-                        "mkdir -p '${REMOTE_DIR}'"
-                    tar \
-                        --exclude='.git' \
-                        --exclude='node_modules' \
-                        --exclude='engine/node_modules' \
-                        --exclude='desktop/dist' \
-                        --exclude='desktop/src-tauri/target' \
-                        --exclude='.cache' \
-                        -czf - . |
-                        ssh -o BatchMode=yes "${BUILD_USER}@${BUILD_SERVER}" \
-                            "tar -xzf - -C '${REMOTE_DIR}'"
-                '''
+                checkout scm
+                script {
+                    env.GIT_SHA = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+                    def safeBuildTag = env.BUILD_TAG.replaceAll(/[^A-Za-z0-9_.-]/, '_')
+                    env.REMOTE_DIR = "${env.REMOTE_ROOT}/${safeBuildTag}"
+                }
             }
         }
 
-        stage('Remote validation') {
+        stage('Builder preflight') {
             steps {
                 sh '''
-                    set -e
-                    REMOTE_DIR="${REMOTE_ROOT}/dawg-${BUILD_TAG}"
-                    cargo_status=0
-                    ssh -o BatchMode=yes "${BUILD_USER}@${BUILD_SERVER}" \
-                        "source /root/.nvm/nvm.sh && \
-                         export PATH=/root/.nvm/versions/node/v26.5.0/bin:/usr/local/go/bin:/root/.cargo/bin:\$PATH && \
-                         export DAWG_CHROMIUM_EXECUTABLE_PATH=/root/.cache/ms-playwright/chromium-1193/chrome-linux/chrome && \
-                         cd '${REMOTE_DIR}/engine' && \
-                         go version && \
-                         node --version && \
-                         npm --version && \
-                         rustc --version && \
-                         cargo --version && \
-                         npm ci && \
-                         npm run check:versions && \
-                         node --check ../extension/background/service_worker.js && \
-                         node --check ../extension/content/recorder.js && \
-                         node --check ../extension/popup/popup.js && \
-                         node --test ../extension/tests/service_worker.test.cjs && \
-                         test -x /root/.cache/ms-playwright/chromium-1193/chrome-linux/chrome && \
-                         gofmt -l . > /tmp/dawg-gofmt-files && \
-                         test ! -s /tmp/dawg-gofmt-files && \
-                         go vet ./... && \
-                         go test ./... && \
-                         go build ./cmd/dawg"
-
-                    ssh -o BatchMode=yes "${BUILD_USER}@${BUILD_SERVER}" \
-                        "source /root/.nvm/nvm.sh && \
-                         export PATH=/root/.nvm/versions/node/v26.5.0/bin:/usr/local/go/bin:/root/.cargo/bin:\$PATH && \
-                         export DAWG_CHROMIUM_EXECUTABLE_PATH=/root/.cache/ms-playwright/chromium-1193/chrome-linux/chrome && \
-                         cd '${REMOTE_DIR}/desktop' && \
-                         npm ci && \
-                         npx --no-install biome check . && \
-                         npm run build && \
-                         chmod +x build-bundle.sh && \
-                         ./build-bundle.sh --skip-tauri"
-
-                    cargo_status=0
-                    ssh -o BatchMode=yes "${BUILD_USER}@${BUILD_SERVER}" \
-                        bash -s -- "${REMOTE_DIR}" <<'REMOTE_CARGO_SCRIPT' || cargo_status=$?
-                    set +e
-                    REMOTE_DIR="$1"
-                    source /root/.nvm/nvm.sh
-                    export PATH=/root/.nvm/versions/node/v26.5.0/bin:/usr/local/go/bin:/root/.cargo/bin:$PATH
-                    export DAWG_CHROMIUM_EXECUTABLE_PATH=/root/.cache/ms-playwright/chromium-1193/chrome-linux/chrome
-                    cd "$REMOTE_DIR/desktop/src-tauri"
-                    export CARGO_TARGET_DIR="$REMOTE_DIR/cargo-target"
-                    mkdir -p "$CARGO_TARGET_DIR"
-
-                    cargo_status=0
-                    CARGO_BUILD_JOBS=1 cargo check --locked --verbose || cargo_status=$?
-                    if [ "$cargo_status" -ne 0 ]; then
-                        {
-                            echo '--- working directory ---'
-                            pwd
-                            echo '--- toolchain ---'
-                            rustc -vV
-                            cargo -vV
-                            echo '--- filesystem ---'
-                            df -h "$REMOTE_DIR" /tmp
-                            df -i "$REMOTE_DIR" /tmp
-                            echo '--- target directories ---'
-                            find "$CARGO_TARGET_DIR" -maxdepth 5 -type d -print | sort
-                            echo '--- proc-macro2 output parent ---'
-                            find "$CARGO_TARGET_DIR/debug/build" -path '*proc-macro2*' -maxdepth 4 -print 2>/dev/null
-                            echo '--- build output parents ---'
-                            find "$CARGO_TARGET_DIR/debug/build" -mindepth 2 -maxdepth 2 -type d -printf '%p\n' 2>/dev/null | sort
-                            echo '--- target directory metadata ---'
-                            stat "$CARGO_TARGET_DIR" "$CARGO_TARGET_DIR/debug" "$CARGO_TARGET_DIR/debug/build" 2>&1
-                        } > "$REMOTE_DIR/cargo-diagnostics.txt" 2>&1
-                    fi
-                    exit "$cargo_status"
-REMOTE_CARGO_SCRIPT
-
-                    mkdir -p artifacts
-                    scp -q \
-                        "${BUILD_USER}@${BUILD_SERVER}:${REMOTE_DIR}/cargo-diagnostics.txt" \
-                        artifacts/cargo-diagnostics.txt || true
-                    if [ -f artifacts/cargo-diagnostics.txt ]; then
-                        cat artifacts/cargo-diagnostics.txt
-                    fi
-                    exit "$cargo_status"
+                    set -eu
+                    ssh -o BatchMode=yes "$BUILD_HOST" "
+                        set -eu
+                        test \"\$(id -un)\" = dawg-builder
+                        if sudo -n true >/dev/null 2>&1; then
+                            echo 'The CI account unexpectedly has sudo access.' >&2
+                            exit 1
+                        fi
+                        command -v /usr/local/go/bin/go >/dev/null
+                        command -v \"\$HOME/.cargo/bin/cargo\" >/dev/null
+                        command -v patchelf >/dev/null
+                        pkg-config --exists librsvg-2.0
+                        available_kb=\$(df -Pk \"\$HOME\" | awk 'NR == 2 { print \$4 }')
+                        if [ \"\$available_kb\" -lt 15728640 ]; then
+                            echo 'The build server needs at least 15 GiB of free disk space.' >&2
+                            exit 1
+                        fi
+                    "
                 '''
             }
         }
 
-        stage('Collect build artifacts') {
+        stage('Transfer source') {
             steps {
                 sh '''
-                    set -e
-                    REMOTE_DIR="${REMOTE_ROOT}/dawg-${BUILD_TAG}"
-                    mkdir -p artifacts
-                    scp -q -r \
-                        "${BUILD_USER}@${BUILD_SERVER}:${REMOTE_DIR}/desktop/dist" \
-                        artifacts/desktop-dist
+                    set -eu
+                    ssh -o BatchMode=yes "$BUILD_HOST" "install -d -m 0755 '$REMOTE_DIR'"
+                    git archive --format=tar HEAD |
+                        ssh -o BatchMode=yes "$BUILD_HOST" "tar -xf - -C '$REMOTE_DIR'"
                 '''
+            }
+        }
+
+        stage('Validate') {
+            steps {
+                sh '''
+                    set -eu
+                    ssh -o BatchMode=yes "$BUILD_HOST" "
+                        set -eu
+                        cd '$REMOTE_DIR'
+                        DAWG_CI_NODE_VERSION='$DAWG_CI_NODE_VERSION' \
+                            ./ci/linux/with-toolchain.sh ./ci/linux/validate.sh
+                    "
+                '''
+            }
+        }
+
+        stage('Build Linux AppImage') {
+            when {
+                expression {
+                    def ref = env.BRANCH_NAME ?: env.GIT_BRANCH ?: ''
+                    return env.TAG_NAME || ref == 'main' || ref == 'staging' ||
+                        ref ==~ /(?:origin\/)?v.*/
+                }
+            }
+            steps {
+                sh '''
+                    set -eu
+                    ssh -o BatchMode=yes "$BUILD_HOST" "
+                        set -eu
+                        cd '$REMOTE_DIR'
+                        DAWG_CI_NODE_VERSION='$DAWG_CI_NODE_VERSION' \
+                            DAWG_CI_GIT_COMMIT='$GIT_SHA' \
+                            DAWG_BUNDLE_CACHE_DIR='/home/dawg-builder/.cache/dawg-ci/bundle-downloads' \
+                            DAWG_BUNDLE_BROWSER_CACHE_DIR='/home/dawg-builder/.cache/dawg-ci/playwright-browsers' \
+                            ./ci/linux/with-toolchain.sh ./ci/linux/build.sh
+                        DAWG_CI_NODE_VERSION='$DAWG_CI_NODE_VERSION' \
+                            DAWG_CI_GIT_COMMIT='$GIT_SHA' \
+                            ./ci/linux/with-toolchain.sh ./ci/linux/verify-appimage.sh
+                    "
+                '''
+            }
+        }
+
+        stage('Collect artifacts') {
+            when {
+                expression {
+                    def ref = env.BRANCH_NAME ?: env.GIT_BRANCH ?: ''
+                    return env.TAG_NAME || ref == 'main' || ref == 'staging' ||
+                        ref ==~ /(?:origin\/)?v.*/
+                }
+            }
+            steps {
+                retry(2) {
+                    sh '''
+                        ./ci/linux/collect-artifacts.sh \
+                            "$BUILD_HOST" "$REMOTE_DIR/.ci-artifacts" artifacts
+                    '''
+                }
+                archiveArtifacts artifacts: 'artifacts/**', fingerprint: true
             }
         }
     }
 
     post {
         always {
-            archiveArtifacts artifacts: 'artifacts/**', allowEmptyArchive: true
-            junit allowEmptyResults: true, testResults: '**/test-results/*.xml'
             sh '''
-                REMOTE_DIR="${REMOTE_ROOT}/dawg-${BUILD_TAG}"
-                ssh -o BatchMode=yes "${BUILD_USER}@${BUILD_SERVER}" \
-                    "rm -rf '${REMOTE_DIR}'" || true
+                set +e
+                if [ -n "${REMOTE_DIR:-}" ]; then
+                    ssh -o BatchMode=yes "$BUILD_HOST" "
+                        case '$REMOTE_DIR' in
+                            '$REMOTE_ROOT'/*) rm -rf -- '$REMOTE_DIR' ;;
+                            *) echo 'Refusing unsafe remote cleanup path.' >&2; exit 2 ;;
+                        esac
+                    "
+                fi
             '''
+            deleteDir()
         }
     }
 }
