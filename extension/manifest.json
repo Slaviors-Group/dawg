@@ -19,7 +19,6 @@
   },
   "incognito": "spanning",
   "action": {
-    "default_popup": "popup/popup.html",
     "default_title": "DAWG Capture",
     "default_icon": {
       "32": "icons/32x32.png",
@@ -42,6 +41,17 @@
         "content/recorder.js"
       ],
       "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/*",
+        "popup/*.ttf"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ],
   "version_name": "0.2.5_naughty"
