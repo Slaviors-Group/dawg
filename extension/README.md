@@ -6,12 +6,18 @@ the local capture daemon.
 
 > Manifest: `3` · Minimum Chrome/Chromium: `116`
 >
-> Install version: `0.2.3` · Display version: `0.2.3_naughty`
+> Install version: `0.2.5` · Display version: `0.2.5_naughty`
 
 Playwright and bundled Chromium are replay dependencies. Capture runs in the
 user's installed Chrome or Chromium browser.
 
-## 📥 Install for Development
+## 📥 Install
+
+For normal use, install the [DAWG Browser Extension from the Chrome Web Store](https://chromewebstore.google.com/detail/peiigoeakholhhbbbbfkeojomekmmokj?utm_source=item-share-cb).
+
+### Install for Development
+
+Use an unpacked extension only for source development:
 
 1. Open `chrome://extensions`.
 2. Enable **Developer mode**.
@@ -125,8 +131,8 @@ npm run check:versions
 ```
 
 Chrome requires a numeric install version. The synchronizer converts
-`0.2.3_naughty` to `version: "0.2.3"` and
-`version_name: "0.2.3_naughty"`.
+`0.2.5_naughty` to `version: "0.2.5"` and
+`version_name: "0.2.5_naughty"`.
 
 ## ✅ Validation
 
