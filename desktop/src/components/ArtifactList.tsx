@@ -1,12 +1,16 @@
-import { Archive, Export, MagnifyingGlass } from "@phosphor-icons/react";
-import { useEngine } from "../context/EngineContext";
+import { Archive, Export, MagnifyingGlass, PlayCircle } from "@phosphor-icons/react";
+import { type ArtifactItem, useEngine } from "../context/EngineContext";
 import { chooseArtifactExportPath, defaultArtifactExportName } from "../lib/artifactDialogs";
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
 import { EmptyState } from "./ui/EmptyState";
 
-export function ArtifactList() {
+interface ArtifactListProps {
+  onReplayArtifact: (artifact: ArtifactItem) => void;
+}
+
+export function ArtifactList({ onReplayArtifact }: ArtifactListProps) {
   const { artifacts, addLogLine, exportArtifact, openInspectModal } = useEngine();
 
   const handleInspect = (art: Parameters<typeof openInspectModal>[0]) => {
@@ -90,6 +94,14 @@ export function ArtifactList() {
               iconLeft={<MagnifyingGlass size={14} />}
             >
               Inspect
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => onReplayArtifact(art)}
+              iconLeft={<PlayCircle size={14} />}
+            >
+              Replay
             </Button>
             <Button
               variant="secondary"

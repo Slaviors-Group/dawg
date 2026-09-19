@@ -1,5 +1,6 @@
 import {
   ArrowCounterClockwise,
+  Browser,
   GearSix,
   GitDiff,
   GithubLogo,
@@ -7,6 +8,7 @@ import {
   ShieldCheck,
   SquaresFour,
 } from "@phosphor-icons/react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 
@@ -19,7 +21,7 @@ import { NavItem } from "./components/ui/NavItem";
 import { SettingsPanel } from "./components/ui/SettingsPanel";
 
 import { ToastProvider } from "./components/ui/Toast";
-import { EngineProvider, useEngine } from "./context/EngineContext";
+import { type ArtifactItem, EngineProvider, useEngine } from "./context/EngineContext";
 import { MotionProvider } from "./context/MotionContext";
 import { ThemeProvider } from "./context/ThemeContext";
 
@@ -27,6 +29,9 @@ import { DoctorModal } from "./components/DoctorModal";
 import "./App.css";
 
 type Tab = "dashboard" | "capture" | "replay" | "diff" | "policy";
+
+const CHROME_WEB_STORE_EXTENSION_URL =
+  "https://chromewebstore.google.com/detail/peiigoeakholhhbbbbfkeojomekmmokj?utm_source=item-share-cb";
 
 const NAV_ITEMS: {
   id: Tab;
@@ -42,9 +47,18 @@ const NAV_ITEMS: {
 
 function ShellContent() {
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
+  const [replayArtifactPath, setReplayArtifactPath] = useState<string | undefined>();
   const [showDoctor, setShowDoctor] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const { engineStatus, isCheckingEngine, isCapturing } = useEngine();
+  const { engineStatus, isCheckingEngine, isCapturing, addLogLine } = useEngine();
+
+  const handleInstallWebExtension = async () => {
+    try {
+      await openUrl(CHROME_WEB_STORE_EXTENSION_URL);
+    } catch (error) {
+      addLogLine(`[ERROR] Could not open the DAWG Web Extension page: ${String(error)}`);
+    }
+  };
 
   return (
     <div className="flex h-screen bg-canvas overflow-hidden">
@@ -113,6 +127,14 @@ function ShellContent() {
               <GearSix size={18} className="text-text-tertiary" />
               <span className="text-xs font-medium">Settings</span>
             </button>
+            <button
+              type="button"
+              onClick={() => void handleInstallWebExtension()}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-surface-hover transition-colors duration-fast text-text-secondary"
+            >
+              <Browser size={18} className="text-text-tertiary" />
+              <span className="text-xs font-medium">Install DAWG Web Extension</span>
+            </button>
           </div>
         </nav>
 
@@ -169,9 +191,16 @@ function ShellContent() {
               transition={{ duration: 0.2, ease: "easeOut" }}
               className="min-h-full flex flex-col"
             >
-              {activeTab === "dashboard" && <Dashboard />}
+              {activeTab === "dashboard" && (
+                <Dashboard
+                  onReplayArtifact={(artifact: ArtifactItem) => {
+                    setReplayArtifactPath(artifact.path);
+                    setActiveTab("replay");
+                  }}
+                />
+              )}
               {activeTab === "capture" && <CaptureControls />}
-              {activeTab === "replay" && <ReplayViewer />}
+              {activeTab === "replay" && <ReplayViewer selectedArtifactPath={replayArtifactPath} />}
               {activeTab === "diff" && <DiffReport />}
               {activeTab === "policy" && <PolicyConfig />}
             </motion.div>

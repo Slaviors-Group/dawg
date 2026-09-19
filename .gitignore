@@ -2,6 +2,8 @@ bin/
 *.exe
 *.test
 coverage.out
+.ci-artifacts/
+.ci-output/
 node_modules/
 dist/
 target/
@@ -17,4 +19,6 @@ __pycache__/
 test/
 .cache/
 resources/
+!desktop/src-tauri/resources/
+!desktop/src-tauri/resources/README.md
 commit-message.txt

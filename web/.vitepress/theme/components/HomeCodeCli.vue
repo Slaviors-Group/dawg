@@ -5,15 +5,40 @@ const { isRevealed, sectionRef } = useScrollReveal()
 
 const features = [
   {
-    title: 'Portable Artifact Workflows',
-    desc: 'List local artifacts, export portable .dawg archives, import validated archives, or exchange OCI artifacts through a registry.',
-    mockType: 'table'
+    title: 'Bundled, Local-First Runtime',
+    desc: 'The packaged desktop app ships the engine, Node.js, mitmdump, and Playwright Chromium, so there is nothing extra to install and every capture stays on your machine.',
+    mockType: 'table',
+    panelTitle: 'Bundled components',
+    rows: [
+      { label: 'Engine', meta: 'bundled', ok: true },
+      { label: 'Node.js', meta: 'bundled', ok: true },
+      { label: 'mitmdump', meta: 'bundled', ok: true },
+      { label: 'Playwright Chromium', meta: 'bundled', ok: true }
+    ]
   },
   {
-    title: 'CI-Ready Exit Codes',
-    desc: 'Automate your workflows with pass/fail gates that integrate perfectly into your CI pipelines.',
-    mockType: 'chart'
+    title: 'Engine Doctor Diagnostics',
+    desc: 'One-click health checks verify each runtime component, the schema, the OPA policy, and the bundled extension manifest, then flag anything missing before you start.',
+    mockType: 'chart',
+    panelTitle: 'Engine Doctor',
+    rows: [
+      { label: 'Runtime', meta: 'ready', ok: true },
+      { label: 'Schema', meta: 'valid', ok: true },
+      { label: 'OPA policy', meta: 'default.rego', ok: true },
+      { label: 'Extension', meta: 'manifest found', ok: true }
+    ]
   }
+]
+
+// Representative engine log stream for the bottom card (matches the desktop Log Console format)
+const logLines = [
+  { level: 'SYSTEM', text: 'engine ready · bundled runtime' },
+  { level: 'INFO', text: 'session started · https://staging.example.com' },
+  { level: 'INFO', text: 'extension connected · recording active tab' },
+  { level: 'INFO', text: 'rrweb 1,284 events · 96 actions · 41 requests' },
+  { level: 'WARN', text: 'sanitize: 12 PII fields replaced · 4 secrets redacted' },
+  { level: 'SYSTEM', text: 'OPA allow · packaged checkout-timeout.dawg' },
+  { level: 'INFO', text: 'replay diagnostics ready · screenshot saved' }
 ]
 </script>
 
@@ -22,7 +47,7 @@ const features = [
     <div class="dh-inner">
       <div class="dh-head">
         <h2 class="dh-h2">Ship with tooling that does<br/>what you expect.</h2>
-        <p class="dh-sub">One engine powers the desktop and CLI, with readable output and JSON modes for automation.</p>
+        <p class="dh-sub">One engine powers the DAWG desktop app and browser extension, with readable logs and live status at every step of capture, packaging, and replay.</p>
       </div>
 
       <!-- Two Columns -->
@@ -31,11 +56,20 @@ const features = [
           <div class="dh-mock-wrap">
             <div class="dh-mock-glow"></div>
             <div class="dh-mock-ui">
-              <div class="dh-mock-header"></div>
-              <div class="dh-mock-lines">
-                <div class="dh-mock-line" style="width: 80%"></div>
-                <div class="dh-mock-line" style="width: 60%"></div>
-                <div class="dh-mock-line" style="width: 90%"></div>
+              <div class="dh-mock-header dh-mock-header--title">
+                <span class="dh-win-dots">
+                  <span class="dh-win-dot dh-win-dot--r"></span>
+                  <span class="dh-win-dot dh-win-dot--y"></span>
+                  <span class="dh-win-dot dh-win-dot--g"></span>
+                </span>
+                <span class="dh-mock-panel-title">{{ feat.panelTitle }}</span>
+              </div>
+              <div class="dh-mock-rows">
+                <div v-for="row in feat.rows" :key="row.label" class="dh-mock-row">
+                  <span class="dh-row-dot" :class="row.ok ? 'is-ok' : 'is-warn'"></span>
+                  <span class="dh-row-label">{{ row.label }}</span>
+                  <span class="dh-row-meta">{{ row.meta }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -51,19 +85,25 @@ const features = [
         <div class="dh-mock-wrap dh-mock-wrap-lg">
           <div class="dh-mock-glow dh-glow-lg"></div>
           <div class="dh-mock-ui dh-ui-lg">
-             <div class="dh-mock-header"></div>
-             <div class="dh-mock-columns">
-                <div class="dh-mock-bar" style="height: 60%"></div>
-                <div class="dh-mock-bar" style="height: 80%"></div>
-                <div class="dh-mock-bar" style="height: 40%"></div>
-                <div class="dh-mock-bar" style="height: 90%"></div>
-                <div class="dh-mock-bar" style="height: 50%"></div>
+             <div class="dh-mock-header dh-mock-header--title">
+               <span class="dh-win-dots">
+                 <span class="dh-win-dot dh-win-dot--r"></span>
+                 <span class="dh-win-dot dh-win-dot--y"></span>
+                 <span class="dh-win-dot dh-win-dot--g"></span>
+               </span>
+               <span class="dh-mock-panel-title">Log Console</span>
+             </div>
+             <div class="dh-log-stream">
+               <div v-for="(line, i) in logLines" :key="i" class="dh-log-line">
+                 <span class="dh-log-tag" :class="`dh-log-${line.level.toLowerCase()}`">[{{ line.level }}]</span>
+                 <span class="dh-log-text">{{ line.text }}</span>
+               </div>
              </div>
           </div>
         </div>
         <div class="dh-feature-text">
-          <h3>Inspect, Replay, and Verify</h3>
-          <p>Inspect artifact metadata, replay the recorded browser session, and compare replay outcomes with automation-friendly exit codes.</p>
+          <h3>Readable Logs and Live Status</h3>
+          <p>A real-time engine log stream, live capture indicator, and packaging progress keep every step visible, with clear status badges so you always know what DAWG is doing.</p>
         </div>
       </div>
 
@@ -199,29 +239,63 @@ const features = [
   margin-bottom: 24px;
 }
 
-.dh-mock-lines {
+/* Title-bar variant of the mock header (top feature cards) */
+.dh-mock-header--title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: auto;
+  background: transparent;
+  border-radius: 0;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--color-border-subtle, rgba(0,0,0,0.06));
+}
+.dh-win-dots { display: inline-flex; gap: 6px; }
+.dh-win-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dh-win-dot--r { background: #ff5f57; }
+.dh-win-dot--y { background: #febc2e; }
+.dh-win-dot--g { background: #28c840; }
+.dh-mock-panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+/* Status rows (real text content, no images) */
+.dh-mock-rows { display: flex; flex-direction: column; gap: 12px; }
+.dh-mock-row { display: flex; align-items: center; gap: 10px; }
+.dh-row-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dh-row-dot.is-ok { background: var(--color-success-dot, #2ecc71); }
+.dh-row-dot.is-warn { background: var(--color-warning-dot, #f1c40f); }
+.dh-row-label { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+.dh-row-meta {
+  margin-left: auto;
+  font-size: 11px;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  color: var(--color-text-secondary);
+  background: rgba(0,0,0,0.03);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+:global(:root.dark) .dh-row-meta { background: rgba(255,255,255,0.06); }
+
+/* Live engine log stream (bottom card) */
+.dh-log-stream {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
+  text-align: left;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  line-height: 1.5;
 }
-.dh-mock-line {
-  height: 16px;
-  background: rgba(0,0,0,0.04);
-  border-radius: 4px;
-}
-:global(:root.dark) .dh-mock-lines .dh-mock-line { background: rgba(255,255,255,0.04); }
-
-.dh-mock-columns {
-  display: flex;
-  align-items: flex-end;
-  gap: 16px;
-  flex: 1;
-  padding-top: 24px;
-}
-.dh-mock-bar {
-  flex: 1;
-  background: var(--color-brand);
-  opacity: 0.8;
-  border-radius: 4px 4px 0 0;
-}
+.dh-log-line { display: flex; gap: 8px; align-items: baseline; }
+.dh-log-tag { font-weight: 700; flex-shrink: 0; color: var(--color-text-secondary); }
+.dh-log-text { color: var(--color-text-secondary); }
+.dh-log-system { color: var(--color-brand); }
+.dh-log-info { color: var(--color-info-dot, #3b82f6); }
+.dh-log-warn { color: var(--color-warning-dot, #f1c40f); }
+.dh-log-error { color: var(--color-error-dot, #ef4444); }
 </style>

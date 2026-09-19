@@ -1,6 +1,6 @@
 # Sanitizer Policy
 
-DAWG `0.2.3-naughty` sanitizes supported capture streams before packaging and then evaluates an Open Policy Agent (OPA) allow decision. Detection is heuristic: sanitization reduces exposure, but it is not a confidentiality or no-leak guarantee.
+DAWG `0.2.5-naughty` sanitizes supported capture streams before packaging and then evaluates an Open Policy Agent (OPA) allow decision. Detection is heuristic: sanitization reduces exposure, but it is not a confidentiality or no-leak guarantee.
 
 ## Processing Flow
 

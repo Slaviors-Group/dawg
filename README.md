@@ -7,21 +7,17 @@ session as an OCI Image Layout, and replays its rrweb DOM trace in Chromium. The
 repository contains a Go CLI, a Tauri desktop application, and a Chromium
 Manifest V3 extension.
 
-> **Current prerelease:** [`0.2.3-naughty`](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-2)
+> **Current prerelease:** [`0.2.5-naughty`](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3)
 >
-> Application and schema: `0.2.3-naughty` · Desktop: `0.2.3` · Extension: `0.2.3_naughty`
+> Application and schema: `0.2.5-naughty` · Desktop: `0.2.5` · Extension: `0.2.5_naughty`
 
 ## 📦 Install the Current Release
 
-The `naughty-2` prerelease, published September 12, 2026, currently provides one
-prebuilt package:
+Download the available desktop installer assets from the
+[`0.2.5-naughty` (`naughty-3`) GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3).
 
-| Platform | Package | SHA-256 |
-| --- | --- | --- |
-| Windows x64 | [`DAWG_0.2.3_x64-setup.exe`](https://github.com/Slaviors-Group/dawg/releases/download/naughty-2/DAWG_0.2.3_x64-setup.exe) | `d7168931f748499f3e49f9a1b306a0ac31edd047cd9340a11427fe5217334e87` |
-
-Linux packages are configured in Tauri but are not attached to this release;
-build them from source with `desktop/build-bundle.sh`.
+Linux targets are configured in Tauri; build the AppImage from source with
+`desktop/build-bundle.sh` when an AppImage is not attached to the release.
 
 See [all releases](https://github.com/Slaviors-Group/dawg/releases) for older
 prereleases and their assets.
@@ -39,8 +35,9 @@ prereleases and their assets.
   `.dawg` files and imported into another DAWG installation.
 - **Persistent catalog:** `~/.dawg/artifact-catalog.json` tracks captured,
   imported, and previously uncataloged local artifacts.
-- **Browser replay:** Playwright launches Chromium, reconstructs the rrweb
-  session, records diagnostics, and writes a final screenshot.
+- **Browser replay:** Desktop launches interactive Playwright Chromium with
+  play/pause, skip, speed, and timeline controls. Standard CLI replay records
+  diagnostics, writes a final screenshot, and exits.
 - **Desktop process control:** an active replay can be cancelled. On Windows,
   cancellation and application shutdown terminate the tracked engine process
   tree, including Node.js, Chromium, and mitmdump descendants.
@@ -82,8 +79,7 @@ dawg/
 ## 🎥 Capture and Replay
 
 1. Install the desktop application or build the engine and desktop resources.
-2. Load/reload `extension/` from `chrome://extensions` with Developer mode
-   enabled. Chrome or Chromium 116 or newer is required.
+2. Install the [DAWG Browser Extension from the Chrome Web Store](https://chromewebstore.google.com/detail/peiigoeakholhhbbbbfkeojomekmmokj?utm_source=item-share-cb). Chrome or Chromium 116 or newer is required. Use an unpacked `extension/` directory through `chrome://extensions` only for development.
 3. Open the target page, enter its URL in DAWG, and optionally enter an artifact
    title.
 4. Select **Start Capture**. The extension focuses an exact matching tab or opens
@@ -91,10 +87,12 @@ dawg/
 5. Reproduce the issue, then select **Stop Capture**. The engine waits for the
    extension to drain events, sanitizes the session, packages it, and registers
    it in the local catalog.
-6. Select the artifact on the Replay page and run it. Use **Stop Replay** to
-   terminate an in-flight replay.
-7. Export the artifact when it needs to be moved, or import an existing `.dawg`
-   archive from the dashboard or by drag-and-drop.
+6. Select **Replay** on a Dashboard artifact to open Replay with that artifact
+   preselected, then choose **Run Replay** when ready. Use the interactive
+   Chromium controls to inspect the recording, or **Stop Replay** to terminate
+   it.
+7. Export or import an existing `.dawg` archive from the Dashboard or Replay
+   page; the Dashboard also accepts drag-and-drop imports.
 
 Untitled captures receive a hostname-based title. Artifact directories use a
 readable timestamped name such as `20260912-143025-checkout-timeout`; collisions
@@ -122,7 +120,7 @@ dawg artifacts import <file.dawg>
 
 # Inspect, replay, and verify an artifact
 dawg inspect <artifact-directory>
-dawg run <artifact-directory>
+dawg run <artifact-directory> [--interactive]
 dawg verify <artifact-directory> --against local
 
 # Transfer OCI layouts through a registry
@@ -216,9 +214,9 @@ Node.js, and mitmproxy versions.
 
 ```json
 {
-  "appVersion": "0.2.3-naughty",
-  "desktopVersion": "0.2.3",
-  "extensionVersion": "0.2.3_naughty",
+  "appVersion": "0.2.5-naughty",
+  "desktopVersion": "0.2.5",
+  "extensionVersion": "0.2.5_naughty",
   "runtime": {
     "mitmproxy": "12.2.3",
     "node": "22.14.0"
@@ -234,15 +232,15 @@ npm run check:versions
 ```
 
 The synchronizer normalizes labels for npm, Cargo, Tauri, the schema, and Chrome.
-Chrome receives numeric `version: "0.2.3"` plus display label
-`version_name: "0.2.3_naughty"`. Dependency versions remain managed by package
+Chrome receives numeric `version: "0.2.5"` plus display label
+`version_name: "0.2.5_naughty"`. Dependency versions remain managed by package
 manifests and lockfiles.
 
 ## ✅ Validation
 
 The repository CI checks Go formatting, vetting, tests, and builds; Biome and the
-frontend build; desktop bundle staging; and Cargo compilation. Before opening a
-merge request, run the relevant local checks:
+frontend build; desktop bundle staging; and Cargo compilation. Before sharing
+source changes within the project, run the relevant local checks:
 
 ```powershell
 cd engine
@@ -264,6 +262,12 @@ cargo test --manifest-path src-tauri/Cargo.toml
 
 Bundle creation and a manual capture/import/export/replay smoke test are required
 to validate staged runtime assets and native process handling.
+
+## 🤝 Contributions
+
+DAWG's code is public, but external contributions are not currently accepted.
+Please do not submit pull requests. See [CONTRIBUTING.md](CONTRIBUTING.md) for
+feedback channels and the current contribution policy.
 
 ## 📄 License
 

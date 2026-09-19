@@ -65,7 +65,7 @@ const { isRevealed, sectionRef } = useScrollReveal()
           </a>
           <a href="/docs/contributing" class="dh-res-card">
             <h3>Contributing</h3>
-            <p>Dev setup, standards, and PR workflow. Help us build the ultimate bug catcher.</p>
+            <p>Development setup, validation, versioning, and feedback channels.</p>
             <span class="dh-learn-more">Learn More &rarr;</span>
           </a>
         </div>
