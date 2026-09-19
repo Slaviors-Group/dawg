@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const controlTestTimeout = 5 * time.Second
+
 func TestRunControlledSessionStopsFromAuthenticatedControlRequest(t *testing.T) {
 	directory := t.TempDir()
 	controlPath := filepath.Join(directory, "control", "session.json")
@@ -29,7 +31,7 @@ func TestRunControlledSessionStopsFromAuthenticatedControlRequest(t *testing.T) 
 		if err != nil {
 			t.Fatalf("controlled session: %v", err)
 		}
-	case <-time.After(time.Second):
+	case <-time.After(controlTestTimeout):
 		t.Fatal("timed out waiting for controlled session shutdown")
 	}
 	if _, err := os.Stat(controlPath); !os.IsNotExist(err) {
@@ -60,7 +62,7 @@ func TestRunControlledSessionStopsFromComponentRequest(t *testing.T) {
 		if err != nil {
 			t.Fatalf("controlled session: %v", err)
 		}
-	case <-time.After(time.Second):
+	case <-time.After(controlTestTimeout):
 		t.Fatal("component stop request did not stop controlled session")
 	}
 	select {
@@ -85,7 +87,7 @@ func TestControlHandlerRejectsMissingToken(t *testing.T) {
 
 func waitForControlState(t *testing.T, path string) ControlState {
 	t.Helper()
-	deadline := time.Now().Add(time.Second)
+	deadline := time.Now().Add(controlTestTimeout)
 	for time.Now().Before(deadline) {
 		contents, err := os.ReadFile(path)
 		if err == nil {

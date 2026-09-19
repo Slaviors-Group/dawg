@@ -8,8 +8,8 @@ import {
   ShieldCheck,
   SquaresFour,
 } from "@phosphor-icons/react";
-import { AnimatePresence, motion } from "framer-motion";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 
 import { CaptureControls } from "./components/CaptureControls";

@@ -2,6 +2,8 @@ bin/
 *.exe
 *.test
 coverage.out
+.ci-artifacts/
+.ci-output/
 node_modules/
 dist/
 target/

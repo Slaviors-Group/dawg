@@ -37,7 +37,7 @@ REPO_ROOT="$(cd "${DESKTOP_DIR}/.." && pwd)"
 ENGINE_DIR="${REPO_ROOT}/engine"
 SCHEMA_DIR="${REPO_ROOT}/schema"
 EXTENSION_DIR="${REPO_ROOT}/extension"
-CACHE_DIR="${DESKTOP_DIR}/.cache"
+CACHE_DIR="${DAWG_BUNDLE_CACHE_DIR:-${DESKTOP_DIR}/.cache}"
 RESOURCES_DIR="${DESKTOP_DIR}/src-tauri/resources"
 
 BINARIES_DIR="${RESOURCES_DIR}/binaries"
@@ -143,7 +143,18 @@ if [ "${SKIP_DOWNLOAD}" = false ]; then
   # Recreate the directory so the AppImage contains Linux assets only.
   rm -rf "${BROWSERS_TARGET_DIR}"
   mkdir -p "${BROWSERS_TARGET_DIR}"
-  PLAYWRIGHT_BROWSERS_PATH="${BROWSERS_TARGET_DIR}" "${NODE_BIN}" "${PLAYWRIGHT_CLI}" install chromium --no-shell
+  if [ -n "${DAWG_BUNDLE_BROWSER_CACHE_DIR:-}" ]; then
+    # Key the shared download cache by the exact dependency lock. This lets
+    # trusted CI builds reuse Chromium without ever packaging stale revisions.
+    BROWSER_CACHE_KEY="$(sha256sum "${ENGINE_DIR}/package-lock.json" | cut -d ' ' -f 1)"
+    BROWSER_DOWNLOAD_DIR="${DAWG_BUNDLE_BROWSER_CACHE_DIR}/${BROWSER_CACHE_KEY}"
+    mkdir -p "${BROWSER_DOWNLOAD_DIR}"
+    PLAYWRIGHT_BROWSERS_PATH="${BROWSER_DOWNLOAD_DIR}" "${NODE_BIN}" "${PLAYWRIGHT_CLI}" install chromium --no-shell
+    find "${BROWSER_DOWNLOAD_DIR}" -mindepth 1 -maxdepth 1 -type d -name 'chromium-*' \
+      -exec cp -a -- {} "${BROWSERS_TARGET_DIR}/" \;
+  else
+    PLAYWRIGHT_BROWSERS_PATH="${BROWSERS_TARGET_DIR}" "${NODE_BIN}" "${PLAYWRIGHT_CLI}" install chromium --no-shell
+  fi
 elif ! find "${BROWSERS_TARGET_DIR}" -mindepth 1 -maxdepth 1 -type d -name 'chromium-*' -print -quit | grep -q .; then
   echo "  Bundled Chromium is missing; rerun without --skip-download." >&2
   exit 1
