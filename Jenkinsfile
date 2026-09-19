@@ -31,23 +31,23 @@ pipeline {
             steps {
                 sh '''
                     set -eu
-                    ssh -o BatchMode=yes "$BUILD_HOST" "
+                    ssh -o BatchMode=yes "$BUILD_HOST" '
                         set -eu
-                        test \"\$(id -un)\" = dawg-builder
+                        test "$(id -un)" = dawg-builder
                         if sudo -n true >/dev/null 2>&1; then
-                            echo 'The CI account unexpectedly has sudo access.' >&2
+                            echo "The CI account unexpectedly has sudo access." >&2
                             exit 1
                         fi
                         command -v /usr/local/go/bin/go >/dev/null
-                        command -v \"\$HOME/.cargo/bin/cargo\" >/dev/null
+                        command -v "$HOME/.cargo/bin/cargo" >/dev/null
                         command -v patchelf >/dev/null
                         pkg-config --exists librsvg-2.0
-                        available_kb=\$(df -Pk \"\$HOME\" | awk 'NR == 2 { print \$4 }')
-                        if [ \"\$available_kb\" -lt 15728640 ]; then
-                            echo 'The build server needs at least 15 GiB of free disk space.' >&2
+                        available_kb=$(df -Pk "$HOME" | tail -n 1 | tr -s " " | cut -d " " -f 4)
+                        if [ "$available_kb" -lt 15728640 ]; then
+                            echo "The build server needs at least 15 GiB of free disk space." >&2
                             exit 1
                         fi
-                    "
+                    '
                 '''
             }
         }
