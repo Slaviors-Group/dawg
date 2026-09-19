@@ -152,6 +152,10 @@ function tiltStyle() {
 .dh-preview-img {
   width: 100%;
   display: block;
+  /* Deter right-click menu, drag-to-new-tab, and selection */
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
 @media (max-width: 768px) {

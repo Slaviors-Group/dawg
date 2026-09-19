@@ -2,29 +2,31 @@
 
 DAWG records one browser tab, sanitizes the captured data, and packages the session as a portable OCI artifact. The recommended workflow uses the desktop app together with the DAWG Browser Extension.
 
-> **Current prerelease:** [`0.2.3-naughty`](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-2) (`naughty-2`)
+> **Current prerelease:** [`0.2.5-naughty`](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3) (`naughty-3`) — desktop `0.2.5`; extension display version `0.2.5_naughty`.
 
 ## Quick Start: Desktop App
 
 ### 1. Install DAWG
 
-The current release provides a prebuilt Windows x64 installer:
+Download the available desktop installer assets from the [0.2.5-naughty GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3).
 
-[Download `DAWG_0.2.3_x64-setup.exe`](https://github.com/Slaviors-Group/dawg/releases/download/naughty-2/DAWG_0.2.3_x64-setup.exe)
-
-Linux packages are not attached to this release. See [Installation](/docs/installation) to build the AppImage from source.
+When an AppImage is not attached to the release, see [Installation](/docs/installation) to build it from source.
 
 The packaged desktop app includes the engine, Node.js, mitmdump, Playwright, Chromium for replay, schemas, policies, and an installable copy of the extension. You do not need to install those runtimes separately.
 
-### 2. Load the Browser Extension
+### 2. Install the Browser Extension
 
 Capture is extension-driven. Chrome or Chromium **116 or newer** is required.
+
+Install the [DAWG Browser Extension from the Chrome Web Store](https://chromewebstore.google.com/detail/peiigoeakholhhbbbbfkeojomekmmokj?utm_source=item-share-cb). This is the recommended installation method.
+
+For source development or when Chrome Web Store installation is unavailable, use an unpacked extension instead:
 
 1. Open `chrome://extensions`.
 2. Enable **Developer mode**.
 3. Select **Load unpacked**.
 4. In DAWG, open **Engine Doctor**, find the `browser-extension` component, and select the parent directory of its displayed `manifest.json` path. When running from source, select the repository's `extension/` directory.
-5. Reload the extension after updating DAWG or changing extension files.
+5. Reload the unpacked extension after updating DAWG or changing extension files.
 
 The extension cannot start a capture by itself. Start from the desktop app or CLI so the local engine can issue a session token and select the target tab.
 
@@ -73,7 +75,7 @@ A `.dawg` file is a ZIP-based transport archive. Import validates its paths, lin
 
 ### 6. Replay
 
-Open **Replay Engine**, search or filter the catalog, select an artifact, and choose **Run Replay**. The app reports replay diagnostics and the final screenshot in the execution logs. **Stop Replay** cancels an in-flight replay and terminates the tracked engine/browser process tree.
+Open **Replay Engine**, search or filter the catalog, select an artifact, and choose **Run Replay**. DAWG opens an interactive Chromium replay with play/pause, skip, speed, and timeline controls. **Stop Replay** cancels the in-flight replay and terminates the tracked engine/browser process tree. The standard CLI replay remains the noninteractive option that saves a final screenshot.
 
 On Windows, browser replay runs in native compatibility mode and skips Docker Compose isolation and database restoration. Supported non-Windows environment replay uses rootless Docker.
 
