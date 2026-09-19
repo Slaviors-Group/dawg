@@ -652,7 +652,7 @@ dependencies = [
 
 [[package]]
 name = "dawg-desktop"
-version = "0.2.3"
+version = "0.2.5"
 dependencies = [
  "serde",
  "serde_json",

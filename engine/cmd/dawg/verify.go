@@ -29,7 +29,7 @@ func newVerifyCommand() *cobra.Command {
 			}
 			defer os.RemoveAll(tmpDir)
 
-			out, err := ExecuteReplay(ctx, layoutDir, tmpDir)
+			out, err := ExecuteReplay(ctx, layoutDir, tmpDir, false)
 			if err != nil {
 				return fmt.Errorf("verify: replay failed: %w", err)
 			}

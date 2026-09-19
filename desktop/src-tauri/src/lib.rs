@@ -512,7 +512,9 @@ async fn run_replay(
     registry: tauri::State<'_, ProcessRegistry>,
     artifact: String,
 ) -> Result<CommandOutput, String> {
-    let mut cmd = build_engine_command(&app, "run", &[artifact]);
+    // Desktop replays are intentionally interactive; direct CLI `dawg run`
+    // remains the finite screenshot-producing workflow.
+    let mut cmd = build_engine_command(&app, "run", &["--interactive".to_string(), artifact]);
     cmd.stdin(Stdio::null());
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());

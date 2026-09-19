@@ -1,6 +1,6 @@
 # Architecture
 
-DAWG `0.2.3-naughty` captures a browser session through an extension, sanitizes supported JSONL streams, packages them as an OCI Image Layout, and renders the recording for replay and verification.
+DAWG `0.2.5-naughty` captures a browser session through an extension, sanitizes supported JSONL streams, packages them as an OCI Image Layout, and renders the recording for replay and verification.
 
 ## Pipeline Overview
 
@@ -76,7 +76,7 @@ A packaged artifact is an OCI Image Layout:
         └── <digest>
 ```
 
-The DAWG manifest is validated against `schema/manifest/v0.2.3-naughty.json`. It requires the schema version, SHA-256 artifact ID, creation time, non-empty title, source, at least one layer, sanitization metadata, determinism metadata, and expected outcome.
+The DAWG manifest is validated against `schema/manifest/v0.2.5-naughty.json`. It requires the schema version, SHA-256 artifact ID, creation time, non-empty title, source, at least one layer, sanitization metadata, determinism metadata, and expected outcome.
 
 ### Current Layer Types
 
@@ -104,9 +104,9 @@ Replay is a rendering pipeline rather than action re-execution:
 5. Restore `db/fixture.sql`, when present, into `<project>-db-1` with `pg_restore --data-only --no-owner --no-privileges -d postgres`.
 6. Start `mitmdump` server replay with `--server-replay-kill-extra` when `cassettes/cassette.yaml` exists.
 7. Use `engine/scripts/replay-browser.cjs` and Playwright Chromium to reconstruct the rrweb DOM timeline in a local replay page.
-8. Wait for the trace duration plus two seconds, then write `outcome/screenshot.png` and diagnostics.
+8. In standard CLI and verification mode, wait for the trace duration plus two seconds, then write `outcome/screenshot.png` and diagnostics. In Desktop interactive mode, keep Chromium open with in-page playback controls until the user closes it or selects **Stop Replay**.
 
-`FAKETIME` only affects a target environment that consumes it. A random seed is represented in the manifest types but is not applied during replay.
+Interactive replay renders the recorded viewport in a fixed stage and scales or letterboxes that stage when the Chromium window is resized or maximized. `FAKETIME` only affects a target environment that consumes it. A random seed is represented in the manifest types but is not applied during replay.
 
 Recorded action events are not executed, and replay does not navigate or run through the original application's workflow. It visualizes the captured rrweb recording.
 
@@ -152,7 +152,7 @@ dawg/
 │   ├── src/                      # React UI
 │   └── src-tauri/                # Tauri host
 ├── schema/
-│   ├── manifest/v0.2.3-naughty.json
+│   ├── manifest/v0.2.5-naughty.json
 │   ├── mediatypes.json
 │   └── policies/default.rego
 ├── tools/sync-versions.cjs

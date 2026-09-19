@@ -498,6 +498,19 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   }
 });
 
+chrome.action.onClicked.addListener(async (tab) => {
+  if (!tab || typeof tab.id !== "number") return;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["content/popup-panel.js"]
+    });
+    await chrome.tabs.sendMessage(tab.id, { type: "DAWG_TOGGLE_PANEL" });
+  } catch (error) {
+    debugLog(`Could not toggle the capture panel: ${error.message}`);
+  }
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "CHECK_RECORDING_STATE" || message.type === "DAWG_EXTENSION_WAKE") {
     void initializeState().then(() => {

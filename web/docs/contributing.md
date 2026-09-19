@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for your interest in contributing to DAWG! This guide covers the current repository layout, development setup, validation commands, version management, and pull request workflow.
+DAWG's code is public, but public code does not mean public code contributions are currently accepted. Do **not** submit pull requests. This guide documents the repository layout, development setup, validation commands, and version management for people working with the source.
 
 ## Development Setup
 
@@ -203,14 +203,14 @@ A manual native smoke test should cover the paths affected by the change, includ
 
 [`version.json`](https://github.com/Slaviors-Group/dawg/blob/main/version.json) is the source for application, desktop, extension, Node.js, and mitmproxy versions.
 
-The current release values are:
+The current version values are:
 
 | Field | Value |
 |---|---|
-| Application and schema | `0.2.3-naughty` |
-| Desktop/Tauri/Cargo | `0.2.3` |
-| Extension display version | `0.2.3_naughty` |
-| Extension install version | `0.2.3` |
+| Application and schema | `0.2.5-naughty` |
+| Desktop/Tauri/Cargo | `0.2.5` |
+| Extension display version | `0.2.5_naughty` |
+| Extension install version | `0.2.5` |
 | Bundled Node.js | `22.14.0` |
 | Bundled mitmproxy | `12.2.3` |
 
@@ -223,51 +223,15 @@ npm run check:versions
 
 The synchronizer updates the engine and desktop package metadata, lockfiles, CLI constant, Cargo and Tauri versions, extension manifest, bundle runtime pins, settings display, schema filename, and schema references. Do not edit those generated version fields independently.
 
-Chrome requires a numeric extension version, so `0.2.3_naughty` becomes `version: "0.2.3"` with `version_name: "0.2.3_naughty"`. Dependency versions remain managed by package manifests and lockfiles.
+Chrome requires a numeric extension version, so `0.2.5_naughty` becomes `version: "0.2.5"` with `version_name: "0.2.5_naughty"`. Dependency versions remain managed by package manifests and lockfiles.
 
 ---
 
-## Pull Request Workflow
+## Feedback and Contact
 
-### 1. Create a Focused Branch
+Public code does not mean public contributions are currently accepted. Do **not** submit pull requests.
 
-The repository integrates work through `staging` before `main`. Start from the current remote staging branch:
-
-```bash
-git fetch origin
-git switch --create feature/my-feature origin/staging
-```
-
-Use a descriptive prefix such as `feature/`, `fix/`, or `docs/`.
-
-### 2. Make Focused Changes
-
-- Follow the component boundaries and coding standards above.
-- Add or update tests for behavior changes.
-- Update documentation when commands, requirements, security boundaries, or user workflows change.
-- Avoid committing generated build outputs or staged runtime resources.
-
-### 3. Verify Locally
-
-Run the narrowest relevant checks first, then the broader component checks. Include native and manual browser validation when automated tests cannot exercise the changed path.
-
-### 4. Commit Clearly
-
-Use a short imperative subject that describes the change. Add a concise body only when it explains useful context, constraints, or migration details that the subject cannot capture.
-
-### 5. Open the Pull Request
-
-Target `staging` and include:
-
-- a concise description of the behavior changed;
-- the related issue, when applicable;
-- screenshots for visible desktop or documentation changes;
-- the exact validation commands and manual checks performed;
-- known platform-specific limitations.
-
-## Reporting Issues
-
-Open an issue on [GitHub Issues](https://github.com/Slaviors-Group/dawg/issues) and include:
+Use [GitHub Issues](https://github.com/Slaviors-Group/dawg/issues) for reproducible bugs, [GitHub Discussions](https://github.com/Slaviors-Group/dawg/discussions) for questions and ideas, or the project's published contact path for other feedback. For issues, include:
 
 - reproduction steps and target URL shape without secrets;
 - expected and actual behavior;
@@ -277,7 +241,3 @@ Open an issue on [GitHub Issues](https://github.com/Slaviors-Group/dawg/issues) 
 - whether the artifact was captured, imported, or pulled.
 
 Do not attach an artifact until you have inspected it for sensitive data. Sanitization reduces exposure but is not a confidentiality guarantee.
-
-## License
-
-By contributing, you agree that your contribution is licensed under the repository's [GNU General Public License v3.0](https://github.com/Slaviors-Group/dawg/blob/main/LICENSE).

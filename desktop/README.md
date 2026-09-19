@@ -3,13 +3,14 @@
 DAWG Desktop is the Tauri v2 interface for the Go engine. It uses Rust, React 19,
 Vite 7, Tailwind CSS 4, Framer Motion, and Phosphor icons.
 
-> Application package: `0.2.3-naughty` · Tauri/Cargo package: `0.2.3`
+> Application package: `0.2.5-naughty` · Tauri/Cargo package: `0.2.5`
 >
 > Bundled Node.js: `22.14.0` · Bundled mitmproxy: `12.2.3`
 
-The current [`0.2.3-naughty` prerelease](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-2)
-provides a Windows x64 NSIS installer. Linux targets are configured but must
-currently be built from source.
+Download available desktop installers from the current
+[`0.2.5-naughty` (`naughty-3`) release](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3).
+Linux targets are configured; build the AppImage from source when it is not
+attached to the release.
 
 ## 🧭 Current Desktop Scope
 
@@ -22,10 +23,11 @@ import/export, replay controls, logs, and runtime diagnostics.
   detached capture daemon, and waits for packaging when capture stops.
 - **Artifact catalog:** loads validated artifacts from the engine at startup and
   refreshes after capture or import.
-- **Import/export:** uses native `.dawg` file dialogs; the dashboard also accepts
-  a dropped `.dawg` archive.
-- **Replay:** runs `dawg run <artifact>` and exposes **Stop Replay** while the
-  subprocess is active.
+- **Import/export:** uses native `.dawg` file dialogs from both Dashboard and
+  Replay; the dashboard also accepts a dropped `.dawg` archive.
+- **Replay:** Dashboard **Replay** opens Replay with the selected artifact but
+  does not start it. **Run Replay** invokes `dawg run --interactive <artifact>`
+  and exposes play/pause, skip, speed, timeline, and **Stop Replay** controls.
 - **Process cleanup:** tracks replay and capture-daemon PIDs. Windows cancellation
   uses `taskkill /T /F`; application exit attempts to terminate tracked work.
 - **Doctor:** displays `dawg doctor --output json` component status.
@@ -68,10 +70,12 @@ completion is a UI estimate rather than engine-reported progress.
 ### Replay
 
 1. React invokes `run_replay` with the selected artifact directory.
-2. Tauri starts `dawg run <artifact> --output json` and registers the PID.
+2. Tauri starts `dawg run --interactive <artifact> --output json` and registers
+   the PID.
 3. The engine unpacks the OCI layers and launches the replay script with the
    staged Node.js/Playwright/Chromium runtime.
-4. The completed command returns replay diagnostics and outcome metadata.
+4. Chromium keeps the fixed recorded viewport open with in-page play/pause,
+   skip, speed, and timeline controls until it is closed or stopped.
 5. **Stop Replay** terminates the tracked process tree. Application exit performs
    the same cleanup for tracked replay and capture processes.
 
@@ -195,7 +199,7 @@ npm run check:versions
 ```
 
 The desktop npm package uses the labeled application version
-`0.2.3-naughty`; Cargo and Tauri use numeric version `0.2.3`.
+`0.2.5-naughty`; Cargo and Tauri use numeric version `0.2.5`.
 
 ## ✅ Validation
 
