@@ -4,13 +4,9 @@ DAWG is available as a self-contained desktop application or as source for engin
 
 ## Current Release
 
-The current prerelease is [`0.2.3-naughty`](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-2), published as the `naughty-2` release.
+The current prerelease is [`0.2.5-naughty`](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3) (`naughty-3`). It includes desktop version `0.2.5` and extension display version `0.2.5_naughty`.
 
-| Platform | Package | SHA-256 |
-|---|---|---|
-| **Windows x64** | [`DAWG_0.2.3_x64-setup.exe`](https://github.com/Slaviors-Group/dawg/releases/download/naughty-2/DAWG_0.2.3_x64-setup.exe) | `d7168931f748499f3e49f9a1b306a0ac31edd047cd9340a11427fe5217334e87` |
-
-Linux targets are configured, but no Linux package is attached to this release. Build the AppImage from source with `desktop/build-bundle.sh`.
+Download the available desktop installer assets from the [0.2.5-naughty GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3). Linux targets are configured; build the AppImage from source with `desktop/build-bundle.sh` when an AppImage is not attached to the release.
 
 See [all releases](https://github.com/Slaviors-Group/dawg/releases) for older prereleases and assets.
 
@@ -27,7 +23,13 @@ The package stages the Go engine, Node.js, mitmdump, Playwright and Chromium for
 
 ### Browser Extension
 
-DAWG capture requires Chrome or Chromium **116 or newer** and the Manifest V3 extension included with the project.
+DAWG capture requires Chrome or Chromium **116 or newer**.
+
+Install the DAWG Browser Extension from the [Chrome Web Store](https://chromewebstore.google.com/detail/peiigoeakholhhbbbbfkeojomekmmokj?utm_source=item-share-cb). This is the recommended installation method.
+
+#### Unpacked installation (development or manual fallback)
+
+Use an unpacked extension only for source development or when Chrome Web Store installation is unavailable:
 
 1. Open `chrome://extensions`.
 2. Enable **Developer mode**.
@@ -240,7 +242,7 @@ Build the engine into the repository's `bin/` directory before starting `npm run
 Confirm that:
 
 - Chrome or Chromium is version 116 or newer;
-- the unpacked DAWG extension is enabled and was reloaded after the last update;
+- the DAWG extension is enabled; if using an unpacked development copy, it was reloaded after the last update;
 - the target begins with `http://` or `https://`;
 - loopback port `8082` is not blocked.
 

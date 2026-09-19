@@ -1,6 +1,24 @@
 # Changelog
 
-Notable changes to DAWG are listed below in descending release order. Each heading links to the corresponding GitHub release.
+Notable changes to DAWG are listed below in descending release order. Released versions link to their corresponding GitHub releases.
+
+## [0.2.5-naughty](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3)
+
+**Tag:** `naughty-3`
+
+### Added
+
+- A DAWG-styled extension popup using the real paw asset and locally hosted Outfit font
+- Portable `.dawg` Replay import and export
+- Chrome Web Store distribution for the browser extension
+
+### Changed
+
+- Dashboard **Replay** now navigates to Replay, preselects the chosen artifact, and does not start playback automatically
+- Desktop replay now provides interactive play/pause, skip, speed, and timeline controls
+- Desktop replay preserves the recorded viewport with corrected letterboxing and scaling
+
+---
 
 ## [0.2.3-naughty](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-2) - 2026-09-12
 
