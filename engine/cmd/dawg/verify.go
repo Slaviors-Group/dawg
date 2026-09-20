@@ -35,7 +35,7 @@ func newVerifyCommand() *cobra.Command {
 			}
 
 			manifestPath := filepath.Join(layoutDir, "dawg-manifest.json")
-			m, err := manifest.Read(manifestPath)
+			m, err := manifest.ReadValidated(manifestPath)
 			if err != nil {
 				return fmt.Errorf("verify: read manifest: %w", err)
 			}

@@ -47,26 +47,16 @@ function getRecordedViewport(events) {
     };
 }
 
-function interactiveDocument(viewport) {
+function interactiveDocument() {
     return `<!DOCTYPE html>
 <html>
 <head>
-<style>
-    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
-    * { box-sizing: border-box; }
-    body { margin: 0; min-width: 320px; overflow: hidden; background: #141414; }
-    #replay-app { display: grid; grid-template-rows: minmax(0, 1fr) auto; height: 100vh; }
-    #viewport-host { display: flex; min-height: 0; align-items: center; justify-content: center; overflow: hidden; background: #050505; }
-    #recorded-stage { width: ${viewport.width}px; height: ${viewport.height}px; flex: 0 0 auto; overflow: hidden; transform-origin: center center; background: white; box-shadow: 0 0 28px rgba(0, 0, 0, .7); }
-    #replay-root, #replay-root > .replayer-wrapper { width: 100%; height: 100%; }
-    #replay-controls { display: grid; grid-template-columns: auto auto auto auto minmax(120px, 1fr) auto; gap: 8px; align-items: center; padding: 10px 14px; border-top: 1px solid #343434; background: #1e1e1e; color: #f3f3f3; }
-    #replay-controls button { min-width: 44px; min-height: 32px; border: 1px solid #5a5a5a; border-radius: 4px; background: #2c2c2c; color: inherit; cursor: pointer; font: inherit; }
-    #replay-controls button:hover { background: #3a3a3a; }
-    #replay-controls button:focus-visible, #timeline:focus-visible { outline: 2px solid #77a7ff; outline-offset: 2px; }
-    #timeline { width: 100%; accent-color: #77a7ff; cursor: pointer; }
-    #time-label { min-width: 118px; color: #d0d0d0; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-    @media (max-width: 560px) { #replay-controls { grid-template-columns: auto auto auto auto minmax(80px, 1fr); } #time-label { grid-column: 1 / -1; text-align: left; } }
-</style>
+    <meta charset="utf-8">
+    <title>DAWG Replay</title>
+    <link rel="stylesheet" href="/rrweb.css">
+    <link rel="stylesheet" href="/replay.css">
+    <script src="/rrweb.js"></script>
+    <script src="/replay.js" defer></script>
 </head>
 <body>
     <main id="replay-app">
@@ -84,6 +74,143 @@ function interactiveDocument(viewport) {
     </main>
 </body>
 </html>`;
+}
+
+function interactiveStyles(viewport) {
+    return `:root { color-scheme: dark; font-family: system-ui, sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; overflow: hidden; background: #141414; }
+#replay-app { display: grid; grid-template-rows: minmax(0, 1fr) auto; height: 100vh; }
+#viewport-host { display: flex; min-height: 0; align-items: center; justify-content: center; overflow: hidden; background: #050505; }
+#recorded-stage { width: ${viewport.width}px; height: ${viewport.height}px; flex: 0 0 auto; overflow: hidden; transform-origin: center center; background: white; box-shadow: 0 0 28px rgba(0, 0, 0, .7); }
+#replay-root, #replay-root > .replayer-wrapper { width: 100%; height: 100%; }
+#replay-controls { display: grid; grid-template-columns: auto auto auto auto minmax(120px, 1fr) auto; gap: 8px; align-items: center; padding: 10px 14px; border-top: 1px solid #343434; background: #1e1e1e; color: #f3f3f3; }
+#replay-controls button { min-width: 44px; min-height: 32px; border: 1px solid #5a5a5a; border-radius: 4px; background: #2c2c2c; color: inherit; cursor: pointer; font: inherit; }
+#replay-controls button:hover { background: #3a3a3a; }
+#replay-controls button:focus-visible, #timeline:focus-visible { outline: 2px solid #77a7ff; outline-offset: 2px; }
+#timeline { width: 100%; accent-color: #77a7ff; cursor: pointer; }
+#time-label { min-width: 118px; color: #d0d0d0; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+@media (max-width: 560px) { #replay-controls { grid-template-columns: auto auto auto auto minmax(80px, 1fr); } #time-label { grid-column: 1 / -1; text-align: left; } }`;
+}
+
+function interactiveScript(recordedViewport) {
+    return `(async () => {
+    try {
+        const response = await fetch("/events.json");
+        if (!response.ok) throw new Error(\`events request failed: \${response.status}\`);
+        const events = await response.json();
+        const root = document.getElementById("replay-root");
+        const controls = document.getElementById("replay-controls");
+        const viewportHost = document.getElementById("viewport-host");
+        const stage = document.getElementById("recorded-stage");
+        const playPause = document.getElementById("play-pause");
+        const rewind = document.getElementById("rewind");
+        const forward = document.getElementById("forward");
+        const speed = document.getElementById("speed");
+        const timeline = document.getElementById("timeline");
+        const timeLabel = document.getElementById("time-label");
+        if (!root || !controls || !viewportHost || !stage || !playPause || !rewind || !forward || !speed || !timeline || !timeLabel) {
+            throw new Error("interactive replay controls could not be initialized");
+        }
+
+        const replayer = new rrweb.Replayer(events, { root, unpackFn: rrweb.unpack });
+        const replayerMetadata = replayer.getMetaData();
+        const replayDuration = Math.max(0, replayerMetadata.totalTime);
+        const metadata = {
+            ...replayerMetadata,
+            eventCount: events.length,
+            firstTimestamp: events[0].timestamp,
+            lastTimestamp: events[events.length - 1].timestamp,
+            recordedViewport: ${JSON.stringify(recordedViewport)},
+        };
+        const speeds = [0.5, 1, 1.5, 2, 4];
+        let speedIndex = speeds.indexOf(1);
+        let playing = false;
+        let scrubbing = false;
+
+        const formatTime = milliseconds => {
+            const totalSeconds = Math.floor(Math.max(0, milliseconds) / 1000);
+            const seconds = totalSeconds % 60;
+            const totalMinutes = Math.floor(totalSeconds / 60);
+            const minutes = totalMinutes % 60;
+            const hours = Math.floor(totalMinutes / 60);
+            const base = \`\${minutes}:\${String(seconds).padStart(2, "0")}\`;
+            return hours > 0 ? \`\${hours}:\${base.padStart(5, "0")}\` : base;
+        };
+        const clamp = value => Math.min(replayDuration, Math.max(0, Number(value) || 0));
+        const updateControls = timeOffset => {
+            const currentTime = clamp(timeOffset);
+            if (!scrubbing) timeline.value = String(currentTime);
+            timeLabel.textContent = \`\${formatTime(scrubbing ? Number(timeline.value) : currentTime)} / \${formatTime(replayDuration)}\`;
+            playPause.textContent = playing ? "Pause" : "Play";
+            playPause.setAttribute("aria-label", playing ? "Pause replay" : "Play replay");
+            speed.textContent = \`\${speeds[speedIndex]}x\`;
+        };
+        const play = () => replayer.play(clamp(replayer.getCurrentTime()));
+        const pause = () => replayer.pause();
+        const seek = timeOffset => {
+            const target = clamp(timeOffset);
+            const shouldPlay = playing;
+            replayer.pause(target);
+            if (shouldPlay) replayer.play(target);
+            updateControls(target);
+            return target;
+        };
+        const restart = () => seek(0);
+        const resizeStage = () => {
+            const scale = Math.max(0.01, Math.min(
+                viewportHost.clientWidth / metadata.recordedViewport.width,
+                viewportHost.clientHeight / metadata.recordedViewport.height,
+            ));
+            stage.style.transform = \`scale(\${scale})\`;
+        };
+
+        timeline.max = String(replayDuration);
+        replayer.on(rrweb.ReplayerEvents.Start, () => {
+            playing = true;
+            updateControls(replayer.getCurrentTime());
+        });
+        replayer.on(rrweb.ReplayerEvents.Pause, () => {
+            playing = false;
+            updateControls(replayer.getCurrentTime());
+        });
+        replayer.on(rrweb.ReplayerEvents.Finish, () => {
+            playing = false;
+            updateControls(replayDuration);
+        });
+        playPause.addEventListener("click", () => playing ? pause() : play());
+        rewind.addEventListener("click", () => seek(replayer.getCurrentTime() - 10000));
+        forward.addEventListener("click", () => seek(replayer.getCurrentTime() + 10000));
+        speed.addEventListener("click", () => {
+            speedIndex = (speedIndex + 1) % speeds.length;
+            replayer.setConfig({ speed: speeds[speedIndex] });
+            updateControls(replayer.getCurrentTime());
+        });
+        timeline.addEventListener("pointerdown", () => { scrubbing = true; });
+        timeline.addEventListener("input", () => updateControls(Number(timeline.value)));
+        timeline.addEventListener("change", () => {
+            scrubbing = false;
+            seek(Number(timeline.value));
+        });
+        timeline.addEventListener("pointerup", () => { scrubbing = false; });
+        new ResizeObserver(resizeStage).observe(viewportHost);
+        resizeStage();
+        window.setInterval(() => updateControls(replayer.getCurrentTime()), 100);
+
+        replayer.pause(0);
+        updateControls(0);
+        const iframe = root.querySelector("iframe");
+        if (!iframe) throw new Error("rrweb replay iframe was not created");
+        iframe.id = "dawg-replay-frame";
+        iframe.name = "dawg-replay-frame";
+        iframe.title = "DAWG replayed page";
+        iframe.dataset.dawgReplay = "true";
+        window.__DAWG_REPLAY__ = { events, replayer, iframe, play, pause, seek, restart, metadata };
+    } catch (error) {
+        window.__DAWG_REPLAY_ERROR__ = error && (error.stack || error.message) || String(error);
+        console.error(error);
+    }
+})();`;
 }
 
 async function main() {
@@ -175,160 +302,65 @@ async function main() {
             process.stderr.write(`[replay page error] ${err.message}\n`);
         });
 
-        // Make the events available to the browser context via routing.
-        await page.route("http://dawg-replay.local/events.json", route => {
-            route.fulfill({
-                contentType: "application/json",
-                body: JSON.stringify(events),
-            });
-        });
+        const eventsJson = JSON.stringify(events);
+        let evaluation;
 
         if (interactive) {
-            await page.setContent(interactiveDocument(recordedViewport));
+            const resources = new Map([
+                ["/", { contentType: "text/html", body: interactiveDocument() }],
+                ["/index.html", { contentType: "text/html", body: interactiveDocument() }],
+                ["/replay.js", { contentType: "text/javascript", body: interactiveScript(recordedViewport) }],
+                ["/replay.css", { contentType: "text/css", body: interactiveStyles(recordedViewport) }],
+                ["/rrweb.js", { contentType: "text/javascript", body: rrwebBundle }],
+                ["/rrweb.css", { contentType: "text/css", body: rrwebCss }],
+                ["/events.json", { contentType: "application/json", body: eventsJson }],
+            ]);
+            await page.route("http://dawg-replay.local/**", route => {
+                const resource = resources.get(new URL(route.request().url()).pathname);
+                if (resource) {
+                    return route.fulfill(resource);
+                }
+                return route.fulfill({ status: 404, contentType: "text/plain", body: "Not found" });
+            });
+            await page.goto("http://dawg-replay.local/", { waitUntil: "load" });
+            await page.waitForFunction(() => window.__DAWG_REPLAY__ || window.__DAWG_REPLAY_ERROR__);
+            evaluation = await page.evaluate(() => ({
+                duration: window.__DAWG_REPLAY__
+                    ? window.__DAWG_REPLAY__.metadata.lastTimestamp - window.__DAWG_REPLAY__.metadata.firstTimestamp
+                    : 0,
+                replayerError: window.__DAWG_REPLAY_ERROR__ || null,
+                iframeCount: document.querySelectorAll("iframe").length,
+            }));
         } else {
+            await page.route("http://dawg-replay.local/events.json", route => {
+                route.fulfill({ contentType: "application/json", body: eventsJson });
+            });
             await page.setContent("<!DOCTYPE html><html><head><style>body { margin: 0; padding: 0; }</style></head><body></body></html>");
-        }
-        await page.addScriptTag({ content: rrwebBundle });
-        await page.addStyleTag({ content: rrwebCss });
-
-        const evaluation = await page.evaluate(async ({ interactive, recordedViewport }) => {
-            const response = await fetch("http://dawg-replay.local/events.json");
-            const events = await response.json();
-            const firstTimestamp = events[0].timestamp;
-            const lastTimestamp = events[events.length - 1].timestamp;
-            const duration = lastTimestamp - firstTimestamp;
-            const root = interactive ? document.getElementById("replay-root") : document.body;
-
-            let replayerError = null;
-            try {
-                const replayer = new rrweb.Replayer(events, {
-                    root,
-                    unpackFn: rrweb.unpack,
-                });
-
-                if (interactive) {
-                    const controls = document.getElementById("replay-controls");
-                    const viewportHost = document.getElementById("viewport-host");
-                    const stage = document.getElementById("recorded-stage");
-                    const playPause = document.getElementById("play-pause");
-                    const rewind = document.getElementById("rewind");
-                    const forward = document.getElementById("forward");
-                    const speed = document.getElementById("speed");
-                    const timeline = document.getElementById("timeline");
-                    const timeLabel = document.getElementById("time-label");
-                    const replayDuration = Math.max(0, replayer.getMetaData().totalTime);
-                    const speeds = [0.5, 1, 1.5, 2, 4];
-                    let speedIndex = speeds.indexOf(1);
-                    let playing = false;
-                    let scrubbing = false;
-
-                    if (!controls || !viewportHost || !stage || !playPause || !rewind || !forward || !speed || !timeline || !timeLabel) {
-                        throw new Error("interactive replay controls could not be initialized");
-                    }
-
-                    const formatTime = milliseconds => {
-                        const totalSeconds = Math.floor(Math.max(0, milliseconds) / 1000);
-                        const seconds = totalSeconds % 60;
-                        const totalMinutes = Math.floor(totalSeconds / 60);
-                        const minutes = totalMinutes % 60;
-                        const hours = Math.floor(totalMinutes / 60);
-                        const base = `${minutes}:${String(seconds).padStart(2, "0")}`;
-                        return hours > 0 ? `${hours}:${base.padStart(5, "0")}` : base;
-                    };
-                    const clamp = value => Math.min(replayDuration, Math.max(0, value));
-                    const updateControls = timeOffset => {
-                        const currentTime = clamp(timeOffset);
-                        if (!scrubbing) {
-                            timeline.value = String(currentTime);
-                        }
-                        timeLabel.textContent = `${formatTime(scrubbing ? Number(timeline.value) : currentTime)} / ${formatTime(replayDuration)}`;
-                        playPause.textContent = playing ? "Pause" : "Play";
-                        playPause.setAttribute("aria-label", playing ? "Pause replay" : "Play replay");
-                        speed.textContent = `${speeds[speedIndex]}x`;
-                    };
-                    const seek = timeOffset => {
-                        const target = clamp(timeOffset);
-                        const shouldPlay = playing;
-                        // alpha.18 exposes seeking through play/pause offsets,
-                        // rather than a dedicated seek method.
-                        replayer.pause(target);
-                        if (shouldPlay) {
-                            replayer.play(target);
-                        }
-                        updateControls(target);
-                    };
-                    const resizeStage = () => {
-                        const scale = Math.max(0.01, Math.min(
-                            viewportHost.clientWidth / recordedViewport.width,
-                            viewportHost.clientHeight / recordedViewport.height,
-                        ));
-                        stage.style.transform = `scale(${scale})`;
-                    };
-
-                    timeline.max = String(replayDuration);
-                    replayer.on(rrweb.ReplayerEvents.Start, () => {
-                        playing = true;
-                        updateControls(replayer.getCurrentTime());
+            await page.addScriptTag({ content: rrwebBundle });
+            await page.addStyleTag({ content: rrwebCss });
+            evaluation = await page.evaluate(async () => {
+                const response = await fetch("http://dawg-replay.local/events.json");
+                const events = await response.json();
+                const duration = events[events.length - 1].timestamp - events[0].timestamp;
+                let replayerError = null;
+                try {
+                    const replayer = new rrweb.Replayer(events, {
+                        root: document.body,
+                        unpackFn: rrweb.unpack,
                     });
-                    replayer.on(rrweb.ReplayerEvents.Pause, () => {
-                        playing = false;
-                        updateControls(replayer.getCurrentTime());
-                    });
-                    replayer.on(rrweb.ReplayerEvents.Finish, () => {
-                        playing = false;
-                        updateControls(replayDuration);
-                    });
-                    playPause.addEventListener("click", () => {
-                        if (playing) {
-                            replayer.pause();
-                        } else {
-                            replayer.play(clamp(replayer.getCurrentTime()));
-                        }
-                    });
-                    rewind.addEventListener("click", () => seek(replayer.getCurrentTime() - 10000));
-                    forward.addEventListener("click", () => seek(replayer.getCurrentTime() + 10000));
-                    speed.addEventListener("click", () => {
-                        speedIndex = (speedIndex + 1) % speeds.length;
-                        // alpha.18 changes speed through Replayer#setConfig.
-                        replayer.setConfig({ speed: speeds[speedIndex] });
-                        updateControls(replayer.getCurrentTime());
-                    });
-                    timeline.addEventListener("pointerdown", () => {
-                        scrubbing = true;
-                    });
-                    timeline.addEventListener("input", () => {
-                        updateControls(Number(timeline.value));
-                    });
-                    timeline.addEventListener("change", () => {
-                        scrubbing = false;
-                        seek(Number(timeline.value));
-                    });
-                    timeline.addEventListener("pointerup", () => {
-                        scrubbing = false;
-                    });
-                    new ResizeObserver(resizeStage).observe(viewportHost);
-                    resizeStage();
-                    window.setInterval(() => updateControls(replayer.getCurrentTime()), 100);
-
-                    // Start at the beginning in a paused state so the user has a
-                    // video-like first frame and can choose when to play.
-                    replayer.pause(0);
-                    updateControls(0);
-                } else {
                     // Preserve automated replay behavior: autoplay through the
                     // trace, wait, capture the screenshot, and close Chromium.
                     replayer.play();
+                } catch (error) {
+                    replayerError = error && (error.stack || error.message);
                 }
-            } catch (error) {
-                replayerError = error && (error.stack || error.message);
-            }
-
-            return {
-                duration,
-                replayerError,
-                iframeCount: document.querySelectorAll("iframe").length,
-            };
-        }, { interactive, recordedViewport });
+                return {
+                    duration,
+                    replayerError,
+                    iframeCount: document.querySelectorAll("iframe").length,
+                };
+            });
+        }
 
         if (evaluation.replayerError) {
             throw new Error(`rrweb.Replayer failed: ${evaluation.replayerError}`);
@@ -336,7 +368,7 @@ async function main() {
         process.stderr.write(`Replayer attached ${evaluation.iframeCount} iframe(s) to the page.\n`);
 
         if (interactive) {
-            process.stderr.write(`Interactive replay ready at recorded viewport ${recordedViewport.width}x${recordedViewport.height}. Close the replay window when finished.\n`);
+            process.stderr.write(`Interactive replay ready at http://dawg-replay.local/ with recorded viewport ${recordedViewport.width}x${recordedViewport.height}. Close the replay window when finished.\n`);
             await Promise.race([
                 new Promise(resolve => browser.once("disconnected", resolve)),
                 new Promise(resolve => page.once("close", resolve)),

@@ -1,6 +1,6 @@
 {
-  "appVersion": "0.2.5-naughty",
-  "desktopVersion": "0.2.5",
+  "appVersion": "0.2.7-naughty",
+  "desktopVersion": "0.2.7",
   "extensionVersion": "0.2.5_naughty",
   "runtime": {
     "mitmproxy": "12.2.3",

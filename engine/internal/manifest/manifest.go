@@ -12,7 +12,13 @@ import (
 )
 
 // SchemaVersion is the current DAWG manifest schema version.
-const SchemaVersion = "0.2.5-naughty"
+const SchemaVersion = "0.2.7-naughty"
+
+var schemaFiles = map[string]string{
+	"0.2.3-naughty": "v0.2.3-naughty.json",
+	"0.2.5-naughty": "v0.2.5-naughty.json",
+	"0.2.7-naughty": "v0.2.7-naughty.json",
+}
 
 // Manifest is the OCI config document for a DAWG artifact.
 type Manifest struct {
@@ -73,13 +79,49 @@ func Read(path string) (Manifest, error) {
 	return Unmarshal(contents)
 }
 
-// DefaultSchemaPath locates the development schema from the working directory or executable path.
-func DefaultSchemaPath() (string, error) {
+// ReadValidated loads a manifest, validates its raw JSON against the schema
+// declared by schemaVersion, and then decodes it.
+func ReadValidated(path string) (Manifest, error) {
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return Manifest{}, fmt.Errorf("manifest: read %s: %w", path, err)
+	}
+
+	var header struct {
+		SchemaVersion string `json:"schemaVersion"`
+	}
+	if err := json.Unmarshal(contents, &header); err != nil {
+		return Manifest{}, fmt.Errorf("%w: decode JSON: %v", dawgtypes.ErrInvalidManifest, err)
+	}
+
+	schemaPath, err := SchemaPath(header.SchemaVersion)
+	if err != nil {
+		return Manifest{}, err
+	}
+	if err := ValidateJSON(schemaPath, contents); err != nil {
+		return Manifest{}, err
+	}
+	return Unmarshal(contents)
+}
+
+// SchemaPath locates the schema for an explicitly supported manifest version.
+func SchemaPath(version string) (string, error) {
+	filename, supported := schemaFiles[version]
+	if !supported {
+		return "", fmt.Errorf("%w: unsupported schema version %q", dawgtypes.ErrInvalidManifest, version)
+	}
+
 	if configuredPath := os.Getenv("DAWG_SCHEMA_PATH"); configuredPath != "" {
-		return configuredPath, nil
+		if version == SchemaVersion {
+			return configuredPath, nil
+		}
+		candidate := filepath.Join(filepath.Dir(configuredPath), filename)
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate, nil
+		}
 	}
 	if resDir := os.Getenv("DAWG_RESOURCES_DIR"); resDir != "" {
-		candidate := filepath.Join(resDir, "schema", "manifest", "v0.2.5-naughty.json")
+		candidate := filepath.Join(resDir, "schema", "manifest", filename)
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate, nil
 		}
@@ -94,7 +136,7 @@ func DefaultSchemaPath() (string, error) {
 	}
 	for _, start := range starts {
 		for directory := start; ; directory = filepath.Dir(directory) {
-			candidate := filepath.Join(directory, "schema", "manifest", "v0.2.5-naughty.json")
+			candidate := filepath.Join(directory, "schema", "manifest", filename)
 			if _, err := os.Stat(candidate); err == nil {
 				return candidate, nil
 			}
@@ -103,5 +145,10 @@ func DefaultSchemaPath() (string, error) {
 			}
 		}
 	}
-	return "", fmt.Errorf("manifest: locate schema: %w", os.ErrNotExist)
+	return "", fmt.Errorf("manifest: locate schema for version %q: %w", version, os.ErrNotExist)
+}
+
+// DefaultSchemaPath locates the current development schema.
+func DefaultSchemaPath() (string, error) {
+	return SchemaPath(SchemaVersion)
 }

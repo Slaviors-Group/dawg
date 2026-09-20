@@ -34,16 +34,9 @@ func inspectArtifact(directory string) (manifest.Manifest, error) {
 	if !info.IsDir() {
 		return manifest.Manifest{}, fmt.Errorf("inspect: artifact path %s is not a directory", directory)
 	}
-	value, err := manifest.Read(filepath.Join(directory, "dawg-manifest.json"))
+	value, err := manifest.ReadValidated(filepath.Join(directory, "dawg-manifest.json"))
 	if err != nil {
 		return manifest.Manifest{}, fmt.Errorf("inspect: read artifact manifest: %w", err)
-	}
-	schemaPath, err := manifest.DefaultSchemaPath()
-	if err != nil {
-		return manifest.Manifest{}, fmt.Errorf("inspect: locate manifest schema: %w", err)
-	}
-	if err := manifest.Validate(schemaPath, value); err != nil {
-		return manifest.Manifest{}, fmt.Errorf("inspect: validate artifact manifest: %w", err)
 	}
 	return value, nil
 }

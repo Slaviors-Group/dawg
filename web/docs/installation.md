@@ -4,9 +4,9 @@ DAWG is available as a self-contained desktop application or as source for engin
 
 ## Current Release
 
-The current prerelease is [`0.2.5-naughty`](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3) (`naughty-3`). It includes desktop version `0.2.5` and extension display version `0.2.5_naughty`.
+The current prerelease is [`0.2.7-naughty`](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-4) (`naughty-4`). It includes desktop version `0.2.7` and extension display version `0.2.5_naughty`.
 
-Download the available desktop installer assets from the [0.2.5-naughty GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3). Linux targets are configured; build the AppImage from source with `desktop/build-bundle.sh` when an AppImage is not attached to the release.
+[Download DAWG 0.2.7 for Windows x64](https://github.com/Slaviors-Group/dawg/releases/download/naughty-4/DAWG_0.2.7_x64-setup.exe). The direct installer link becomes available when the release is published. Visit the [0.2.7-naughty GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-4) for checksums and other assets. Linux targets are configured; build the AppImage from source with `desktop/build-bundle.sh` when an AppImage is not attached to the release.
 
 See [all releases](https://github.com/Slaviors-Group/dawg/releases) for older prereleases and assets.
 

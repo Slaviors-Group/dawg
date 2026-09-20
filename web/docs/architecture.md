@@ -1,6 +1,6 @@
 # Architecture
 
-DAWG `0.2.5-naughty` captures a browser session through an extension, sanitizes supported JSONL streams, packages them as an OCI Image Layout, and renders the recording for replay and verification.
+DAWG `0.2.7-naughty` captures a browser session through an extension, sanitizes supported JSONL streams, packages them as an OCI Image Layout, and renders the recording for replay and verification.
 
 ## Pipeline Overview
 
@@ -76,7 +76,7 @@ A packaged artifact is an OCI Image Layout:
         └── <digest>
 ```
 
-The DAWG manifest is validated against `schema/manifest/v0.2.5-naughty.json`. It requires the schema version, SHA-256 artifact ID, creation time, non-empty title, source, at least one layer, sanitization metadata, determinism metadata, and expected outcome.
+The DAWG manifest is validated against the schema matching its declared version. DAWG `0.2.7-naughty` accepts the explicitly supported `0.2.3-naughty`, `0.2.5-naughty`, and `0.2.7-naughty` schemas. Each schema requires the schema version, SHA-256 artifact ID, creation time, non-empty title, source, at least one layer, sanitization metadata, determinism metadata, and expected outcome.
 
 ### Current Layer Types
 
@@ -152,7 +152,9 @@ dawg/
 │   ├── src/                      # React UI
 │   └── src-tauri/                # Tauri host
 ├── schema/
+│   ├── manifest/v0.2.3-naughty.json
 │   ├── manifest/v0.2.5-naughty.json
+│   ├── manifest/v0.2.7-naughty.json
 │   ├── mediatypes.json
 │   └── policies/default.rego
 ├── tools/sync-versions.cjs

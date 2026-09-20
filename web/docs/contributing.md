@@ -207,8 +207,8 @@ The current version values are:
 
 | Field | Value |
 |---|---|
-| Application and schema | `0.2.5-naughty` |
-| Desktop/Tauri/Cargo | `0.2.5` |
+| Application and schema | `0.2.7-naughty` |
+| Desktop/Tauri/Cargo | `0.2.7` |
 | Extension display version | `0.2.5_naughty` |
 | Extension install version | `0.2.5` |
 | Bundled Node.js | `22.14.0` |
@@ -221,7 +221,7 @@ npm run sync:versions
 npm run check:versions
 ```
 
-The synchronizer updates the engine and desktop package metadata, lockfiles, CLI constant, Cargo and Tauri versions, extension manifest, bundle runtime pins, settings display, schema filename, and schema references. Do not edit those generated version fields independently.
+The synchronizer updates the engine and desktop package metadata, lockfiles, CLI constant, Cargo and Tauri versions, extension manifest, bundle runtime pins, settings display, current schema file, and current-version references. Historical schemas are retained for compatibility. Do not edit generated version fields independently.
 
 Chrome requires a numeric extension version, so `0.2.5_naughty` becomes `version: "0.2.5"` with `version_name: "0.2.5_naughty"`. Dependency versions remain managed by package manifests and lockfiles.
 

@@ -187,8 +187,72 @@ func TestInspectReturnsValidatedManifestJSON(t *testing.T) {
 	if err := json.Unmarshal(buffer.Bytes(), &value); err != nil {
 		t.Fatalf("decode inspect output: %v", err)
 	}
-	if value["schemaVersion"] != "0.2.5-naughty" || value["title"] == "" {
+	if value["schemaVersion"] != "0.2.7-naughty" || value["title"] == "" {
 		t.Fatalf("unexpected inspect output: %#v", value)
+	}
+}
+
+func TestInspectAcceptsLegacyManifest(t *testing.T) {
+	directory := t.TempDir()
+	fixturePath := filepath.Join("..", "..", "internal", "manifest", "testdata", "valid.json")
+	contents, err := os.ReadFile(fixturePath)
+	if err != nil {
+		t.Fatalf("read manifest fixture: %v", err)
+	}
+	contents = bytes.Replace(contents, []byte("0.2.7-naughty"), []byte("0.2.3-naughty"), 1)
+	if err := os.WriteFile(filepath.Join(directory, "dawg-manifest.json"), contents, 0o600); err != nil {
+		t.Fatalf("write artifact manifest: %v", err)
+	}
+
+	command := newRootCommand()
+	buffer := new(bytes.Buffer)
+	command.SetOut(buffer)
+	command.SetArgs([]string{"--output", "json", "inspect", directory})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("inspect legacy artifact: %v", err)
+	}
+	if !strings.Contains(buffer.String(), `"schemaVersion": "0.2.3-naughty"`) {
+		t.Fatalf("inspect output did not preserve legacy version: %s", buffer.String())
+	}
+}
+
+func TestInspectRejectsUnsupportedManifestVersion(t *testing.T) {
+	directory := t.TempDir()
+	fixturePath := filepath.Join("..", "..", "internal", "manifest", "testdata", "valid.json")
+	contents, err := os.ReadFile(fixturePath)
+	if err != nil {
+		t.Fatalf("read manifest fixture: %v", err)
+	}
+	contents = bytes.Replace(contents, []byte("0.2.7-naughty"), []byte("0.2.4-naughty"), 1)
+	if err := os.WriteFile(filepath.Join(directory, "dawg-manifest.json"), contents, 0o600); err != nil {
+		t.Fatalf("write artifact manifest: %v", err)
+	}
+
+	command := newRootCommand()
+	command.SetArgs([]string{"inspect", directory})
+	err = command.Execute()
+	if err == nil || !strings.Contains(err.Error(), "unsupported schema version") {
+		t.Fatalf("expected unsupported schema version error, got %v", err)
+	}
+}
+
+func TestInspectRejectsAdditionalManifestProperties(t *testing.T) {
+	directory := t.TempDir()
+	fixturePath := filepath.Join("..", "..", "internal", "manifest", "testdata", "valid.json")
+	contents, err := os.ReadFile(fixturePath)
+	if err != nil {
+		t.Fatalf("read manifest fixture: %v", err)
+	}
+	contents = bytes.Replace(contents, []byte(`  "title":`), []byte("  \"unexpected\": true,\n  \"title\":"), 1)
+	if err := os.WriteFile(filepath.Join(directory, "dawg-manifest.json"), contents, 0o600); err != nil {
+		t.Fatalf("write artifact manifest: %v", err)
+	}
+
+	command := newRootCommand()
+	command.SetArgs([]string{"inspect", directory})
+	err = command.Execute()
+	if err == nil || !strings.Contains(err.Error(), "schema validation") {
+		t.Fatalf("expected schema validation error, got %v", err)
 	}
 }
 
