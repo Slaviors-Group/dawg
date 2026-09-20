@@ -58,7 +58,7 @@ export default defineConfig({
       },
       { text: "Changelog", link: "/docs/changelog" },
       {
-        text: "v0.2.5-naughty",
+        text: "v0.2.7-naughty",
         items: [
           {
             text: "Releases",
