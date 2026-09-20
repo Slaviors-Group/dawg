@@ -2,6 +2,7 @@ import { X } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { type ReactNode, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "./Button";
 
 interface ModalProps {
@@ -43,12 +44,12 @@ export function Modal({
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
           key="modal-backdrop"
-          className="fixed inset-0 z-[50] flex items-center justify-center p-4 sm:p-6"
+          className="fixed inset-0 z-[50] flex items-center justify-center p-2 sm:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -68,9 +69,9 @@ export function Modal({
             aria-modal
             aria-labelledby="modal-title"
             className={[
-              "relative w-full bg-surface rounded-xl",
+              "relative m-0 w-full bg-surface rounded-xl",
               "border border-border shadow-modal",
-              "flex flex-col max-h-[88vh] overflow-hidden",
+              "flex min-h-0 flex-col max-h-[calc(100dvh-1rem)] overflow-hidden sm:max-h-[calc(100dvh-3rem)]",
               maxWidthClass[maxWidth],
             ].join(" ")}
             initial={{ opacity: 0, scale: 0.95, y: 12 }}
@@ -79,12 +80,14 @@ export function Modal({
             transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
           >
             {/* Header */}
-            <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-border shrink-0">
-              <div>
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-4 py-3 sm:gap-4 sm:px-6 sm:py-5">
+              <div className="min-w-0">
                 <h3 id="modal-title" className="text-base font-semibold text-text-primary">
                   {title}
                 </h3>
-                {subtitle && <p className="text-xs text-text-tertiary mt-0.5">{subtitle}</p>}
+                {subtitle && (
+                  <p className="mt-0.5 text-xs text-text-tertiary wrap-anywhere">{subtitle}</p>
+                )}
               </div>
               <button
                 type="button"
@@ -97,13 +100,17 @@ export function Modal({
             </div>
 
             {/* Body */}
-            <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+            <div className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-3 sm:px-6 sm:py-5">
+              {children}
+            </div>
 
             {/* Footer */}
             {footer !== undefined ? (
-              <div className="px-6 py-4 border-t border-border shrink-0">{footer}</div>
+              <div className="shrink-0 border-t border-border px-4 py-3 sm:px-6 sm:py-4">
+                {footer}
+              </div>
             ) : (
-              <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-border shrink-0">
+              <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border px-4 py-3 sm:px-6 sm:py-4">
                 <div>{footerLeft}</div>
                 <Button variant="secondary" size="sm" onClick={onClose}>
                   Close
@@ -113,6 +120,7 @@ export function Modal({
           </motion.dialog>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

@@ -112,12 +112,13 @@ function replaceRequired(file, pattern, replacement) {
 }
 
 function currentSchemaVersion() {
-  const manifestDir = path.join(root, "schema", "manifest");
-  const files = fs.readdirSync(manifestDir).filter((file) => /^v.+\.json$/.test(file));
-  if (files.length !== 1) {
-    throw new Error(`Expected one schema manifest in ${relative(manifestDir)}, found: ${files.join(", ")}`);
+  const manifestFile = path.join(root, "engine", "internal", "manifest", "manifest.go");
+  const contents = fs.readFileSync(manifestFile, "utf8");
+  const match = /^const SchemaVersion = "([^"]+)"$/m.exec(contents);
+  if (!match) {
+    throw new Error(`Expected SchemaVersion constant was not found in ${relative(manifestFile)}`);
   }
-  return files[0].slice(1, -".json".length);
+  return match[1];
 }
 
 const schemaVersion = appVersion;
@@ -137,6 +138,7 @@ updateJSON("desktop/src-tauri/tauri.conf.json", (config) => { config.version = d
 
 for (const lockFile of ["engine/package-lock.json", "desktop/package-lock.json"]) {
   updateJSON(lockFile, (lock) => {
+    lock.version = appVersion;
     if (lock.packages?.[""]) lock.packages[""].version = appVersion;
   });
 }
@@ -147,9 +149,19 @@ replaceRequired(
   `version = "${desktopVersion}"`,
 );
 replaceRequired(
+  path.join(root, "desktop", "src-tauri", "Cargo.lock"),
+  /(\[\[package\]\]\r?\nname = "dawg-desktop"\r?\nversion = ")[^"]+(".*)/,
+  `$1${desktopVersion}$2`,
+);
+replaceRequired(
   path.join(root, "engine", "cmd", "dawg", "main.go"),
   /^const version = ".+"$/m,
   `const version = "${appVersion}"`,
+);
+replaceRequired(
+  path.join(root, "engine", "internal", "manifest", "manifest.go"),
+  /^const SchemaVersion = ".+"$/m,
+  `const SchemaVersion = "${schemaVersion}"`,
 );
 replaceRequired(
   path.join(root, "desktop", "build-bundle.ps1"),
@@ -185,12 +197,9 @@ const schemaReferenceFiles = [
   "engine/internal/capture/envsnap.go",
   "engine/internal/capture/envsnap_test.go",
   "engine/internal/dawgenv/env.go",
-  "engine/internal/manifest/manifest.go",
-  "engine/internal/manifest/manifest_test.go",
   "engine/internal/manifest/testdata/invalid-missing-title.json",
   "engine/internal/manifest/testdata/valid.json",
   "engine/internal/packager/layout_test.go",
-  "README.md",
 ];
 for (const relativePath of schemaReferenceFiles) {
   const file = path.join(root, relativePath);
@@ -202,12 +211,11 @@ const oldSchemaFile = path.join(root, "schema", "manifest", `v${oldSchemaVersion
 const newSchemaFile = path.join(root, "schema", "manifest", `v${schemaVersion}.json`);
 const schemaContents = fs.readFileSync(oldSchemaFile, "utf8").split(oldSchemaVersion).join(schemaVersion);
 if (oldSchemaFile !== newSchemaFile) {
-  drift.push(`${relative(oldSchemaFile)} -> ${relative(newSchemaFile)}`);
-  if (!checkOnly) {
-    fs.writeFileSync(newSchemaFile, schemaContents);
-    fs.unlinkSync(oldSchemaFile);
+  if (!fs.existsSync(newSchemaFile) || fs.readFileSync(newSchemaFile, "utf8") !== schemaContents) {
+    drift.push(relative(newSchemaFile));
+    if (!checkOnly) fs.writeFileSync(newSchemaFile, schemaContents);
+    changed = true;
   }
-  changed = true;
 } else {
   writeText(oldSchemaFile, schemaContents);
 }

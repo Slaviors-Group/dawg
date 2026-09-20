@@ -2,13 +2,13 @@
 
 DAWG records one browser tab, sanitizes the captured data, and packages the session as a portable OCI artifact. The recommended workflow uses the desktop app together with the DAWG Browser Extension.
 
-> **Current prerelease:** [`0.2.5-naughty`](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3) (`naughty-3`) — desktop `0.2.5`; extension display version `0.2.5_naughty`.
+> **Current prerelease:** [`0.2.7-naughty`](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-4) (`naughty-4`) — desktop `0.2.7`; extension display version `0.2.5_naughty`.
 
 ## Quick Start: Desktop App
 
 ### 1. Install DAWG
 
-Download the available desktop installer assets from the [0.2.5-naughty GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3).
+[Download DAWG 0.2.7 for Windows x64](https://github.com/Slaviors-Group/dawg/releases/download/naughty-4/DAWG_0.2.7_x64-setup.exe), or visit the [0.2.7-naughty GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-4) for other assets.
 
 When an AppImage is not attached to the release, see [Installation](/docs/installation) to build it from source.
 

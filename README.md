@@ -7,14 +7,16 @@ session as an OCI Image Layout, and replays its rrweb DOM trace in Chromium. The
 repository contains a Go CLI, a Tauri desktop application, and a Chromium
 Manifest V3 extension.
 
-> **Current prerelease:** [`0.2.5-naughty`](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3)
+> **Current prerelease:** [`0.2.7-naughty`](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-4)
 >
-> Application and schema: `0.2.5-naughty` · Desktop: `0.2.5` · Extension: `0.2.5_naughty`
+> Application and schema: `0.2.7-naughty` · Desktop: `0.2.7` · Extension: `0.2.5_naughty`
 
 ## 📦 Install the Current Release
 
-Download the available desktop installer assets from the
-[`0.2.5-naughty` (`naughty-3`) GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3).
+[Download DAWG 0.2.7 for Windows x64](https://github.com/Slaviors-Group/dawg/releases/download/naughty-4/DAWG_0.2.7_x64-setup.exe), or view the
+[`0.2.7-naughty` (`naughty-4`) GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-4)
+for checksums and other assets. The direct installer link becomes available when
+the release is published.
 
 Linux targets are configured in Tauri; build the AppImage from source with
 `desktop/build-bundle.sh` when an AppImage is not attached to the release.
@@ -214,8 +216,8 @@ Node.js, and mitmproxy versions.
 
 ```json
 {
-  "appVersion": "0.2.5-naughty",
-  "desktopVersion": "0.2.5",
+  "appVersion": "0.2.7-naughty",
+  "desktopVersion": "0.2.7",
   "extensionVersion": "0.2.5_naughty",
   "runtime": {
     "mitmproxy": "12.2.3",

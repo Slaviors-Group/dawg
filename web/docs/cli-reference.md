@@ -1,6 +1,6 @@
 # CLI Reference
 
-This reference describes the DAWG `0.2.5-naughty` command-line interface.
+This reference describes the DAWG `0.2.7-naughty` command-line interface.
 
 ## Usage
 
@@ -152,7 +152,7 @@ dawg run <artifact-directory> [--interactive] [--output text|json]
 |---|---|
 | `--interactive` | Keep headed Chromium open with play/pause, skip, speed, and timeline controls. Desktop Replay uses this mode. |
 
-Replay unpacks the OCI layers, optionally starts a captured Compose environment and restores a PostgreSQL fixture, optionally starts cassette replay, and uses Playwright Chromium to render the recorded rrweb timeline. Standard mode plays to completion, writes `outcome/screenshot.png`, and exits. Interactive mode remains open until Chromium is closed or the Desktop **Stop Replay** action terminates it; it does not produce the final screenshot.
+Replay unpacks the OCI layers, optionally starts a captured Compose environment and restores a PostgreSQL fixture, optionally starts cassette replay, and uses Playwright Chromium to render the recorded rrweb timeline. Standard mode plays to completion, writes `outcome/screenshot.png`, and exits. Interactive mode remains open until Chromium is closed or the Desktop **Stop Replay** action terminates it; it does not produce the final screenshot. Press `Ctrl+Shift+I` to inspect the reconstructed rrweb document and `window.__DAWG_REPLAY__`. Refreshing the local replay page restarts it at the beginning.
 
 `run` visualizes the recording; it does not re-execute recorded click/fill actions or navigate through the original application flow. See [Architecture](./architecture.md#replay) for platform and determinism boundaries.
 
@@ -190,7 +190,7 @@ The report checks:
 - `replay-browser.cjs`
 - the browser extension manifest
 - the default Rego policy
-- the `0.2.5-naughty` manifest schema
+- the current `0.2.7-naughty` manifest schema
 
 The report status is `ready` or `degraded`. A degraded component is recorded in the report; degradation alone does not currently make the command return an execution error.
 
@@ -229,7 +229,7 @@ Captured artifacts are stored under `artifacts/<timestamped-title>`.
 `dawg init` generates a configuration with the current schema version and absolute state paths:
 
 ```yaml
-schemaVersion: "0.2.5-naughty"
+schemaVersion: "0.2.7-naughty"
 capture:
   outputDir: "<absolute-state-directory>/captures"
   browser: "chromium"

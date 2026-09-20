@@ -3,12 +3,12 @@
 DAWG Desktop is the Tauri v2 interface for the Go engine. It uses Rust, React 19,
 Vite 7, Tailwind CSS 4, Framer Motion, and Phosphor icons.
 
-> Application package: `0.2.5-naughty` · Tauri/Cargo package: `0.2.5`
+> Application package: `0.2.7-naughty` · Tauri/Cargo package: `0.2.7`
 >
 > Bundled Node.js: `22.14.0` · Bundled mitmproxy: `12.2.3`
 
-Download available desktop installers from the current
-[`0.2.5-naughty` (`naughty-3`) release](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3).
+Download the [DAWG 0.2.7 Windows x64 installer](https://github.com/Slaviors-Group/dawg/releases/download/naughty-4/DAWG_0.2.7_x64-setup.exe), or view the current
+[`0.2.7-naughty` (`naughty-4`) release](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-4).
 Linux targets are configured; build the AppImage from source when it is not
 attached to the release.
 
@@ -199,7 +199,7 @@ npm run check:versions
 ```
 
 The desktop npm package uses the labeled application version
-`0.2.5-naughty`; Cargo and Tauri use numeric version `0.2.5`.
+`0.2.7-naughty`; Cargo and Tauri use numeric version `0.2.7`.
 
 ## ✅ Validation
 

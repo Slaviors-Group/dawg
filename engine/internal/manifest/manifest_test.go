@@ -1,6 +1,7 @@
 package manifest
 
 import (
+	"bytes"
 	"errors"
 	"os"
 	"path/filepath"
@@ -67,7 +68,79 @@ func TestValidateJSONRejectsMalformedSchema(t *testing.T) {
 	}
 }
 
+func TestReadValidatedAcceptsSupportedVersions(t *testing.T) {
+	contents := validManifestContents(t)
+	for _, version := range []string{"0.2.3-naughty", "0.2.5-naughty", SchemaVersion} {
+		t.Run(version, func(t *testing.T) {
+			versionedContents := bytes.Replace(contents, []byte(SchemaVersion), []byte(version), 1)
+			path := writeManifest(t, versionedContents)
+
+			value, err := ReadValidated(path)
+			if err != nil {
+				t.Fatalf("read validated manifest: %v", err)
+			}
+			if value.SchemaVersion != version {
+				t.Fatalf("expected schema version %q, got %q", version, value.SchemaVersion)
+			}
+		})
+	}
+}
+
+func TestReadValidatedRejectsUnsupportedAndPathLikeVersions(t *testing.T) {
+	contents := validManifestContents(t)
+	for _, version := range []string{"0.2.4-naughty", "../../v0.2.5-naughty.json"} {
+		t.Run(version, func(t *testing.T) {
+			versionedContents := bytes.Replace(contents, []byte(SchemaVersion), []byte(version), 1)
+			_, err := ReadValidated(writeManifest(t, versionedContents))
+			if !errors.Is(err, dawgtypes.ErrInvalidManifest) {
+				t.Fatalf("expected invalid manifest error, got %v", err)
+			}
+		})
+	}
+}
+
+func TestReadValidatedRejectsAdditionalProperties(t *testing.T) {
+	contents := validManifestContents(t)
+	contents = bytes.Replace(contents, []byte(`  "title":`), []byte("  \"unexpected\": true,\n  \"title\":"), 1)
+
+	_, err := ReadValidated(writeManifest(t, contents))
+	if !errors.Is(err, dawgtypes.ErrInvalidManifest) {
+		t.Fatalf("expected invalid manifest error, got %v", err)
+	}
+}
+
+func TestSchemaPathUsesVersionSpecificSchemaWithOverride(t *testing.T) {
+	currentPath := schemaPath(t)
+	t.Setenv("DAWG_SCHEMA_PATH", currentPath)
+
+	legacyPath, err := SchemaPath("0.2.3-naughty")
+	if err != nil {
+		t.Fatalf("locate legacy schema: %v", err)
+	}
+	if legacyPath == currentPath || filepath.Base(legacyPath) != "v0.2.3-naughty.json" {
+		t.Fatalf("legacy version resolved to wrong schema: %s", legacyPath)
+	}
+}
+
+func validManifestContents(t *testing.T) []byte {
+	t.Helper()
+	contents, err := os.ReadFile(filepath.Join("testdata", "valid.json"))
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+	return contents
+}
+
+func writeManifest(t *testing.T, contents []byte) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "dawg-manifest.json")
+	if err := os.WriteFile(path, contents, 0o600); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+	return path
+}
+
 func schemaPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join("..", "..", "..", "schema", "manifest", "v0.2.5-naughty.json")
+	return filepath.Join("..", "..", "..", "schema", "manifest", "v"+SchemaVersion+".json")
 }
