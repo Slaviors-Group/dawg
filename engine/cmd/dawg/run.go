@@ -67,7 +67,7 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string, interactive bo
 	}
 
 	manifestPath := filepath.Join(layoutDir, "dawg-manifest.json")
-	m, err := manifest.Read(manifestPath)
+	m, err := manifest.ReadValidated(manifestPath)
 	if err != nil {
 		return out, fmt.Errorf("replay: read manifest: %w", err)
 	}

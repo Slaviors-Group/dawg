@@ -1,8 +1,38 @@
 # Changelog
 
-Notable changes to DAWG are listed below in descending release order. Released versions link to their corresponding GitHub releases.
+Notable changes to DAWG are grouped by release family and listed in descending release order. Released versions link to their corresponding GitHub releases.
 
-## [0.2.5-naughty](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3)
+## Middlechild family — planned `0.3.x`
+
+### `0.3.x-middlechild` — planned
+
+Middlechild will expand DAWG from visual replay into a richer diagnostic evidence workflow, pairing rrweb playback with captured console errors, sanitized network details, and a more complete investigation experience.
+
+---
+
+## Naughty family — `0.2.x`
+
+### [0.2.7-naughty](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-4) - 2026-09-20
+
+**Tag:** `naughty-4`
+
+### Added
+
+- Replay debugging through Chromium DevTools with named replay resources and a `window.__DAWG_REPLAY__` handle for the reconstructed rrweb document
+- Artifact compatibility for supported manifests from `0.2.3-naughty` onward
+
+### Changed
+
+- Interactive replay now uses a stable local replay page that can be inspected and reloaded normally
+
+### Fixed
+
+- Refreshing interactive Chromium now reconstructs and restarts replay instead of leaving a blank page
+- Artifact Inspector dialogs now remain above the sidebar and fit minimized or narrow windows
+
+---
+
+### [0.2.5-naughty](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3)
 
 **Tag:** `naughty-3`
 
@@ -20,7 +50,7 @@ Notable changes to DAWG are listed below in descending release order. Released v
 
 ---
 
-## [0.2.3-naughty](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-2) - 2026-09-12
+### [0.2.3-naughty](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-2) - 2026-09-12
 
 **Tag:** `naughty-2` · **Release:** Naughty 2, Naughty Boy
 
@@ -38,7 +68,7 @@ Notable changes to DAWG are listed below in descending release order. Released v
 
 ---
 
-## [0.2.0-naughty](https://github.com/Slaviors-Group/dawg/releases/tag/naughty) - 2026-09-11
+### [0.2.0-naughty](https://github.com/Slaviors-Group/dawg/releases/tag/naughty) - 2026-09-11
 
 **Tag:** `naughty` · **Release:** Naughty Boy is Here, Finally
 
@@ -56,7 +86,9 @@ Notable changes to DAWG are listed below in descending release order. Released v
 
 ---
 
-## [0.1.3-alpha](https://github.com/Slaviors-Group/dawg/releases/tag/v0.1.3) - 2026-09-09
+## Alpha family — `0.1.x`
+
+### [0.1.3-alpha](https://github.com/Slaviors-Group/dawg/releases/tag/v0.1.3) - 2026-09-09
 
 **Tag:** `v0.1.3` · **Release:** v0.1.3-1/alpha
 
@@ -72,7 +104,7 @@ Notable changes to DAWG are listed below in descending release order. Released v
 
 ---
 
-## [0.1.2-alpha](https://github.com/Slaviors-Group/dawg/releases/tag/alpha-3) - 2026-09-06
+### [0.1.2-alpha](https://github.com/Slaviors-Group/dawg/releases/tag/alpha-3) - 2026-09-06
 
 **Tag:** `alpha-3` · **Release:** v0.1.2-1/alpha
 
@@ -86,7 +118,7 @@ Notable changes to DAWG are listed below in descending release order. Released v
 
 ---
 
-## [0.1.1-alpha](https://github.com/Slaviors-Group/dawg/releases/tag/alpha-2) - 2026-09-04
+### [0.1.1-alpha](https://github.com/Slaviors-Group/dawg/releases/tag/alpha-2) - 2026-09-04
 
 **Tag:** `alpha-2` · **Release:** v0.1.1-1/alpha
 
@@ -97,7 +129,7 @@ Notable changes to DAWG are listed below in descending release order. Released v
 
 ---
 
-## [0.1.0-alpha](https://github.com/Slaviors-Group/dawg/releases/tag/alpha) - 2026-09-04
+### [0.1.0-alpha](https://github.com/Slaviors-Group/dawg/releases/tag/alpha) - 2026-09-04
 
 **Tag:** `alpha` · **Release:** 0.1.0-1/alpha
 
