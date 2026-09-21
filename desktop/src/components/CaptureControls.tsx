@@ -201,7 +201,9 @@ export const CaptureControls: React.FC = () => {
                       className="mt-0.5 accent-[--color-brand-500]"
                     />
                     <span>
-                      <span className="block text-sm font-medium text-text-primary">{profile.title}</span>
+                      <span className="block text-sm font-medium text-text-primary">
+                        {profile.title}
+                      </span>
                       <span className="mt-0.5 block text-xs text-text-tertiary">
                         {profile.description}
                       </span>
@@ -213,7 +215,9 @@ export const CaptureControls: React.FC = () => {
 
             {diagnosticsProfile === "enhanced" && (
               <div className="rounded-md border border-warning-border bg-warning-bg p-3">
-                <p className="text-xs font-semibold text-warning-text">Enhanced Diagnostics warning</p>
+                <p className="text-xs font-semibold text-warning-text">
+                  Enhanced Diagnostics warning
+                </p>
                 <p className="mt-1 text-xs text-warning-text">
                   Enhanced diagnostics may collect additional troubleshooting evidence. Review your
                   organization&apos;s data-handling policy before recording sensitive applications.

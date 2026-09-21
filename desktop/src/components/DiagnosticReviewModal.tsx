@@ -57,7 +57,13 @@ export function DiagnosticReviewModal({
           <Button variant="secondary" size="sm" onClick={close} disabled={submitting}>
             Cancel
           </Button>
-          <Button variant="primary" size="sm" onClick={() => void submit()} disabled={!confirmed} loading={submitting}>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => void submit()}
+            disabled={!confirmed}
+            loading={submitting}
+          >
             {action ? actionLabels[action] : "Continue"}
           </Button>
         </div>
@@ -69,12 +75,38 @@ export function DiagnosticReviewModal({
           unavailable, and truncated values are not reconstructed.
         </p>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-md border border-border bg-canvas-subtle p-3 text-xs">
-          <div><dt className="text-text-tertiary">Profile</dt><dd className="font-medium text-text-primary">{String(summary.profile ?? "legacy")}</dd></div>
-          <div><dt className="text-text-tertiary">Console records</dt><dd className="font-medium text-text-primary">{String(summary.consoleEvents ?? evidence?.console.length ?? 0)}</dd></div>
-          <div><dt className="text-text-tertiary">Network records</dt><dd className="font-medium text-text-primary">{String(summary.networkEvents ?? evidence?.network.length ?? 0)}</dd></div>
-          <div><dt className="text-text-tertiary">Error records</dt><dd className="font-medium text-text-primary">{String(summary.errorEvents ?? evidence?.errors.length ?? 0)}</dd></div>
-          <div><dt className="text-text-tertiary">Blocked bodies</dt><dd className="font-medium text-text-primary">{String(summary.blockedBodies ?? 0)}</dd></div>
-          <div><dt className="text-text-tertiary">Truncated bodies</dt><dd className="font-medium text-text-primary">{String(summary.truncatedBodies ?? 0)}</dd></div>
+          <div>
+            <dt className="text-text-tertiary">Profile</dt>
+            <dd className="font-medium text-text-primary">{String(summary.profile ?? "legacy")}</dd>
+          </div>
+          <div>
+            <dt className="text-text-tertiary">Console records</dt>
+            <dd className="font-medium text-text-primary">
+              {String(summary.consoleEvents ?? evidence?.console.length ?? 0)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-text-tertiary">Network records</dt>
+            <dd className="font-medium text-text-primary">
+              {String(summary.networkEvents ?? evidence?.network.length ?? 0)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-text-tertiary">Error records</dt>
+            <dd className="font-medium text-text-primary">
+              {String(summary.errorEvents ?? evidence?.errors.length ?? 0)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-text-tertiary">Blocked bodies</dt>
+            <dd className="font-medium text-text-primary">{String(summary.blockedBodies ?? 0)}</dd>
+          </div>
+          <div>
+            <dt className="text-text-tertiary">Truncated bodies</dt>
+            <dd className="font-medium text-text-primary">
+              {String(summary.truncatedBodies ?? 0)}
+            </dd>
+          </div>
         </dl>
         <label className="flex cursor-pointer items-start gap-2 text-xs text-text-primary">
           <input
@@ -83,7 +115,10 @@ export function DiagnosticReviewModal({
             onChange={(event) => setConfirmed(event.target.checked)}
             className="mt-0.5 accent-[--color-brand-500]"
           />
-          <span>I reviewed the retained diagnostic evidence and understand that a copied cURL may mutate a live service.</span>
+          <span>
+            I reviewed the retained diagnostic evidence and understand that a copied cURL may mutate
+            a live service.
+          </span>
         </label>
       </div>
     </Modal>

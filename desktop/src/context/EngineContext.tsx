@@ -4,7 +4,7 @@ import {
   type EngineStatusInfo,
   useEngineStatus,
 } from "../hooks/useEngineStatus";
-import { type ArtifactItem, engine, type StartCaptureOptions } from "../lib/engine";
+import { type ArtifactItem, type StartCaptureOptions, engine } from "../lib/engine";
 
 export type { ArtifactItem } from "../lib/engine";
 

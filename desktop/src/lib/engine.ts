@@ -255,7 +255,9 @@ export class EngineBridge {
   }
 
   async inspectDiagnostics(artifact: string): Promise<DiagnosticEvidence> {
-    const res = await invoke<CommandOutput<DiagnosticEvidence>>("inspect_diagnostics", { artifact });
+    const res = await invoke<CommandOutput<DiagnosticEvidence>>("inspect_diagnostics", {
+      artifact,
+    });
     return res.payload;
   }
 
