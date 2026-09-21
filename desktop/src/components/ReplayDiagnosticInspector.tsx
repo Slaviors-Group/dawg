@@ -57,11 +57,7 @@ const toEvidence = (value: unknown): Evidence[] => {
 };
 
 const textValue = (value: unknown) => {
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  ) {
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
     return String(value);
   }
   return "";
@@ -80,27 +76,13 @@ const entryTitle = (entry: Evidence, index: number) => {
   const url = firstText(entry, ["url", "urlPath"]);
   if (method && url) return `${method} ${url}`;
   return (
-    firstText(entry, [
-      "message",
-      "name",
-      "title",
-      "summary",
-      "id",
-      "type",
-      "category",
-    ]) || `Recorded evidence ${index + 1}`
+    firstText(entry, ["message", "name", "title", "summary", "id", "type", "category"]) ||
+    `Recorded evidence ${index + 1}`
   );
 };
 
 const entryDetail = (entry: Evidence) =>
-  firstText(entry, [
-    "description",
-    "detail",
-    "text",
-    "url",
-    "source",
-    "filename",
-  ]);
+  firstText(entry, ["description", "detail", "text", "url", "source", "filename"]);
 
 const entryState = (entry: Evidence) =>
   firstText(entry, ["state", "status", "severity", "level", "outcome"]);
@@ -113,12 +95,10 @@ const replayOffsetForEntry = (
   firstTimestamp?: number,
   durationMs?: number,
 ): number | null => {
-  if (!Number.isFinite(firstTimestamp) || !Number.isFinite(durationMs))
-    return null;
+  if (!Number.isFinite(firstTimestamp) || !Number.isFinite(durationMs)) return null;
   const timing = isRecord(entry.timing) ? entry.timing : null;
   const candidate = timing?.startedAt ?? entry.timestamp;
-  const timestamp =
-    typeof candidate === "number" ? candidate : Number(candidate);
+  const timestamp = typeof candidate === "number" ? candidate : Number(candidate);
   if (!Number.isFinite(timestamp)) return null;
   const offset = timestamp - (firstTimestamp as number);
   if (offset < 0 || offset > (durationMs as number)) return null;
@@ -130,9 +110,7 @@ const formatReplayOffset = (offsetMs: number) => {
   return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}.${String(offsetMs % 1000).padStart(3, "0")}`;
 };
 
-const badgeVariant = (
-  state: string,
-): "default" | "success" | "warning" | "error" | "info" => {
+const badgeVariant = (state: string): "default" | "success" | "warning" | "error" | "info" => {
   const normalized = state.toLowerCase();
   if (/(error|fail|fatal|critical)/.test(normalized)) return "error";
   if (/(warn|pending|blocked)/.test(normalized)) return "warning";
@@ -141,19 +119,14 @@ const badgeVariant = (
   return "default";
 };
 
-const tabEmptyCopy: Record<
-  WorkspaceTab,
-  { title: string; description: string }
-> = {
+const tabEmptyCopy: Record<WorkspaceTab, { title: string; description: string }> = {
   timeline: {
     title: "No timeline evidence recorded",
-    description:
-      "This artifact does not provide timeline samples in its manifest diagnostics.",
+    description: "This artifact does not provide timeline samples in its manifest diagnostics.",
   },
   console: {
     title: "No console evidence recorded",
-    description:
-      "Console entries are only shown when they are included in manifest diagnostics.",
+    description: "Console entries are only shown when they are included in manifest diagnostics.",
   },
   network: {
     title: "No network evidence recorded",
@@ -165,8 +138,7 @@ const tabEmptyCopy: Record<
   },
   artifact: {
     title: "No artifact evidence recorded",
-    description:
-      "This manifest does not include diagnostic artifact samples or layers.",
+    description: "This manifest does not include diagnostic artifact samples or layers.",
   },
 };
 
@@ -187,11 +159,8 @@ export function ReplayDiagnosticInspector({
 
   const activeTabDefinition =
     WORKSPACE_TABS.find((tab) => tab.id === activeTab) ?? WORKSPACE_TABS[0];
-  const diagnostics = isRecord(manifest?.diagnostics)
-    ? manifest.diagnostics
-    : null;
-  const hasDiagnostics =
-    diagnosticEvidence?.summary !== undefined || diagnostics !== null;
+  const diagnostics = isRecord(manifest?.diagnostics) ? manifest.diagnostics : null;
+  const hasDiagnostics = diagnosticEvidence?.summary !== undefined || diagnostics !== null;
 
   const evidence = useMemo(() => {
     if (!manifest) return [];
@@ -213,18 +182,12 @@ export function ReplayDiagnosticInspector({
     // Layers are manifest-provided artifact evidence, not inferred diagnostics.
     if (activeTab === "artifact") return toEvidence(manifest.layers);
     return [];
-  }, [
-    activeTab,
-    activeTabDefinition.keys,
-    diagnostics,
-    diagnosticEvidence,
-    manifest,
-  ]);
+  }, [activeTab, activeTabDefinition.keys, diagnostics, diagnosticEvidence, manifest]);
 
   const availableStates = useMemo(
     () =>
-      Array.from(new Set(evidence.map(entryState).filter(Boolean))).sort(
-        (a, b) => a.localeCompare(b),
+      Array.from(new Set(evidence.map(entryState).filter(Boolean))).sort((a, b) =>
+        a.localeCompare(b),
       ),
     [evidence],
   );
@@ -232,8 +195,7 @@ export function ReplayDiagnosticInspector({
   const filteredEvidence = useMemo(() => {
     const query = search.trim().toLowerCase();
     return evidence.filter((entry) => {
-      if (stateFilter !== "all" && entryState(entry) !== stateFilter)
-        return false;
+      if (stateFilter !== "all" && entryState(entry) !== stateFilter) return false;
       return !query || JSON.stringify(entry).toLowerCase().includes(query);
     });
   }, [evidence, search, stateFilter]);
@@ -286,11 +248,7 @@ export function ReplayDiagnosticInspector({
             </button>
           ) : null}
           {manifest && (
-            <Badge
-              variant={hasDiagnostics ? "info" : "default"}
-              size="sm"
-              dot={hasDiagnostics}
-            >
+            <Badge variant={hasDiagnostics ? "info" : "default"} size="sm" dot={hasDiagnostics}>
               {hasDiagnostics ? "Manifest diagnostics" : "Legacy manifest"}
             </Badge>
           )}
@@ -350,8 +308,8 @@ export function ReplayDiagnosticInspector({
             <div className="mb-4 flex gap-2 rounded-md border border-info-border bg-info-bg px-3 py-2 text-xs text-info-text">
               <Info size={15} className="mt-0.5 shrink-0" />
               <p>
-                This legacy manifest does not contain diagnostics. DAWG will not
-                infer timeline, console, network, or error data.
+                This legacy manifest does not contain diagnostics. DAWG will not infer timeline,
+                console, network, or error data.
               </p>
             </div>
           )}
@@ -380,10 +338,7 @@ export function ReplayDiagnosticInspector({
                   onChange={setStateFilter}
                   options={[
                     { value: "all", label: `All states (${evidence.length})` },
-                    ...availableStates.map((state) => ({
-                      value: state,
-                      label: state,
-                    })),
+                    ...availableStates.map((state) => ({ value: state, label: state })),
                   ]}
                 />
               </div>
@@ -408,9 +363,7 @@ export function ReplayDiagnosticInspector({
                           onClick={() => setSelectedIndex(index)}
                           className={[
                             "flex w-full items-start gap-3 px-3 py-3 text-left transition-colors",
-                            isSelected
-                              ? "bg-brand-500/10"
-                              : "hover:bg-surface-hover",
+                            isSelected ? "bg-brand-500/10" : "hover:bg-surface-hover",
                           ].join(" ")}
                         >
                           <div className="min-w-0 flex-1">
@@ -419,18 +372,12 @@ export function ReplayDiagnosticInspector({
                             </p>
                             {(entryDetail(entry) || time) && (
                               <p className="mt-0.5 truncate text-xs text-text-tertiary">
-                                {[entryDetail(entry), time]
-                                  .filter(Boolean)
-                                  .join(" · ")}
+                                {[entryDetail(entry), time].filter(Boolean).join(" · ")}
                               </p>
                             )}
                           </div>
                           {state && (
-                            <Badge
-                              variant={badgeVariant(state)}
-                              size="sm"
-                              className="shrink-0"
-                            >
+                            <Badge variant={badgeVariant(state)} size="sm" className="shrink-0">
                               {state}
                             </Badge>
                           )}
@@ -451,10 +398,7 @@ export function ReplayDiagnosticInspector({
                           </p>
                         </div>
                         {entryState(selectedEvidence) && (
-                          <Badge
-                            variant={badgeVariant(entryState(selectedEvidence))}
-                            size="sm"
-                          >
+                          <Badge variant={badgeVariant(entryState(selectedEvidence))} size="sm">
                             {entryState(selectedEvidence)}
                           </Badge>
                         )}
@@ -465,9 +409,7 @@ export function ReplayDiagnosticInspector({
                         typeof selectedEvidence.requestId === "string" ? (
                           <button
                             type="button"
-                            onClick={() =>
-                              onCopyCurl(selectedEvidence.requestId as string)
-                            }
+                            onClick={() => onCopyCurl(selectedEvidence.requestId as string)}
                             className="text-xs font-medium text-brand-600 hover:text-brand-700"
                           >
                             Copy as cURL
@@ -479,13 +421,11 @@ export function ReplayDiagnosticInspector({
                             onClick={() => onSeekReplay(selectedReplayOffset)}
                             className="text-xs font-medium text-brand-600 hover:text-brand-700"
                           >
-                            Seek replay to approximately{" "}
-                            {formatReplayOffset(selectedReplayOffset)}
+                            Seek replay to approximately {formatReplayOffset(selectedReplayOffset)}
                           </button>
                         ) : null}
                       </div>
-                      {diagnosticEvidence?.timeline &&
-                      selectedReplayOffset === null ? (
+                      {diagnosticEvidence?.timeline && selectedReplayOffset === null ? (
                         <p className="mb-3 text-xs text-text-tertiary">
                           No replay correlation is available for this record.
                         </p>
