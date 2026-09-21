@@ -69,7 +69,22 @@ func TestExtensionServerCapturesStreamedData(t *testing.T) {
 	}
 	_ = resp.Body.Close()
 
-	// 3. Stop server
+	// 3. Post a normalized diagnostic envelope.
+	diagnosticPayload, _ := json.Marshal(map[string]any{
+		"type":      "DAWG_DIAGNOSTIC_CONSOLE",
+		"timestamp": int64(1735689600123),
+		"data":      map[string]any{"level": "error", "text": "checkout failed", "source": "main-world"},
+	})
+	resp, err = http.Post(baseURL+"/api/v1/stream/event", "application/json", bytes.NewReader(diagnosticPayload))
+	if err != nil {
+		t.Fatalf("failed to post diagnostic event: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected diagnostic status 200, got %d", resp.StatusCode)
+	}
+	_ = resp.Body.Close()
+
+	// 4. Stop server
 	if err := server.Stop(); err != nil {
 		t.Fatalf("ExtensionServer.Stop failed: %v", err)
 	}
@@ -90,6 +105,16 @@ func TestExtensionServerCapturesStreamedData(t *testing.T) {
 	}
 	if !bytes.Contains(actionsContent, []byte(`"#btn"`)) {
 		t.Errorf("unexpected actions file content: %s", string(actionsContent))
+	}
+
+	diagnosticsContent, err := os.ReadFile(filepath.Join(sessionDir, "diagnostics", "console.jsonl"))
+	if err != nil {
+		t.Fatalf("failed to read diagnostic console stream: %v", err)
+	}
+	for _, expected := range []string{`"id":"console_1"`, `"sequence":1`, `"timestamp":1735689600123`, `"text":"checkout failed"`} {
+		if !bytes.Contains(diagnosticsContent, []byte(expected)) {
+			t.Errorf("diagnostic stream omitted %s: %s", expected, diagnosticsContent)
+		}
 	}
 }
 

@@ -52,6 +52,7 @@ const runtimeMessages = new ChromeEvent();
 const actionClicked = new ChromeEvent();
 const tabMessages = [];
 const scriptExecutions = [];
+const operationLog = [];
 const stored = {};
 
 globalThis.__DAWG_TEST_MODE__ = true;
@@ -69,6 +70,7 @@ globalThis.chrome = {
   },
   scripting: {
     async executeScript({ target, files }) {
+      operationLog.push(`script:${files.join(",")}`);
       scriptExecutions.push({ target, files });
     }
   },
@@ -90,6 +92,13 @@ globalThis.chrome = {
   },
   action: { onClicked: actionClicked },
   windows: { async update() {} },
+  debugger: {
+    async attach() { operationLog.push("debugger:attach"); },
+    async detach() { operationLog.push("debugger:detach"); },
+    async sendCommand(_target, command) { operationLog.push(`debugger:${command}`); return {}; },
+    onEvent: new ChromeEvent(),
+    onDetach: new ChromeEvent()
+  },
   webRequest: {
     onBeforeRequest: new ChromeEvent(),
     onBeforeSendHeaders: new ChromeEvent(),
@@ -127,9 +136,10 @@ test("daemon starts and stops one target tab with an acknowledged drain", async 
   await waitFor(() => FakeWebSocket.instances[0]?.sent.some((item) => item.type === "DAWG_EXTENSION_READY"), "extension did not announce readiness");
   const socket = FakeWebSocket.instances[0];
 
+  const startAt = operationLog.length;
   socket.receive({
     type: "DAWG_COMMAND_START",
-    data: { targetUrl: "http://localhost:3000", sessionToken: "session-test" }
+    data: { targetUrl: "http://localhost:3000", sessionToken: "session-test", diagnosticsProfile: "enhanced" }
   });
   await waitFor(() => socket.sent.some((item) => item.type === "DAWG_SESSION_START"), "extension did not acknowledge capture start");
 
@@ -144,6 +154,11 @@ test("daemon starts and stops one target tab with an acknowledged drain", async 
         files.join(",") === "lib/rrweb.min.js,content/recorder.js"
     )
   );
+  const operations = operationLog.slice(startAt);
+  const attachAt = operations.indexOf("debugger:attach");
+  const recorderAt = operations.indexOf("script:lib/rrweb.min.js,content/recorder.js");
+  assert.ok(attachAt >= 0, "enhanced capture did not attach the debugger");
+  assert.ok(recorderAt > attachAt, `rrweb started before debugger attachment: ${operations.join(", ")}`);
 
   const runtimeListener = runtimeMessages.listeners[0];
   runtimeListener(
@@ -163,6 +178,7 @@ test("daemon starts and stops one target tab with an acknowledged drain", async 
   await waitFor(() => !globalThis.__DAWG_EXTENSION_TEST__.publicState().isRecording, "extension did not leave recording state");
   assert.ok(tabMessages.some(({ tabId, message }) => tabId === 7 && message.type === "STOP_RECORDING"));
 });
+
 
 test("toolbar action injects and toggles the in-page capture panel", async () => {
   await actionClicked.listeners[0]({ id: 7 });

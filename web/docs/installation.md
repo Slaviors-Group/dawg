@@ -4,9 +4,13 @@ DAWG is available as a self-contained desktop application or as source for engin
 
 ## Current Release
 
-The current prerelease is [`0.2.7-naughty`](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-4) (`naughty-4`). It includes desktop version `0.2.7` and extension display version `0.2.5_naughty`.
+The current prerelease is `0.3.1-middlechild`. It includes desktop version
+`0.3.1` and extension display version `0.3.1_middlechild`.
 
-[Download DAWG 0.2.7 for Windows x64](https://github.com/Slaviors-Group/dawg/releases/download/naughty-4/DAWG_0.2.7_x64-setup.exe). The direct installer link becomes available when the release is published. Visit the [0.2.7-naughty GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-4) for checksums and other assets. Linux targets are configured; build the AppImage from source with `desktop/build-bundle.sh` when an AppImage is not attached to the release.
+Visit [GitHub releases](https://github.com/Slaviors-Group/dawg/releases) for
+published installers, checksums, and other assets. Linux targets are configured;
+build the AppImage from source with `desktop/build-bundle.sh` when an AppImage
+is not attached to a release.
 
 See [all releases](https://github.com/Slaviors-Group/dawg/releases) for older prereleases and assets.
 
@@ -37,7 +41,11 @@ Use an unpacked extension only for source development or when Chrome Web Store i
 4. In DAWG, open **Engine Doctor**, find the `browser-extension` component, and select the parent directory of its displayed `manifest.json` path. For source development, select the repository's `extension/` directory.
 5. Reload the extension after updating the desktop app or extension source.
 
-The extension requests `<all_urls>` host access so the engine can select an `http://` or `https://` target tab and observe that tab's browser events and request metadata. Recording starts only after the desktop app or CLI creates a token-bearing capture session.
+The extension requests `<all_urls>` host access so the engine can select an
+`http://` or `https://` target tab and observe that tab's browser events and
+request metadata. It also declares Chrome's `debugger` permission for consented
+Enhanced Diagnostics CDP collection. Recording starts only after the desktop
+app or CLI creates a token-bearing capture session.
 
 > `dawg doctor` checks that an installable extension manifest is present in the runtime resources. Browser installation and enablement must still be checked in `chrome://extensions`.
 
@@ -229,7 +237,27 @@ By default, DAWG keeps runtime state in the user's home directory:
 
 Set `DAWG_STATE_DIR` to move this state root. Runtime resource overrides include `DAWG_RESOURCES_DIR`, `DAWG_NODE_PATH`, `DAWG_MITMDUMP_PATH`, `DAWG_CHROMIUM_EXECUTABLE_PATH`, and `DAWG_POLICY_PATH`.
 
-On Windows, replay runs Chromium natively and skips Docker Compose isolation and database fixture restoration. On supported non-Windows hosts, environment replay requires rootless Docker.
+On Windows, replay runs Chromium natively and skips Docker Compose isolation
+and database fixture restoration. On supported non-Windows hosts, environment
+replay requires rootless Docker. Replay renders the recorded rrweb timeline; it
+does not execute captured browser actions or recreate the original application
+runtime.
+
+## Diagnostic Evidence
+
+Capture defaults to **Safe**, which stores bounded console/error and network
+metadata without CDP response-body retrieval. **Enhanced Diagnostics** requires
+explicit desktop consent (or `dawg capture --diagnostics-profile enhanced` in the
+CLI), uses CDP when available, and can retain only eligible JSON, GraphQL,
+form-encoded, or text response bodies within limits. CDP attachment failure
+falls back to Safe and is recorded as a degradation.
+
+Packaged diagnostic values include an evidence state such as `captured`,
+`redacted`, `preview-only`, `truncated`, `blocked`, `unavailable`,
+`not-requested`, or `capture-failed`. These states communicate fidelity; they do
+not recover missing values. The Desktop Replay workspace and the diagnostics CLI
+commands can inspect retained evidence, export sanitized HAR, and produce a
+reviewed cURL request.
 
 ## Troubleshooting
 

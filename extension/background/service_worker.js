@@ -9,6 +9,10 @@ let isRecording = false;
 let recordingTabId = null;
 let targetUrl = null;
 let sessionToken = null;
+let diagnosticsProfile = "safe";
+let debuggerAttached = false;
+let activeBodyFetches = 0;
+const cdpRequests = new Map();
 let daemonUrl = DEFAULT_DAEMON_URL;
 let httpDaemonUrl = "http://127.0.0.1:8082";
 let ws = null;
@@ -38,7 +42,7 @@ function setDaemonUrl(value) {
 }
 
 function publicState() {
-  return { isRecording, recordingTabId, targetUrl, sessionToken, daemonUrl };
+  return { isRecording, recordingTabId, targetUrl, diagnosticsProfile, daemonUrl };
 }
 
 async function persistState() {
@@ -58,6 +62,7 @@ async function restoreState() {
       recordingTabId = Number.isInteger(saved.recordingTabId) ? saved.recordingTabId : null;
       targetUrl = typeof saved.targetUrl === "string" ? saved.targetUrl : null;
       sessionToken = typeof saved.sessionToken === "string" ? saved.sessionToken : null;
+      diagnosticsProfile = saved.diagnosticsProfile === "enhanced" ? "enhanced" : "safe";
       setDaemonUrl(saved.daemonUrl || DEFAULT_DAEMON_URL);
     }
   } catch (error) {
@@ -144,7 +149,8 @@ function handleDaemonMessage(event) {
   if (message.type === "DAWG_COMMAND_START") {
     const requestedUrl = message.data && message.data.targetUrl;
     const requestedToken = message.data && message.data.sessionToken;
-    void startCaptureForTarget(requestedUrl, requestedToken).catch((error) => {
+    const requestedProfile = message.data && message.data.diagnosticsProfile;
+    void startCaptureForTarget(requestedUrl, requestedToken, requestedProfile).catch((error) => {
       debugLog(`Daemon start command failed: ${error.message}`);
       void sendToDaemon("DAWG_SESSION_ERROR", { message: error.message }, requestedToken);
     });
@@ -284,6 +290,11 @@ async function startRecorderInTab(tabId) {
     try {
       await chrome.scripting.executeScript({
         target: { tabId },
+        files: ["content/diagnostics-collector.js"],
+        world: "MAIN"
+      });
+      await chrome.scripting.executeScript({
+        target: { tabId },
         files: ["lib/rrweb.min.js", "content/recorder.js"]
       });
       const response = await chrome.tabs.sendMessage(tabId, { type: "START_RECORDING" });
@@ -297,14 +308,124 @@ async function startRecorderInTab(tabId) {
   throw new Error(`could not inject the recorder into the target tab: ${lastError ? lastError.message : "page did not become ready"}`);
 }
 
-async function performStartCapture(requestedUrl, requestedToken) {
+function cdpHeaders(headers) {
+  return Object.fromEntries(Object.entries(headers || {}).map(([name, value]) => [name, String(value)]));
+}
+
+function bodyContentTypeAllowed(value) {
+  const type = String(value || "").split(";", 1)[0].trim().toLowerCase();
+  return type === "application/json" || type.endsWith("+json") || type === "application/graphql" || type === "application/x-www-form-urlencoded" || type.startsWith("text/");
+}
+
+async function finishCDPNetworkRequest(request, params, failed) {
+  const finishedAt = Date.now();
+  request.timing = { startedAt: request.startedAt, firstByteAt: request.firstByteAt || null, finishedAt, durationMs: finishedAt - request.startedAt };
+  if (failed) {
+    request.failure = { errorText: params.errorText || "Network request failed" };
+    request.response.body = { state: "unavailable" };
+  } else {
+    const body = request.response?.body;
+    if (bodyContentTypeAllowed(body?.contentType)) {
+      if (activeBodyFetches >= 4) {
+        body.state = "capture-failed";
+      } else {
+        activeBodyFetches += 1;
+        try {
+          const result = await chrome.debugger.sendCommand({ tabId: recordingTabId }, "Network.getResponseBody", { requestId: request.requestId });
+          if (result.base64Encoded || typeof result.body !== "string") {
+            body.state = "blocked";
+          } else if (result.body.length > 256 * 1024) {
+            body.state = "truncated";
+          } else {
+            body.state = "captured";
+            body.size = result.body.length;
+            body.value = result.body;
+          }
+        } catch (_error) {
+          body.state = "capture-failed";
+        } finally {
+          activeBodyFetches -= 1;
+        }
+      }
+    } else if (body) {
+      body.state = "blocked";
+    }
+  }
+  await sendToDaemon("DAWG_DIAGNOSTIC_NETWORK", request);
+}
+
+async function attachEnhancedDiagnostics(tabId) {
+  if (!chrome.debugger) throw new Error("Chrome debugger API is unavailable");
+  try {
+    await chrome.debugger.attach({ tabId }, "1.3");
+    debuggerAttached = true;
+    for (const domain of ["Runtime.enable", "Log.enable", "Network.enable", "Page.enable"]) {
+      await chrome.debugger.sendCommand({ tabId }, domain);
+    }
+  } catch (error) {
+    await detachEnhancedDiagnostics(tabId);
+    await sendToDaemon("DAWG_DIAGNOSTIC_ERROR", {
+      kind: "capture-degradation", level: "error", source: "cdp",
+      text: `Enhanced Diagnostics unavailable: ${error.message}`, pageUrl: targetUrl,
+      evidence: { state: "capture-failed" }
+    });
+    return false;
+  }
+  return true;
+}
+
+async function detachEnhancedDiagnostics(tabId) {
+  if (!debuggerAttached || !chrome.debugger) return;
+  debuggerAttached = false;
+  cdpRequests.clear();
+  await chrome.debugger.detach({ tabId }).catch(() => {});
+}
+
+chrome.debugger?.onEvent?.addListener((source, method, params) => {
+  if (!isRecording || diagnosticsProfile !== "enhanced" || source.tabId !== recordingTabId) return;
+  if (method === "Runtime.consoleAPICalled") {
+    void sendToDaemon("DAWG_DIAGNOSTIC_CONSOLE", {
+      source: "cdp", level: params.type === "warning" ? "warn" : params.type || "log", kind: "console-api",
+      text: (params.args || []).map((arg) => arg.value ?? arg.description ?? arg.type).join(" "),
+      arguments: (params.args || []).slice(0, 20).map((arg) => ({ type: arg.type, value: arg.value, preview: arg.description, state: arg.value === undefined ? "preview-only" : "captured" })),
+      pageUrl: targetUrl
+    });
+  } else if (method === "Runtime.exceptionThrown" || method === "Log.entryAdded") {
+    const details = params.exceptionDetails || params.entry || {};
+    void sendToDaemon("DAWG_DIAGNOSTIC_ERROR", { source: "cdp", level: "error", kind: "exception", text: details.text || "Browser exception", pageUrl: details.url || targetUrl, stack: details.exception?.description || "" });
+  } else if (method === "Network.requestWillBeSent") {
+    cdpRequests.set(params.requestId, { requestId: params.requestId, source: "cdp", method: params.request?.method, url: params.request?.url, resourceType: params.type, startedAt: Date.now(), request: { headers: cdpHeaders(params.request?.headers), body: { state: "not-requested" } }, response: { body: { state: "unavailable" } } });
+  } else if (method === "Network.responseReceived") {
+    const request = cdpRequests.get(params.requestId);
+    if (!request) return;
+    request.response = { status: params.response?.status, statusText: params.response?.statusText, headers: cdpHeaders(params.response?.headers), body: { state: "unavailable", contentType: params.response?.mimeType || "" } };
+    request.firstByteAt = Date.now();
+  } else if (method === "Network.loadingFinished" || method === "Network.loadingFailed") {
+    const request = cdpRequests.get(params.requestId);
+    if (!request) return;
+    cdpRequests.delete(params.requestId);
+    void finishCDPNetworkRequest(request, params, method === "Network.loadingFailed");
+  }
+});
+
+chrome.debugger?.onDetach?.addListener((source, reason) => {
+  if (source.tabId !== recordingTabId) return;
+  debuggerAttached = false;
+  cdpRequests.clear();
+  if (isRecording && diagnosticsProfile === "enhanced") {
+    void sendToDaemon("DAWG_DIAGNOSTIC_ERROR", { source: "cdp", level: "error", kind: "capture-degradation", text: `Enhanced Diagnostics detached: ${reason}`, pageUrl: targetUrl, evidence: { state: "capture-failed" } });
+  }
+});
+
+async function performStartCapture(requestedUrl, requestedToken, requestedProfile = "safe") {
   if (!requestedUrl) throw new Error("the desktop did not provide a target URL");
   if (!requestedToken) throw new Error("the desktop did not provide a capture session token");
+  if (requestedProfile !== "safe" && requestedProfile !== "enhanced") throw new Error("invalid diagnostics profile");
   const wanted = normalizedUrl(requestedUrl);
   if (isRecording) {
     if (sessionToken === requestedToken && targetUrl && normalizedUrl(targetUrl) === wanted) {
       await sendToDaemon("DAWG_SESSION_START", {
-        startedAt: new Date().toISOString(), targetUrl, tabId: recordingTabId, resumed: true
+        startedAt: new Date().toISOString(), targetUrl, tabId: recordingTabId, diagnosticsProfile, resumed: true
       });
       return publicState();
     }
@@ -325,10 +446,19 @@ async function performStartCapture(requestedUrl, requestedToken) {
   recordingTabId = tab.id;
   targetUrl = requestedUrl;
   sessionToken = requestedToken;
+  diagnosticsProfile = requestedProfile;
   isRecording = true;
   await persistState();
 
   try {
+    // Chrome displays its debugger infobar outside the document but it changes
+    // the page's available viewport. Attach before rrweb takes its first full
+    // snapshot so the recorded viewport matches the actual captured layout.
+    if (diagnosticsProfile === "enhanced" && !(await attachEnhancedDiagnostics(tab.id))) {
+      // The Desktop consent explicitly permits this safe-mode fallback.
+      diagnosticsProfile = "safe";
+      await persistState();
+    }
     // State is active before the content recorder starts so its initial rrweb
     // full-snapshot event is accepted instead of being dropped as "too early".
     await startRecorderInTab(tab.id);
@@ -338,7 +468,8 @@ async function performStartCapture(requestedUrl, requestedToken) {
     const delivered = await sendToDaemon("DAWG_SESSION_START", {
       startedAt: new Date().toISOString(),
       targetUrl,
-      tabId: recordingTabId
+      tabId: recordingTabId,
+      diagnosticsProfile
     });
     if (!delivered) {
       throw new Error("the browser extension lost its connection to the DAWG desktop engine");
@@ -357,9 +488,9 @@ async function performStartCapture(requestedUrl, requestedToken) {
   return publicState();
 }
 
-function startCaptureForTarget(requestedUrl, requestedToken) {
+function startCaptureForTarget(requestedUrl, requestedToken, requestedProfile) {
   if (startCapturePromise) return startCapturePromise;
-  startCapturePromise = performStartCapture(requestedUrl, requestedToken).finally(() => {
+  startCapturePromise = performStartCapture(requestedUrl, requestedToken, requestedProfile).finally(() => {
     startCapturePromise = null;
   });
   return startCapturePromise;
@@ -372,6 +503,7 @@ async function performStopCapture() {
   const stoppingToken = sessionToken;
   if (tabId !== null) {
     await chrome.tabs.sendMessage(tabId, { type: "STOP_RECORDING" }).catch(() => {});
+    await detachEnhancedDiagnostics(tabId);
   }
   await new Promise((resolve) => setTimeout(resolve, 50));
 
@@ -479,6 +611,18 @@ chrome.webRequest.onCompleted.addListener(
       direction: "frontend-to-backend",
       durationMs: Date.now() - request.startedAt
     });
+    if (diagnosticsProfile === "safe") {
+      void sendToDaemon("DAWG_DIAGNOSTIC_NETWORK", {
+        requestId: request.id,
+        source: "safe-extension",
+        method: request.method,
+        url: request.url,
+        resourceType: details.type || "other",
+        timing: { startedAt: request.startedAt, firstByteAt: Date.now(), finishedAt: Date.now(), durationMs: Date.now() - request.startedAt },
+        request: { headers: request.requestHeaders, body: { state: "not-requested" } },
+        response: { status: details.statusCode, headers: responseHeaders, body: { state: "not-requested" } }
+      });
+    }
   },
   { urls: ["<all_urls>"] },
   ["responseHeaders"]
@@ -486,7 +630,13 @@ chrome.webRequest.onCompleted.addListener(
 
 chrome.webRequest.onErrorOccurred.addListener(
   (details) => {
-    if (belongsToRecordingTab(details)) pendingRequests.delete(details.requestId);
+    if (!belongsToRecordingTab(details)) return;
+    const request = pendingRequests.get(details.requestId);
+    pendingRequests.delete(details.requestId);
+    if (diagnosticsProfile === "safe" && request) {
+      void sendToDaemon("DAWG_DIAGNOSTIC_ERROR", { kind: "network-failure", level: "error", text: details.error || "Network request failed", pageUrl: request.url, correlation: { requestIds: [request.id] } });
+      void sendToDaemon("DAWG_DIAGNOSTIC_NETWORK", { requestId: request.id, source: "safe-extension", method: request.method, url: request.url, resourceType: details.type || "other", timing: { startedAt: request.startedAt, finishedAt: Date.now(), durationMs: Date.now() - request.startedAt }, request: { headers: request.requestHeaders, body: { state: "not-requested" } }, response: { body: { state: "unavailable" } }, failure: { errorText: details.error || "Network request failed" } });
+    }
   },
   { urls: ["<all_urls>"] }
 );

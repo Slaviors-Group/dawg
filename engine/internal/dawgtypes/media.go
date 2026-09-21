@@ -15,15 +15,21 @@ const (
 	MediaTypeTrace MediaType = "application/vnd.dawg.trace.rrweb+jsonl.zstd"
 	// MediaTypeCassette is the layer containing third-party API cassettes.
 	MediaTypeCassette MediaType = "application/vnd.dawg.cassette+tar.zstd"
+	// MediaTypeDiagnostics contains normalized console, network, and error records.
+	MediaTypeDiagnostics MediaType = "application/vnd.dawg.diagnostics+tar.zstd"
+	// MediaTypeDiagnosticBodies contains reviewed, sanitized diagnostic bodies.
+	MediaTypeDiagnosticBodies MediaType = "application/vnd.dawg.diagnostic-bodies+tar.zstd"
 )
 
 // CanonicalMediaTypes maps schema keys to their authoritative media types.
 func CanonicalMediaTypes() map[string]MediaType {
 	return map[string]MediaType{
-		"manifest":    MediaTypeManifest,
-		"envLockfile": MediaTypeEnvironment,
-		"dbFixture":   MediaTypeDatabaseFixture,
-		"trace":       MediaTypeTrace,
-		"cassette":    MediaTypeCassette,
+		"manifest":         MediaTypeManifest,
+		"envLockfile":      MediaTypeEnvironment,
+		"dbFixture":        MediaTypeDatabaseFixture,
+		"trace":            MediaTypeTrace,
+		"cassette":         MediaTypeCassette,
+		"diagnostics":      MediaTypeDiagnostics,
+		"diagnosticBodies": MediaTypeDiagnosticBodies,
 	}
 }

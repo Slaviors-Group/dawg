@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
@@ -48,6 +49,9 @@ const (
 	streamRRWeb streamTarget = iota
 	streamActions
 	streamHTTP
+	streamDiagnosticConsole
+	streamDiagnosticNetwork
+	streamDiagnosticErrors
 )
 
 func (client *webSocketClient) writeFrame(opcode byte, payload []byte) error {
@@ -89,36 +93,48 @@ func (client *webSocketClient) writeMessage(messageType string, data any) error 
 // ExtensionServer receives streaming DOM events, browser action traces, and
 // frontend HTTP traffic from the DAWG browser extension.
 type ExtensionServer struct {
-	ListenPort       int
-	ListenAddr       string
-	TargetURL        string
-	RequireHandshake bool
-	StartupTimeout   time.Duration
+	ListenPort         int
+	ListenAddr         string
+	TargetURL          string
+	RequireHandshake   bool
+	StartupTimeout     time.Duration
+	CaptureSessionID   string
+	DiagnosticsProfile string
 
-	mu             sync.Mutex
-	listener       net.Listener
-	server         *http.Server
-	serveDone      chan struct{}
-	stopDone       chan struct{}
-	stopErr        error
-	stopping       bool
-	connections    map[*webSocketClient]struct{}
-	handlers       sync.WaitGroup
-	stopRequests   chan struct{}
-	clientDrained  chan struct{}
-	sessionStarted chan struct{}
-	startupErrors  chan error
-	controller     *webSocketClient
-	sessionReady   bool
-	sessionToken   string
-	rrwebBuf       *bufio.Writer
-	actionsBuf     *bufio.Writer
-	httpBuf        *bufio.Writer
-	rrwebFile      *os.File
-	actionsFile    *os.File
-	httpFile       *os.File
-	actualAddr     string
-	active         atomic.Int32
+	mu                     sync.Mutex
+	listener               net.Listener
+	server                 *http.Server
+	serveDone              chan struct{}
+	stopDone               chan struct{}
+	stopErr                error
+	stopping               bool
+	connections            map[*webSocketClient]struct{}
+	handlers               sync.WaitGroup
+	stopRequests           chan struct{}
+	clientDrained          chan struct{}
+	sessionStarted         chan struct{}
+	startupErrors          chan error
+	controller             *webSocketClient
+	sessionReady           bool
+	sessionToken           string
+	rrwebBuf               *bufio.Writer
+	actionsBuf             *bufio.Writer
+	httpBuf                *bufio.Writer
+	diagnosticConsoleBuf   *bufio.Writer
+	diagnosticNetworkBuf   *bufio.Writer
+	diagnosticErrorsBuf    *bufio.Writer
+	rrwebFile              *os.File
+	actionsFile            *os.File
+	httpFile               *os.File
+	diagnosticConsoleFile  *os.File
+	diagnosticNetworkFile  *os.File
+	diagnosticErrorsFile   *os.File
+	actualAddr             string
+	active                 atomic.Int32
+	diagnosticSequence     atomic.Int64
+	diagnosticConsoleCount atomic.Int64
+	diagnosticNetworkCount atomic.Int64
+	diagnosticErrorCount   atomic.Int64
 }
 
 func (s *ExtensionServer) Name() string { return "browser" }
@@ -176,7 +192,7 @@ func (s *ExtensionServer) Start(ctx context.Context, directory string) error {
 	s.connections = make(map[*webSocketClient]struct{})
 	s.handlers = sync.WaitGroup{}
 
-	for _, child := range []string{"traces", "http", "actions"} {
+	for _, child := range []string{"traces", "http", "actions", "diagnostics", "diagnostics/bodies"} {
 		if err := os.MkdirAll(filepath.Join(directory, child), 0o700); err != nil {
 			s.mu.Unlock()
 			return fmt.Errorf("capture: create output directory %s: %w", child, err)
@@ -208,6 +224,31 @@ func (s *ExtensionServer) Start(ctx context.Context, directory string) error {
 	s.rrwebBuf = bufio.NewWriter(s.rrwebFile)
 	s.actionsBuf = bufio.NewWriter(s.actionsFile)
 	s.httpBuf = bufio.NewWriter(s.httpFile)
+	s.diagnosticConsoleFile, err = os.OpenFile(filepath.Join(directory, "diagnostics", "console.jsonl"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	if err != nil {
+		_ = s.closeOutputsLocked()
+		s.mu.Unlock()
+		return fmt.Errorf("capture: open diagnostics console stream: %w", err)
+	}
+	s.diagnosticNetworkFile, err = os.OpenFile(filepath.Join(directory, "diagnostics", "network.jsonl"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	if err != nil {
+		_ = s.closeOutputsLocked()
+		s.mu.Unlock()
+		return fmt.Errorf("capture: open diagnostics network stream: %w", err)
+	}
+	s.diagnosticErrorsFile, err = os.OpenFile(filepath.Join(directory, "diagnostics", "errors.jsonl"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	if err != nil {
+		_ = s.closeOutputsLocked()
+		s.mu.Unlock()
+		return fmt.Errorf("capture: open diagnostics errors stream: %w", err)
+	}
+	s.diagnosticConsoleBuf = bufio.NewWriter(s.diagnosticConsoleFile)
+	s.diagnosticNetworkBuf = bufio.NewWriter(s.diagnosticNetworkFile)
+	s.diagnosticErrorsBuf = bufio.NewWriter(s.diagnosticErrorsFile)
+	s.diagnosticSequence.Store(0)
+	s.diagnosticConsoleCount.Store(0)
+	s.diagnosticNetworkCount.Store(0)
+	s.diagnosticErrorCount.Store(0)
 
 	addr := s.ListenAddr
 	if addr == "" {
@@ -406,6 +447,9 @@ func (s *ExtensionServer) closeOutputsLocked() error {
 		{s.rrwebBuf, s.rrwebFile},
 		{s.actionsBuf, s.actionsFile},
 		{s.httpBuf, s.httpFile},
+		{s.diagnosticConsoleBuf, s.diagnosticConsoleFile},
+		{s.diagnosticNetworkBuf, s.diagnosticNetworkFile},
+		{s.diagnosticErrorsBuf, s.diagnosticErrorsFile},
 	} {
 		if pair.buf != nil {
 			closeErr = errors.Join(closeErr, pair.buf.Flush())
@@ -418,9 +462,15 @@ func (s *ExtensionServer) closeOutputsLocked() error {
 	s.rrwebBuf = nil
 	s.actionsBuf = nil
 	s.httpBuf = nil
+	s.diagnosticConsoleBuf = nil
+	s.diagnosticNetworkBuf = nil
+	s.diagnosticErrorsBuf = nil
 	s.rrwebFile = nil
 	s.actionsFile = nil
 	s.httpFile = nil
+	s.diagnosticConsoleFile = nil
+	s.diagnosticNetworkFile = nil
+	s.diagnosticErrorsFile = nil
 	return closeErr
 }
 
@@ -435,6 +485,12 @@ func (s *ExtensionServer) appendJSONL(target streamTarget, data []byte) error {
 		buf = s.actionsBuf
 	case streamHTTP:
 		buf = s.httpBuf
+	case streamDiagnosticConsole:
+		buf = s.diagnosticConsoleBuf
+	case streamDiagnosticNetwork:
+		buf = s.diagnosticNetworkBuf
+	case streamDiagnosticErrors:
+		buf = s.diagnosticErrorsBuf
 	default:
 		return fmt.Errorf("capture: unknown extension stream")
 	}
@@ -449,6 +505,124 @@ func (s *ExtensionServer) appendJSONL(target streamTarget, data []byte) error {
 	}
 	_, err := buf.Write(data)
 	return err
+}
+
+func (s *ExtensionServer) appendDiagnostic(target streamTarget, raw json.RawMessage, timestamp int64) error {
+	var record map[string]any
+	if err := json.Unmarshal(raw, &record); err != nil || record == nil {
+		return fmt.Errorf("capture: diagnostic record must be a JSON object")
+	}
+
+	var count *atomic.Int64
+	var prefix string
+	var limit int64
+	switch target {
+	case streamDiagnosticConsole:
+		count, prefix, limit = &s.diagnosticConsoleCount, "console", 10_000
+		if len(raw) > 32<<10 {
+			return fmt.Errorf("capture: diagnostic console record exceeds %d bytes", 32<<10)
+		}
+	case streamDiagnosticNetwork:
+		count, prefix, limit = &s.diagnosticNetworkCount, "network", 20_000
+	case streamDiagnosticErrors:
+		count, prefix, limit = &s.diagnosticErrorCount, "error", 20_000
+	default:
+		return fmt.Errorf("capture: unknown diagnostic stream")
+	}
+	if count.Add(1) > limit {
+		count.Add(-1)
+		return fmt.Errorf("capture: diagnostic %s record limit exceeded", prefix)
+	}
+	sequence := s.diagnosticSequence.Add(1)
+	if timestamp <= 0 {
+		timestamp = time.Now().UnixMilli()
+	}
+	if _, exists := record["id"]; !exists {
+		record["id"] = fmt.Sprintf("%s_%d", prefix, sequence)
+	}
+	record["timestamp"] = timestamp
+	record["sequence"] = sequence
+	if s.CaptureSessionID != "" {
+		record["captureSessionId"] = s.CaptureSessionID
+	}
+	if _, exists := record["source"]; !exists {
+		record["source"] = "safe-extension"
+	}
+	if _, exists := record["frameId"]; !exists {
+		record["frameId"] = "top"
+	}
+	if target == streamDiagnosticNetwork {
+		if err := s.stageDiagnosticBodies(record); err != nil {
+			count.Add(-1)
+			return err
+		}
+	}
+	contents, err := json.Marshal(record)
+	if err != nil {
+		count.Add(-1)
+		return fmt.Errorf("capture: serialize diagnostic record: %w", err)
+	}
+	if err := s.appendJSONL(target, contents); err != nil {
+		count.Add(-1)
+		return err
+	}
+	return nil
+}
+
+func (s *ExtensionServer) stageDiagnosticBodies(record map[string]any) error {
+	for _, side := range []string{"request", "response"} {
+		section, _ := record[side].(map[string]any)
+		body, _ := section["body"].(map[string]any)
+		value, hasValue := body["value"].(string)
+		if !hasValue {
+			continue
+		}
+		delete(body, "value")
+		contentType, _ := body["contentType"].(string)
+		if !diagnosticBodyContentTypeAllowed(contentType) || body["base64Encoded"] == true || len(value) > 256<<10 {
+			body["state"] = "blocked"
+			delete(body, "base64Encoded")
+			continue
+		}
+		requestID, _ := record["requestId"].(string)
+		if requestID == "" || !diagnosticBodyIDValid(requestID) {
+			body["state"] = "capture-failed"
+			continue
+		}
+		extension := ".txt"
+		if strings.Contains(strings.ToLower(contentType), "json") {
+			extension = ".json"
+		}
+		path := filepath.Join(filepath.Dir(s.diagnosticConsoleFile.Name()), "bodies", side+"_"+requestID+extension)
+		if err := os.WriteFile(path, []byte(value), 0o600); err != nil {
+			return fmt.Errorf("capture: stage diagnostic %s body: %w", side, err)
+		}
+		digest := sha256.Sum256([]byte(value))
+		body["state"] = "captured"
+		body["contentType"] = contentType
+		body["size"] = len(value)
+		body["sha256"] = fmt.Sprintf("sha256:%x", digest)
+		body["ref"] = filepath.ToSlash(filepath.Join("diagnostics", "bodies", side+"_"+requestID+extension))
+		delete(body, "base64Encoded")
+	}
+	return nil
+}
+
+func diagnosticBodyContentTypeAllowed(contentType string) bool {
+	contentType = strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0]))
+	return contentType == "application/json" || strings.HasSuffix(contentType, "+json") || contentType == "application/graphql" || contentType == "application/x-www-form-urlencoded" || strings.HasPrefix(contentType, "text/")
+}
+
+func diagnosticBodyIDValid(value string) bool {
+	if len(value) == 0 || len(value) > 128 {
+		return false
+	}
+	for _, character := range value {
+		if !(character >= 'a' && character <= 'z') && !(character >= 'A' && character <= 'Z') && !(character >= '0' && character <= '9') && character != '-' && character != '_' && character != '.' {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *ExtensionServer) handleStreamRRWeb(w http.ResponseWriter, r *http.Request) {
@@ -534,6 +708,7 @@ type streamEnvelope struct {
 	Type         string          `json:"type"`
 	Data         json.RawMessage `json:"data"`
 	SessionToken string          `json:"sessionToken"`
+	Timestamp    int64           `json:"timestamp"`
 }
 
 func (s *ExtensionServer) processEventPayload(rawPayload []byte, client *webSocketClient) error {
@@ -552,7 +727,7 @@ func (s *ExtensionServer) processEventPayload(rawPayload []byte, client *webSock
 		}
 		_ = json.Unmarshal(envelope.Data, &ready)
 		s.mu.Lock()
-		if s.sessionReady && ready.IsRecording && ready.SessionToken == s.sessionToken {
+		if s.sessionReady && ready.IsRecording && (ready.SessionToken == s.sessionToken || envelope.SessionToken == s.sessionToken) {
 			s.controller = client
 		}
 		if !s.sessionReady && s.controller == nil {
@@ -564,7 +739,11 @@ func (s *ExtensionServer) processEventPayload(rawPayload []byte, client *webSock
 		s.mu.Unlock()
 		if shouldStart {
 			log.Printf("[debug] ExtensionServer: commanding extension to record %s", targetURL)
-			return client.writeMessage("DAWG_COMMAND_START", map[string]string{"targetUrl": targetURL, "sessionToken": sessionToken})
+			profile := s.DiagnosticsProfile
+			if profile != "enhanced" {
+				profile = "safe"
+			}
+			return client.writeMessage("DAWG_COMMAND_START", map[string]string{"targetUrl": targetURL, "sessionToken": sessionToken, "diagnosticsProfile": profile})
 		}
 		return nil
 	case "DAWG_RRWEB_EVENT":
@@ -582,12 +761,28 @@ func (s *ExtensionServer) processEventPayload(rawPayload []byte, client *webSock
 			return nil
 		}
 		return s.appendJSONL(streamHTTP, envelope.Data)
+	case "DAWG_DIAGNOSTIC_CONSOLE":
+		if !s.validSessionEnvelope(envelope, client) {
+			return nil
+		}
+		return s.appendDiagnostic(streamDiagnosticConsole, envelope.Data, envelope.Timestamp)
+	case "DAWG_DIAGNOSTIC_NETWORK":
+		if !s.validSessionEnvelope(envelope, client) {
+			return nil
+		}
+		return s.appendDiagnostic(streamDiagnosticNetwork, envelope.Data, envelope.Timestamp)
+	case "DAWG_DIAGNOSTIC_ERROR":
+		if !s.validSessionEnvelope(envelope, client) {
+			return nil
+		}
+		return s.appendDiagnostic(streamDiagnosticErrors, envelope.Data, envelope.Timestamp)
 	case "DAWG_SESSION_START":
 		if !s.validSessionEnvelope(envelope, client) {
 			return nil
 		}
 		var details struct {
-			TargetURL string `json:"targetUrl"`
+			TargetURL          string `json:"targetUrl"`
+			DiagnosticsProfile string `json:"diagnosticsProfile"`
 		}
 		_ = json.Unmarshal(envelope.Data, &details)
 		if s.RequireHandshake && details.TargetURL != s.TargetURL {
@@ -596,6 +791,14 @@ func (s *ExtensionServer) processEventPayload(rawPayload []byte, client *webSock
 			}
 			s.signalStartupError(fmt.Errorf("extension acknowledged target %q instead of %q", details.TargetURL, s.TargetURL))
 			return nil
+		}
+		profile := details.DiagnosticsProfile
+		if profile != "enhanced" {
+			profile = "safe"
+		}
+		profileContents, _ := json.Marshal(map[string]string{"profile": profile})
+		if err := os.WriteFile(filepath.Join(filepath.Dir(s.diagnosticConsoleFile.Name()), "profile.json"), append(profileContents, '\n'), 0o600); err != nil {
+			return fmt.Errorf("capture: write diagnostic profile: %w", err)
 		}
 		log.Printf("[debug] ExtensionServer: session start handshake received")
 		s.mu.Lock()

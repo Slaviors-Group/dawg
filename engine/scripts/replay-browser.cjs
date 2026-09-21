@@ -213,6 +213,45 @@ function interactiveScript(recordedViewport) {
 })();`;
 }
 
+function installInteractiveControlChannel(page) {
+    let buffered = "";
+    let closed = false;
+    const processLine = async line => {
+        if (!line.trim()) return;
+        let command;
+        try {
+            command = JSON.parse(line);
+        } catch (_) {
+            process.stderr.write("Ignored malformed replay control message.\n");
+            return;
+        }
+        if (!command || command.type !== "seek" || !Number.isFinite(command.offsetMs)) {
+            process.stderr.write("Ignored unsupported replay control message.\n");
+            return;
+        }
+        try {
+            const offsetMs = await page.evaluate(offset => {
+                if (!window.__DAWG_REPLAY__ || typeof window.__DAWG_REPLAY__.seek !== "function") {
+                    throw new Error("replay controls are not ready");
+                }
+                return window.__DAWG_REPLAY__.seek(offset);
+            }, command.offsetMs);
+            process.stderr.write(`Replay seeked to ${Math.round(offsetMs)}ms.\n`);
+        } catch (error) {
+            if (!closed) process.stderr.write(`Replay seek failed: ${error.message || error}\n`);
+        }
+    };
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", chunk => {
+        buffered += chunk;
+        const lines = buffered.split("\n");
+        buffered = lines.pop();
+        for (const line of lines) void processLine(line);
+    });
+    process.stdin.on("end", () => { closed = true; });
+    process.stdin.resume();
+}
+
 async function main() {
     const options = parseArguments(process.argv.slice(2));
     for (const required of ["rrweb-input", "screenshot-output"]) {
@@ -368,6 +407,7 @@ async function main() {
         process.stderr.write(`Replayer attached ${evaluation.iframeCount} iframe(s) to the page.\n`);
 
         if (interactive) {
+            installInteractiveControlChannel(page);
             process.stderr.write(`Interactive replay ready at http://dawg-replay.local/ with recorded viewport ${recordedViewport.width}x${recordedViewport.height}. Close the replay window when finished.\n`);
             await Promise.race([
                 new Promise(resolve => browser.once("disconnected", resolve)),

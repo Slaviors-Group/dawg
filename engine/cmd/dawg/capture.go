@@ -65,6 +65,7 @@ func newCaptureCommand() *cobra.Command {
 	var daemon bool
 	var resultFile string
 	var artifactTitle string
+	var diagnosticsProfile string
 
 	command := &cobra.Command{
 		Use:   "capture",
@@ -84,6 +85,7 @@ func newCaptureCommand() *cobra.Command {
 				UnsafeSkipSanitize: unsafeSkipSanitize,
 				ResultFile:         resultFile,
 				ArtifactTitle:      artifactTitle,
+				DiagnosticsProfile: diagnosticsProfile,
 			}
 			if unsafeSkipSanitize {
 				hostname := parsedURL.Hostname()
@@ -111,6 +113,7 @@ func newCaptureCommand() *cobra.Command {
 	command.Flags().BoolVar(&daemon, "daemon", false, "Run the capture owner process")
 	command.Flags().StringVar(&resultFile, "result-file", "", "Capture daemon result-state file")
 	command.Flags().StringVar(&artifactTitle, "title", "", "Human-readable title for the packaged artifact")
+	command.Flags().StringVar(&diagnosticsProfile, "diagnostics-profile", "safe", "Diagnostic evidence profile: safe or enhanced")
 	_ = command.Flags().MarkHidden("result-file")
 	_ = command.Flags().MarkHidden("daemon")
 	_ = command.MarkFlagRequired("url")
@@ -128,6 +131,7 @@ type captureStartRequest struct {
 	UnsafeSkipSanitize bool
 	ResultFile         string
 	ArtifactTitle      string
+	DiagnosticsProfile string
 }
 
 func launchCaptureDaemon(ctx context.Context, request captureStartRequest) (captureStartResult, error) {
@@ -222,6 +226,9 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 	if _, err := validateCaptureTarget(request.TargetURL); err != nil {
 		return err
 	}
+	if request.DiagnosticsProfile != string(dawgtypes.DiagnosticProfileSafe) && request.DiagnosticsProfile != string(dawgtypes.DiagnosticProfileEnhanced) {
+		return fmt.Errorf("capture: diagnostics profile must be safe or enhanced")
+	}
 	sessionID := filepath.Base(request.SessionDirectory)
 	resultFile := request.ResultFile
 	if resultFile == "" {
@@ -255,10 +262,12 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 	// The extension is last so Session.Stop asks it to flush and acknowledge
 	// before any optional environment streams are finalized and packaged.
 	components = append(components, &capture.ExtensionServer{
-		ListenAddr:       "127.0.0.1:8082",
-		TargetURL:        request.TargetURL,
-		RequireHandshake: true,
-		StartupTimeout:   13 * time.Second,
+		ListenAddr:         "127.0.0.1:8082",
+		TargetURL:          request.TargetURL,
+		RequireHandshake:   true,
+		StartupTimeout:     13 * time.Second,
+		CaptureSessionID:   sessionID,
+		DiagnosticsProfile: request.DiagnosticsProfile,
 	})
 
 	session, err := capture.NewSession(capture.SessionOptions{
@@ -268,6 +277,7 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 			SessionID:   sessionID,
 			TargetURL:   request.TargetURL,
 			ActionTrace: &dawgtypes.ActionTrace{Path: "actions/browser.jsonl", Version: version},
+			Diagnostics: dawgtypes.EmptyDiagnosticsSummary(dawgtypes.DiagnosticProfile(request.DiagnosticsProfile), "1.0.0"),
 		},
 		Components: components,
 	})
@@ -464,7 +474,7 @@ func artifactDirectoryNameForTitle(title string, capturedAt time.Time) string {
 }
 
 func daemonArguments(request captureStartRequest, sessionPath string) []string {
-	arguments := []string{"capture", "--daemon", "--url", request.TargetURL, "--session-dir", sessionPath}
+	arguments := []string{"capture", "--daemon", "--url", request.TargetURL, "--session-dir", sessionPath, "--diagnostics-profile", request.DiagnosticsProfile}
 	if request.ArtifactTitle != "" {
 		arguments = append(arguments, "--title", request.ArtifactTitle)
 	}

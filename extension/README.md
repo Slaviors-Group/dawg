@@ -6,7 +6,7 @@ the local capture daemon.
 
 > Manifest: `3` · Minimum Chrome/Chromium: `116`
 >
-> Install version: `0.2.5` · Display version: `0.2.5_naughty`
+> Install version: `0.3.1` · Display version: `0.3.1_middlechild`
 
 Playwright and bundled Chromium are replay dependencies. Capture runs in the
 user's installed Chrome or Chromium browser.
@@ -35,7 +35,8 @@ The manifest declares:
 
 - `activeTab`, `tabs`, and `scripting` to find, focus/open, and initialize the
   selected target tab;
-- `webRequest` to collect request and response metadata;
+- `webRequest` to collect Safe-capture request and response metadata;
+- `debugger` for consented Enhanced Diagnostics CDP collection;
 - `storage` to retain capture state across Manifest V3 worker restarts;
 - `<all_urls>` host access for content-script and request observation.
 
@@ -59,7 +60,9 @@ A normal session proceeds as follows:
 3. The engine sends `DAWG_COMMAND_START` with the target URL and a random session
    token.
 4. The extension focuses an exact normalized URL match or opens a new tab,
-   starts the recorder, and sends `DAWG_SESSION_START`.
+   starts the recorder, and sends `DAWG_SESSION_START` with the active Safe or
+   Enhanced Diagnostics profile. If CDP attachment for Enhanced fails, it records
+   a degradation and continues in Safe mode.
 5. It delivers `DAWG_RRWEB_EVENT`, `DAWG_ACTION_EVENT`, and `DAWG_HTTP_EVENT`
    envelopes. A `DAWG_KEEPALIVE` is sent every 20 seconds while connected.
 6. On stop, the extension stops rrweb, waits for pending deliveries, sends
@@ -85,17 +88,29 @@ connection.
 - Click timestamp and a basic element selector
 - Input timestamp, selector, field name, input type, and entered value
 
-### HTTP stream
+### Diagnostic evidence profiles
 
-- URL, method, start time, duration, available request/response headers, status,
-  and direction
-- Request body from the first raw body chunk or encoded form data when Chrome
-  exposes it
-- Response metadata only; response bodies are not captured
+**Safe** is the default. It records bounded console/error and network metadata
+from the selected tab. Network body fields are marked `not-requested` or
+`unavailable`; Safe does not use CDP to retrieve response bodies.
 
-Failed requests are discarded. Header visibility follows Chrome's `webRequest`
-API behavior, and duplicate header names collapse to one value in the stored
-map.
+**Enhanced Diagnostics** requires explicit desktop consent and attaches Chrome
+DevTools Protocol (CDP) to the selected tab. It adds CDP console APIs,
+exceptions, and network records. For completed network responses, it requests a
+body only when the response is JSON, GraphQL, form-encoded, or text, and only
+within the per-body and concurrent-fetch limits. Binary, oversized, unavailable,
+and failed body retrievals are recorded as states rather than retained values.
+
+The extension detaches CDP on stop. If CDP cannot attach or is detached during
+capture, it emits a capture-degradation record; an initial attach failure falls
+back to Safe.
+
+### Evidence states
+
+Diagnostic values state whether they are `captured`, `redacted`, `preview-only`,
+`truncated`, `blocked`, `unavailable`, `not-requested`, or `capture-failed`.
+A state describes retained fidelity; it is not a promise that the original value
+can be recovered.
 
 ## ⚠️ Data Handling
 
@@ -105,8 +120,10 @@ sanitizer processes the session. The engine applies secret/PII classification
 and the configured OPA policy before packaging, but captured artifacts should
 still be inspected before distribution.
 
-The sanitizer preserves rrweb document-type names and SVG `viewBox`/`points`
-geometry because those fields are required to reconstruct valid DOM/SVG nodes.
+The sanitizer also processes diagnostic console, network, error, and retained
+body records before packaging. It preserves rrweb document-type names and SVG
+`viewBox`/`points` geometry because those fields are required to reconstruct
+valid DOM/SVG nodes.
 
 ## 🩺 Troubleshooting
 
@@ -131,8 +148,8 @@ npm run check:versions
 ```
 
 Chrome requires a numeric install version. The synchronizer converts
-`0.2.5_naughty` to `version: "0.2.5"` and
-`version_name: "0.2.5_naughty"`.
+`0.3.1_middlechild` to `version: "0.3.1"` and
+`version_name: "0.3.1_middlechild"`.
 
 ## ✅ Validation
 

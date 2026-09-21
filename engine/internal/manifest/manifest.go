@@ -12,26 +12,28 @@ import (
 )
 
 // SchemaVersion is the current DAWG manifest schema version.
-const SchemaVersion = "0.2.7-naughty"
+const SchemaVersion = "0.3.1-middlechild"
 
 var schemaFiles = map[string]string{
-	"0.2.3-naughty": "v0.2.3-naughty.json",
-	"0.2.5-naughty": "v0.2.5-naughty.json",
-	"0.2.7-naughty": "v0.2.7-naughty.json",
+	"0.2.3-naughty":     "v0.2.3-naughty.json",
+	"0.2.5-naughty":     "v0.2.5-naughty.json",
+	"0.2.7-naughty":     "v0.2.7-naughty.json",
+	"0.3.1-middlechild": "v0.3.1-middlechild.json",
 }
 
 // Manifest is the OCI config document for a DAWG artifact.
 type Manifest struct {
-	SchemaVersion   string                      `json:"schemaVersion"`
-	ID              string                      `json:"id"`
-	CreatedAt       time.Time                   `json:"createdAt"`
-	Title           string                      `json:"title"`
-	Source          dawgtypes.ManifestSource    `json:"source"`
-	Layers          []dawgtypes.LayerSpec       `json:"layers"`
-	Sanitize        dawgtypes.ManifestSanitize  `json:"sanitize"`
-	Determinism     dawgtypes.DeterminismConfig `json:"determinism"`
-	Provenance      *Provenance                 `json:"provenance,omitempty"`
-	ExpectedOutcome dawgtypes.ExpectedOutcome   `json:"expectedOutcome"`
+	SchemaVersion   string                        `json:"schemaVersion"`
+	ID              string                        `json:"id"`
+	CreatedAt       time.Time                     `json:"createdAt"`
+	Title           string                        `json:"title"`
+	Source          dawgtypes.ManifestSource      `json:"source"`
+	Layers          []dawgtypes.LayerSpec         `json:"layers"`
+	Sanitize        dawgtypes.ManifestSanitize    `json:"sanitize"`
+	Determinism     dawgtypes.DeterminismConfig   `json:"determinism"`
+	Provenance      *Provenance                   `json:"provenance,omitempty"`
+	ExpectedOutcome dawgtypes.ExpectedOutcome     `json:"expectedOutcome"`
+	Diagnostics     *dawgtypes.DiagnosticsSummary `json:"diagnostics,omitempty"`
 }
 
 // Provenance contains optional artifact-signing metadata.
