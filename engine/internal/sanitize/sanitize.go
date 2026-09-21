@@ -22,6 +22,9 @@ var captureFiles = []string{
 	"traces/rrweb.jsonl",
 	"actions/browser.jsonl",
 	"cassettes/thirdparty.jsonl",
+	"diagnostics/console.jsonl",
+	"diagnostics/network.jsonl",
+	"diagnostics/errors.jsonl",
 }
 
 // SanitizeFiles redacts supported JSONL capture files in place and returns a report before policy evaluation.
@@ -49,6 +52,13 @@ func SanitizeFiles(sessionDirectory, policyFile, policyVersion string) (dawgtype
 		report.FieldsRedacted += len(fileReport.redactions)
 		report.Redactions = append(report.Redactions, fileReport.redactions...)
 	}
+	bodyReport, err := sanitizeDiagnosticBodies(sessionDirectory)
+	if err != nil {
+		return dawgtypes.SanitizeReport{}, err
+	}
+	report.FieldsScanned += bodyReport.fieldsScanned
+	report.FieldsRedacted += len(bodyReport.redactions)
+	report.Redactions = append(report.Redactions, bodyReport.redactions...)
 	return report, nil
 }
 
@@ -97,6 +107,62 @@ func writeReport(sessionDirectory string, report dawgtypes.SanitizeReport) error
 type fileSanitization struct {
 	fieldsScanned int
 	redactions    []dawgtypes.Redaction
+}
+
+func sanitizeDiagnosticBodies(sessionDirectory string) (fileSanitization, error) {
+	root := filepath.Join(sessionDirectory, "diagnostics", "bodies")
+	if _, err := os.Stat(root); os.IsNotExist(err) {
+		return fileSanitization{}, nil
+	} else if err != nil {
+		return fileSanitization{}, fmt.Errorf("sanitizer: inspect diagnostic bodies: %w", err)
+	}
+	result := fileSanitization{}
+	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		if entry.Type()&os.ModeSymlink != 0 || !entry.Type().IsRegular() {
+			return fmt.Errorf("sanitizer: refuse non-regular diagnostic body %s", path)
+		}
+		contents, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if len(contents) > 256<<10 {
+			return fmt.Errorf("sanitizer: diagnostic body %s exceeds %d bytes", path, 256<<10)
+		}
+		relative, _ := filepath.Rel(sessionDirectory, path)
+		var value any
+		if err := json.Unmarshal(contents, &value); err == nil {
+			sanitized, scanned, redactions := sanitizeValue(value, "", filepath.ToSlash(relative), 1)
+			updated, err := json.Marshal(sanitized)
+			if err != nil {
+				return err
+			}
+			if err := os.WriteFile(path, append(updated, '\n'), 0o600); err != nil {
+				return err
+			}
+			result.fieldsScanned += scanned
+			result.redactions = append(result.redactions, redactions...)
+			return nil
+		}
+		if category, matched := classify("diagnostic.body", string(contents)); matched {
+			replacementValue := replacement("body", string(contents), category)
+			if err := os.WriteFile(path, []byte(replacementValue), 0o600); err != nil {
+				return err
+			}
+			result.fieldsScanned++
+			result.redactions = append(result.redactions, dawgtypes.Redaction{File: filepath.ToSlash(relative), Line: 1, Field: "body", Reason: category.reason, Action: redactionAction(category), SyntheticValue: syntheticValue(category, replacementValue)})
+		}
+		return nil
+	})
+	if err != nil {
+		return fileSanitization{}, err
+	}
+	return result, nil
 }
 
 func sanitizeJSONLFile(path, relativePath string) (fileSanitization, error) {

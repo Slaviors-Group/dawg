@@ -4,7 +4,7 @@ import {
   type EngineStatusInfo,
   useEngineStatus,
 } from "../hooks/useEngineStatus";
-import { type ArtifactItem, engine } from "../lib/engine";
+import { type ArtifactItem, engine, type StartCaptureOptions } from "../lib/engine";
 
 export type { ArtifactItem } from "../lib/engine";
 
@@ -26,7 +26,7 @@ interface EngineContextType {
   inspectedArtifact: ArtifactItem | null;
   openInspectModal: (artifact: ArtifactItem) => void;
   closeInspectModal: () => void;
-  startCaptureSession: (url: string, title?: string) => Promise<void>;
+  startCaptureSession: (options: StartCaptureOptions) => Promise<void>;
   stopCaptureSession: () => Promise<void>;
   addLogLine: (line: string) => void;
   clearLogs: () => void;
@@ -110,11 +110,13 @@ export function EngineProvider({ children }: { children: ReactNode }) {
     setInspectedArtifact(null);
   };
 
-  const startCaptureSession = async (url: string, title?: string) => {
+  const startCaptureSession = async (options: StartCaptureOptions) => {
     try {
-      addLogLine(`Starting capture session for target URL: ${url}`);
+      addLogLine(
+        `Starting ${options.diagnosticsProfile} diagnostics capture session for target URL: ${options.url}`,
+      );
       setIsCapturing(true);
-      const res = await engine.startCapture({ url, title });
+      const res = await engine.startCapture(options);
       setActiveSessionId(res.sessionId);
       setActiveControlFile(res.controlFile);
       addLogLine(`Capture session active. Session ID: ${res.sessionId}`);

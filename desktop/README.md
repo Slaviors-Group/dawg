@@ -3,14 +3,13 @@
 DAWG Desktop is the Tauri v2 interface for the Go engine. It uses Rust, React 19,
 Vite 7, Tailwind CSS 4, Framer Motion, and Phosphor icons.
 
-> Application package: `0.2.7-naughty` · Tauri/Cargo package: `0.2.7`
+> Application package: `0.3.1-middlechild` · Tauri/Cargo package: `0.3.1`
 >
 > Bundled Node.js: `22.14.0` · Bundled mitmproxy: `12.2.3`
-
-Download the [DAWG 0.2.7 Windows x64 installer](https://github.com/Slaviors-Group/dawg/releases/download/naughty-4/DAWG_0.2.7_x64-setup.exe), or view the current
-[`0.2.7-naughty` (`naughty-4`) release](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-4).
-Linux targets are configured; build the AppImage from source when it is not
-attached to the release.
+>
+> See [GitHub releases](https://github.com/Slaviors-Group/dawg/releases) for
+> published installers and assets. Linux targets are configured; build the
+> AppImage from source when it is not attached to a release.
 
 ## 🧭 Current Desktop Scope
 
@@ -19,15 +18,26 @@ verification, and registry operations. The desktop application currently
 provides engine status, capture controls, a persistent artifact browser, archive
 import/export, replay controls, logs, and runtime diagnostics.
 
-- **Capture:** starts `dawg capture` with a URL and optional title, tracks the
-  detached capture daemon, and waits for packaging when capture stops.
+- **Capture:** starts `dawg capture` with a URL, optional title, and **Safe** or
+  consented **Enhanced Diagnostics** profile; tracks the detached capture daemon
+  and waits for packaging when capture stops. Enhanced warns about additional
+  troubleshooting evidence and requires confirmation.
 - **Artifact catalog:** loads validated artifacts from the engine at startup and
   refreshes after capture or import.
 - **Import/export:** uses native `.dawg` file dialogs from both Dashboard and
-  Replay; the dashboard also accepts a dropped `.dawg` archive.
-- **Replay:** Dashboard **Replay** opens Replay with the selected artifact but
-  does not start it. **Run Replay** invokes `dawg run --interactive <artifact>`
-  and exposes play/pause, skip, speed, timeline, and **Stop Replay** controls.
+  Replay; the dashboard also accepts a dropped `.dawg` archive. Replay requires
+  review confirmation before artifact export.
+- **Replay and evidence review:** Dashboard **Replay** opens Replay with the
+  selected artifact but does not start it. The Replay workspace reads packaged
+  console, network, error, and body evidence; filters evidence states; exports
+  sanitized HAR; copies reviewed cURL for a selected request; and can create a
+  reviewed OCI copy with selected categories or individual retained bodies
+  removed. Export, cURL copy, and evidence removal require explicit review.
+  When a diagnostic timestamp falls in the recorded rrweb range, the workspace
+  can seek a live interactive replay to that approximate offset; it reports no
+  correlation rather than inventing one. **Run Replay** invokes
+  `dawg run --interactive <artifact>` and exposes play/pause, skip, speed,
+  timeline, and **Stop Replay** controls.
 - **Process cleanup:** tracks replay and capture-daemon PIDs. Windows cancellation
   uses `taskkill /T /F`; application exit attempts to terminate tracked work.
 - **Doctor:** displays `dawg doctor --output json` component status.
@@ -59,7 +69,7 @@ completion is a UI estimate rather than engine-reported progress.
 ### Capture
 
 1. React invokes `start_capture` with the target URL and optional title.
-2. Tauri executes `dawg capture --url ... --title ... --output json`.
+2. Tauri executes `dawg capture --url ... --title ... --diagnostics-profile safe|enhanced --output json`.
 3. The engine launches its detached capture daemon and returns its PID and
    control-file path.
 4. Tauri registers the daemon PID for exit cleanup.
@@ -199,7 +209,7 @@ npm run check:versions
 ```
 
 The desktop npm package uses the labeled application version
-`0.2.7-naughty`; Cargo and Tauri use numeric version `0.2.7`.
+`0.3.1-middlechild`; Cargo and Tauri use numeric version `0.3.1`.
 
 ## ✅ Validation
 

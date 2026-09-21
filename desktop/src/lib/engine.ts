@@ -28,9 +28,13 @@ export interface EngineStatusInfo {
   error?: string;
 }
 
+export type CaptureDiagnosticsProfile = "safe" | "enhanced";
+
 export interface StartCaptureOptions {
   url: string;
   title?: string;
+  /** Selected by the desktop UI; engine support is intentionally forward-compatible. */
+  diagnosticsProfile: CaptureDiagnosticsProfile;
 }
 
 export interface StartCaptureResult {
@@ -80,6 +84,36 @@ export interface InspectResult {
   determinism?: Record<string, unknown>;
   expectedOutcome?: Record<string, unknown>;
   [key: string]: unknown;
+}
+
+export interface ReplayTimeline {
+  firstTimestamp: number;
+  lastTimestamp: number;
+  durationMs: number;
+}
+
+export interface DiagnosticEvidence {
+  summary?: Record<string, unknown>;
+  timeline?: ReplayTimeline;
+  console: Array<Record<string, unknown>>;
+  network: Array<Record<string, unknown>>;
+  errors: Array<Record<string, unknown>>;
+  bodies: Record<string, string>;
+}
+
+export type DiagnosticCategory = "console" | "network" | "errors" | "bodies";
+
+export interface RemoveDiagnosticsOptions {
+  artifact: string;
+  outputDir: string;
+  categories: DiagnosticCategory[];
+  bodyRefs: string[];
+}
+
+export interface PackagedArtifact {
+  directory: string;
+  manifestPath: string;
+  ociManifestDigest: string;
 }
 
 export interface RunReplayOptions {
@@ -151,6 +185,7 @@ export class EngineBridge {
       const res = await invoke<CommandOutput<StartCaptureResult>>("start_capture", {
         url: options.url,
         title: options.title,
+        diagnosticsProfile: options.diagnosticsProfile,
       });
       return res.payload;
     } catch (err) {
@@ -219,6 +254,33 @@ export class EngineBridge {
     }
   }
 
+  async inspectDiagnostics(artifact: string): Promise<DiagnosticEvidence> {
+    const res = await invoke<CommandOutput<DiagnosticEvidence>>("inspect_diagnostics", { artifact });
+    return res.payload;
+  }
+
+  async exportDiagnosticsHAR(artifact: string, output: string): Promise<void> {
+    await invoke<CommandOutput<unknown>>("export_diagnostics_har", { artifact, output });
+  }
+
+  async copyDiagnosticsCurl(artifact: string, requestId: string): Promise<string> {
+    const res = await invoke<CommandOutput<{ raw?: string }>>("copy_diagnostics_curl", {
+      artifact,
+      requestId,
+    });
+    return res.payload.raw ?? String(res.payload);
+  }
+
+  async removeDiagnostics(options: RemoveDiagnosticsOptions): Promise<PackagedArtifact> {
+    const res = await invoke<CommandOutput<PackagedArtifact>>("remove_diagnostics", {
+      artifact: options.artifact,
+      outputDir: options.outputDir,
+      categories: options.categories,
+      bodyRefs: options.bodyRefs,
+    });
+    return res.payload;
+  }
+
   async runReplay(options: RunReplayOptions): Promise<RunReplayResult> {
     try {
       const res = await invoke<CommandOutput<RunReplayResult>>("run_replay", {
@@ -243,6 +305,13 @@ export class EngineBridge {
       console.warn("Tauri engine IPC fallback:", err);
       throw new Error(`Engine cancelReplay failed: ${String(err)}`);
     }
+  }
+
+  async seekReplay(offsetMs: number): Promise<void> {
+    if (!Number.isFinite(offsetMs) || offsetMs < 0) {
+      throw new Error("Replay seek offset must be a non-negative number.");
+    }
+    await invoke("seek_replay", { offsetMs: Math.round(offsetMs) });
   }
 
   async verifyResult(options: VerifyOptions): Promise<VerifyResult> {

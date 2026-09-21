@@ -2,6 +2,7 @@ package manifest
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -70,9 +71,23 @@ func TestValidateJSONRejectsMalformedSchema(t *testing.T) {
 
 func TestReadValidatedAcceptsSupportedVersions(t *testing.T) {
 	contents := validManifestContents(t)
-	for _, version := range []string{"0.2.3-naughty", "0.2.5-naughty", SchemaVersion} {
+	for _, version := range []string{"0.2.3-naughty", "0.2.5-naughty", "0.2.7-naughty", SchemaVersion} {
 		t.Run(version, func(t *testing.T) {
-			versionedContents := bytes.Replace(contents, []byte(SchemaVersion), []byte(version), 1)
+			versionedContents := contents
+			if version != SchemaVersion {
+				var legacy map[string]any
+				if err := json.Unmarshal(contents, &legacy); err != nil {
+					t.Fatalf("decode current fixture: %v", err)
+				}
+				delete(legacy, "diagnostics")
+				legacy["schemaVersion"] = version
+				legacy["layers"] = []any{map[string]any{
+					"mediaType": string(dawgtypes.MediaTypeEnvironment),
+					"digest":    "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+					"size":      2048,
+				}}
+				versionedContents, _ = json.Marshal(legacy)
+			}
 			path := writeManifest(t, versionedContents)
 
 			value, err := ReadValidated(path)

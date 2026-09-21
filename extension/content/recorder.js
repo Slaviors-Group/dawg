@@ -4,6 +4,26 @@
 
   let stopRecord = null;
   let isRecording = false;
+  const MAX_DIAGNOSTIC_BYTES = 32 * 1024;
+
+  function forwardDiagnostic(event) {
+    if (!isRecording || !event.detail || typeof event.detail !== "object") return;
+    const { kind, payload } = event.detail;
+    if ((kind !== "console" && kind !== "error") || !payload || typeof payload !== "object") return;
+    let serialized;
+    try {
+      serialized = JSON.stringify(payload);
+    } catch (_error) {
+      return;
+    }
+    if (serialized.length > MAX_DIAGNOSTIC_BYTES) return;
+    chrome.runtime.sendMessage({
+      type: kind === "console" ? "DAWG_DIAGNOSTIC_CONSOLE" : "DAWG_DIAGNOSTIC_ERROR",
+      payload
+    }).catch(() => {});
+  }
+
+  window.addEventListener("dawg-diagnostic", forwardDiagnostic);
 
   function buildSelector(element) {
     if (!element || element === document) return "";
@@ -44,9 +64,14 @@
     }).catch(() => {});
   }
 
+  function setDiagnosticsActive(active) {
+    window.dispatchEvent(new CustomEvent("dawg-diagnostics-control", { detail: { active } }));
+  }
+
   function startRecording() {
     if (isRecording) return;
     isRecording = true;
+    setDiagnosticsActive(true);
 
     document.addEventListener("click", handleInteractionClick, true);
     document.addEventListener("input", handleInteractionInput, true);
@@ -70,6 +95,7 @@
   function stopRecording() {
     if (!isRecording) return;
     isRecording = false;
+    setDiagnosticsActive(false);
 
     document.removeEventListener("click", handleInteractionClick, true);
     document.removeEventListener("input", handleInteractionInput, true);

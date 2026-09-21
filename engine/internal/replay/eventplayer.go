@@ -71,6 +71,12 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 		arguments = append(arguments, "--interactive")
 	}
 	cmd := exec.CommandContext(replayContext, nodeBinary, arguments...)
+	// Interactive players consume only explicit JSON control messages from the
+	// parent process. Inheriting stdin keeps CLI use interactive while allowing
+	// Desktop to relay a seek request to the headed player.
+	if player.Interactive {
+		cmd.Stdin = os.Stdin
+	}
 	procutil.HideWindow(cmd)
 	if player.BrowsersDir != "" {
 		cmd.Env = append(os.Environ(), "PLAYWRIGHT_BROWSERS_PATH="+player.BrowsersDir)

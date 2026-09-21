@@ -113,7 +113,7 @@ func (session *Session) stopStartedLocked() error {
 }
 
 func createSessionLayout(directory string) error {
-	for _, child := range []string{"traces", "http", "db", "logs", "env", "cassettes", "actions"} {
+	for _, child := range []string{"traces", "http", "db", "logs", "env", "cassettes", "actions", "diagnostics", "diagnostics/bodies"} {
 		if err := os.MkdirAll(filepath.Join(directory, child), 0o700); err != nil {
 			return fmt.Errorf("capture: create session directory %s: %w", child, err)
 		}

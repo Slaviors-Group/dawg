@@ -12,6 +12,7 @@ type CaptureMetadata struct {
 	Environment        CaptureEnvironment `json:"environment"`
 	Determinism        DeterminismConfig  `json:"determinism"`
 	ActionTrace        *ActionTrace       `json:"actionTrace,omitempty"`
+	Diagnostics        DiagnosticsSummary `json:"diagnostics"`
 }
 
 // CaptureEnvironment identifies the application revision and images used during capture.

@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
+use std::io::Write;
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::{ChildStdin, Command, Stdio};
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager};
 
@@ -28,13 +29,15 @@ pub struct CommandOutput {
 #[derive(Default)]
 struct ProcessRegistry {
     replay_pid: Mutex<Option<u32>>,
+    replay_stdin: Mutex<Option<ChildStdin>>,
     replay_cancelled: Mutex<bool>,
     capture_daemon_pid: Mutex<Option<u32>>,
 }
 
 impl ProcessRegistry {
-    fn start_replay(&self, pid: u32) {
+    fn start_replay(&self, pid: u32, stdin: ChildStdin) {
         *self.replay_pid.lock().unwrap() = Some(pid);
+        *self.replay_stdin.lock().unwrap() = Some(stdin);
         *self.replay_cancelled.lock().unwrap() = false;
     }
 
@@ -42,6 +45,7 @@ impl ProcessRegistry {
     /// cancelled by the user before this call.
     fn finish_replay(&self) -> bool {
         *self.replay_pid.lock().unwrap() = None;
+        *self.replay_stdin.lock().unwrap() = None;
         let mut cancelled = self.replay_cancelled.lock().unwrap();
         let was_cancelled = *cancelled;
         *cancelled = false;
@@ -51,6 +55,7 @@ impl ProcessRegistry {
     /// Force-kills the currently tracked replay process tree, if any.
     /// Returns true if a replay was actually running and got cancelled.
     fn cancel_replay(&self) -> bool {
+        *self.replay_stdin.lock().unwrap() = None;
         let pid = *self.replay_pid.lock().unwrap();
         match pid {
             Some(pid) => {
@@ -60,6 +65,19 @@ impl ProcessRegistry {
             }
             None => false,
         }
+    }
+
+    fn seek_replay(&self, offset_ms: u64) -> Result<(), String> {
+        let mut stdin = self.replay_stdin.lock().unwrap();
+        let Some(stdin) = stdin.as_mut() else {
+            return Err("No interactive replay is running.".to_string());
+        };
+        let command = serde_json::json!({ "type": "seek", "offsetMs": offset_ms });
+        writeln!(stdin, "{}", command)
+            .map_err(|error| format!("Failed to send replay seek: {}", error))?;
+        stdin
+            .flush()
+            .map_err(|error| format!("Failed to flush replay seek: {}", error))
     }
 
     fn set_capture_daemon(&self, pid: u32) {
@@ -72,6 +90,7 @@ impl ProcessRegistry {
 
     /// Terminates all replay and capture processes tracked by this session.
     fn kill_all(&self) {
+        *self.replay_stdin.lock().unwrap() = None;
         if let Some(pid) = self.replay_pid.lock().unwrap().take() {
             kill_process_tree(pid);
         }
@@ -435,8 +454,18 @@ async fn start_capture(
     registry: tauri::State<'_, ProcessRegistry>,
     url: String,
     title: Option<String>,
+    diagnostics_profile: Option<String>,
 ) -> Result<CommandOutput, String> {
-    let mut args = vec!["--url".to_string(), url];
+    let profile = diagnostics_profile.unwrap_or_else(|| "safe".to_string());
+    if profile != "safe" && profile != "enhanced" {
+        return Err("Invalid diagnostics profile; expected safe or enhanced".to_string());
+    }
+    let mut args = vec![
+        "--url".to_string(),
+        url,
+        "--diagnostics-profile".to_string(),
+        profile,
+    ];
     if let Some(title) = title.filter(|value| !value.trim().is_empty()) {
         args.push("--title".to_string());
         args.push(title);
@@ -469,6 +498,79 @@ async fn stop_capture(
 #[tauri::command]
 async fn inspect_artifact(app: AppHandle, path: String) -> Result<CommandOutput, String> {
     execute_engine_cmd(app, "inspect".to_string(), vec![path]).await
+}
+
+#[tauri::command]
+async fn inspect_diagnostics(app: AppHandle, artifact: String) -> Result<CommandOutput, String> {
+    execute_engine_cmd(
+        app,
+        "diagnostics".to_string(),
+        vec!["inspect".to_string(), artifact],
+    )
+    .await
+}
+
+#[tauri::command]
+async fn export_diagnostics_har(
+    app: AppHandle,
+    artifact: String,
+    output: String,
+) -> Result<CommandOutput, String> {
+    execute_engine_cmd(
+        app,
+        "diagnostics".to_string(),
+        vec![
+            "export-har".to_string(),
+            artifact,
+            "--output".to_string(),
+            output,
+        ],
+    )
+    .await
+}
+
+#[tauri::command]
+async fn copy_diagnostics_curl(
+    app: AppHandle,
+    artifact: String,
+    request_id: String,
+) -> Result<CommandOutput, String> {
+    execute_engine_cmd(
+        app,
+        "diagnostics".to_string(),
+        vec![
+            "copy-curl".to_string(),
+            artifact,
+            "--request-id".to_string(),
+            request_id,
+        ],
+    )
+    .await
+}
+
+#[tauri::command]
+async fn remove_diagnostics(
+    app: AppHandle,
+    artifact: String,
+    output_dir: String,
+    categories: Vec<String>,
+    body_refs: Vec<String>,
+) -> Result<CommandOutput, String> {
+    let mut args = vec![
+        "remove".to_string(),
+        artifact,
+        "--output-dir".to_string(),
+        output_dir,
+    ];
+    for category in categories {
+        args.push("--remove-category".to_string());
+        args.push(category);
+    }
+    for body_ref in body_refs {
+        args.push("--remove-body-ref".to_string());
+        args.push(body_ref);
+    }
+    execute_engine_cmd(app, "diagnostics".to_string(), args).await
 }
 
 #[tauri::command]
@@ -515,15 +617,19 @@ async fn run_replay(
     // Desktop replays are intentionally interactive; direct CLI `dawg run`
     // remains the finite screenshot-producing workflow.
     let mut cmd = build_engine_command(&app, "run", &["--interactive".to_string(), artifact]);
-    cmd.stdin(Stdio::null());
+    cmd.stdin(Stdio::piped());
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());
 
-    let child = cmd
+    let mut child = cmd
         .spawn()
         .map_err(|e| format!("Failed to start replay: {}", e))?;
     let pid = child.id();
-    registry.start_replay(pid);
+    let stdin = child
+        .stdin
+        .take()
+        .ok_or_else(|| "Failed to open interactive replay control channel.".to_string())?;
+    registry.start_replay(pid, stdin);
 
     // Wait off the async executor thread: Child::wait_with_output blocks the
     // calling thread until the process exits (or is killed by cancel_replay),
@@ -562,6 +668,14 @@ async fn cancel_replay(registry: tauri::State<'_, ProcessRegistry>) -> Result<bo
 }
 
 #[tauri::command]
+async fn seek_replay(
+    registry: tauri::State<'_, ProcessRegistry>,
+    offset_ms: u64,
+) -> Result<(), String> {
+    registry.seek_replay(offset_ms)
+}
+
+#[tauri::command]
 async fn verify_result(
     app: AppHandle,
     artifact: String,
@@ -587,11 +701,16 @@ pub fn run() {
             start_capture,
             stop_capture,
             inspect_artifact,
+            inspect_diagnostics,
+            export_diagnostics_har,
+            copy_diagnostics_curl,
+            remove_diagnostics,
             list_artifacts,
             import_artifact,
             export_artifact,
             run_replay,
             cancel_replay,
+            seek_replay,
             verify_result
         ])
         .build(tauri::generate_context!())
