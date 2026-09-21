@@ -1,6 +1,6 @@
 # Sanitizer Policy
 
-DAWG `0.2.5-naughty` sanitizes supported capture streams before packaging and then evaluates an Open Policy Agent (OPA) allow decision. Detection is heuristic: sanitization reduces exposure, but it is not a confidentiality or no-leak guarantee.
+DAWG `0.3.1-middlechild` sanitizes supported capture streams and retained diagnostic bodies before packaging, then evaluates an Open Policy Agent (OPA) allow decision. Detection is heuristic: sanitization reduces exposure, but it is not a confidentiality or no-leak guarantee.
 
 ## Processing Flow
 
@@ -24,8 +24,16 @@ The sanitizer processes these files when they exist:
 - `traces/rrweb.jsonl`
 - `actions/browser.jsonl`
 - `cassettes/thirdparty.jsonl`
+- `diagnostics/console.jsonl`
+- `diagnostics/network.jsonl`
+- `diagnostics/errors.jsonl`
 
-Other file formats are not sanitized by this pass. Each supported file is replaced only after its complete temporary output succeeds. Invalid JSONL aborts sanitization and leaves the original file intact.
+When present, regular files in `diagnostics/bodies/` are also processed as
+retained diagnostic bodies. JSON bodies are sanitized structurally; non-JSON
+bodies receive ordinary value classification. Other file formats are not
+sanitized by this pass. Each supported JSONL file is replaced only after its
+complete temporary output succeeds. Invalid JSONL aborts sanitization and leaves
+the original file intact.
 
 ## Detection Rules
 
@@ -199,6 +207,17 @@ Packaging requires both `meta.json` and a sanitization report whose `exportAllow
 `--unsafe-skip-sanitize` is accepted only when capturing a localhost target. It leaves captured content unchanged and writes an allowed report with `policyVersion` and `policyFile` set to `skipped`, while `opaResult` remains `allow`.
 
 Use this option only for controlled local data. The resulting artifact can contain credentials, personal data, and any other values present in the capture.
+
+## Diagnostic Evidence Boundaries
+
+- Safe capture does not retrieve response bodies through CDP. Enhanced capture
+  may retain only eligible JSON, GraphQL, form-encoded, or text response bodies
+  within capture limits.
+- Diagnostic states (`captured`, `redacted`, `preview-only`, `truncated`,
+  `blocked`, `unavailable`, `not-requested`, and `capture-failed`) indicate
+  retained fidelity. They do not provide access to absent original values.
+- Sanitization occurs before packaging for retained diagnostic records and
+  bodies.
 
 ## Security Boundaries
 

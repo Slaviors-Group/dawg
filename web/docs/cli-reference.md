@@ -1,6 +1,6 @@
 # CLI Reference
 
-This reference describes the DAWG `0.2.5-naughty` command-line interface.
+This reference describes the DAWG `0.3.1-middlechild` command-line interface.
 
 ## Usage
 
@@ -45,6 +45,7 @@ dawg capture --url <http-or-https-url> [flags]
 | `--policy-file <file>` | No | Rego policy used by the sanitizer |
 | `--unsafe-skip-sanitize` | No | Skip sanitization; accepted only for localhost targets |
 | `--title <title>` | No | Artifact title |
+| `--diagnostics-profile <safe\|enhanced>` | No | Diagnostic evidence profile; defaults to `safe` |
 
 The launcher creates a session and starts a detached capture daemon. The daemon listens on `127.0.0.1:8082`; the DAWG Manifest V3 browser extension connects to it and records the selected tab. The extension must be installed and available to complete capture.
 
@@ -57,7 +58,23 @@ The session can contain:
 - optional database changes in `db/diff.jsonl`
 - optional structured logs in `logs/structured.jsonl`
 
-Frontend network records include request headers and bodies plus response status and headers. Response bodies are currently empty.
+### Diagnostic profiles
+
+`safe` is the default profile. It records bounded console/error and network
+metadata from the selected tab without CDP body retrieval. Network body fields
+state `not-requested` or `unavailable` when a body is not retained.
+
+`enhanced` requests Chrome DevTools Protocol (CDP) diagnostics. It captures CDP
+console APIs, exceptions, and network records, and may retain response bodies
+only for eligible JSON, GraphQL, form-encoded, or text content within configured
+size and concurrency limits. CDP attach failure falls back to Safe and records a
+capture degradation; a later CDP detachment is also recorded. Enhanced capture
+is an explicit opt-in in Desktop; CLI users select it with the flag above.
+
+Diagnostic fields use evidence states: `captured`, `redacted`, `preview-only`,
+`truncated`, `blocked`, `unavailable`, `not-requested`, and `capture-failed`.
+Those states express what is retained; the CLI does not reconstruct an absent
+original value.
 
 ### `dawg capture stop`
 
@@ -140,6 +157,73 @@ dawg artifacts import <file.dawg>
 
 Import validates archive paths, symlinks, size and compression limits, OCI structure, descriptors, and content digests before accepting the artifact.
 
+### `dawg diagnostics inspect <artifact-directory>`
+
+Print the packaged, sanitized diagnostic evidence as JSON.
+
+```bash
+dawg diagnostics inspect <artifact-directory>
+```
+
+Legacy artifacts return empty diagnostic evidence. The command verifies declared
+diagnostic blobs before reading their bounded entries.
+
+### `dawg diagnostics export-har <artifact-directory>`
+
+Write a sanitized HAR representation of retained network evidence.
+
+```bash
+dawg diagnostics export-har <artifact-directory> --output evidence.har
+```
+
+| Flag | Required | Description |
+|---|---:|---|
+| `--output <file>` | Yes | Destination HAR file |
+
+The HAR includes retained request/response metadata and body state annotations;
+it does not reconstruct empty, blocked, unavailable, or truncated bodies.
+
+### `dawg diagnostics copy-curl <artifact-directory>`
+
+Print a cURL command for one retained network request.
+
+```bash
+dawg diagnostics copy-curl <artifact-directory> --request-id <request-id>
+```
+
+| Flag | Required | Description |
+|---|---:|---|
+| `--request-id <id>` | Yes | Captured request ID |
+
+The generated command omits sensitive authentication and cookie headers and
+includes a retained request body only when it is available. Review it before
+running: the request may mutate a live service.
+
+### `dawg diagnostics remove <artifact-directory>`
+
+Create a new, independently content-addressed OCI artifact without selected
+sanitized diagnostic evidence. The source artifact is validated but never
+modified; the reviewed copy has new digests and does not carry provenance from
+the source.
+
+```bash
+dawg diagnostics remove <artifact-directory> \
+  --output-dir <new-artifact-directory> \
+  --remove-category console \
+  --remove-body-ref diagnostics/bodies/response_request-id.json
+```
+
+| Flag | Required | Description |
+|---|---:|---|
+| `--output-dir <directory>` | Yes | New, non-existent artifact directory |
+| `--remove-category <category>` | No | Repeatable: `console`, `network`, `errors`, or `bodies` |
+| `--remove-body-ref <path>` | No | Repeatable retained body path below `diagnostics/bodies/` |
+
+At least one category or body reference is required. Removing `network` also
+removes retained bodies because they have no remaining request context. Removing
+individual bodies rewrites matching network body states to `unavailable`; DAWG
+does not infer replacement content.
+
 ### `dawg run <artifact-directory>`
 
 Replay an artifact and write its replay outcome.
@@ -152,7 +236,7 @@ dawg run <artifact-directory> [--interactive] [--output text|json]
 |---|---|
 | `--interactive` | Keep headed Chromium open with play/pause, skip, speed, and timeline controls. Desktop Replay uses this mode. |
 
-Replay unpacks the OCI layers, optionally starts a captured Compose environment and restores a PostgreSQL fixture, optionally starts cassette replay, and uses Playwright Chromium to render the recorded rrweb timeline. Standard mode plays to completion, writes `outcome/screenshot.png`, and exits. Interactive mode remains open until Chromium is closed or the Desktop **Stop Replay** action terminates it; it does not produce the final screenshot.
+Replay unpacks the OCI layers, optionally starts a captured Compose environment and restores a PostgreSQL fixture, optionally starts cassette replay, and uses Playwright Chromium to render the recorded rrweb timeline. Standard mode plays to completion, writes `outcome/screenshot.png`, and exits. Interactive mode remains open until Chromium is closed or the Desktop **Stop Replay** action terminates it; it does not produce the final screenshot. Press `Ctrl+Shift+I` to inspect the reconstructed rrweb document and `window.__DAWG_REPLAY__`. Refreshing the local replay page restarts it at the beginning.
 
 `run` visualizes the recording; it does not re-execute recorded click/fill actions or navigate through the original application flow. See [Architecture](./architecture.md#replay) for platform and determinism boundaries.
 
@@ -190,7 +274,7 @@ The report checks:
 - `replay-browser.cjs`
 - the browser extension manifest
 - the default Rego policy
-- the `0.2.5-naughty` manifest schema
+- the current `0.3.1-middlechild` manifest schema
 
 The report status is `ready` or `degraded`. A degraded component is recorded in the report; degradation alone does not currently make the command return an execution error.
 
@@ -229,7 +313,7 @@ Captured artifacts are stored under `artifacts/<timestamped-title>`.
 `dawg init` generates a configuration with the current schema version and absolute state paths:
 
 ```yaml
-schemaVersion: "0.2.5-naughty"
+schemaVersion: "0.3.1-middlechild"
 capture:
   outputDir: "<absolute-state-directory>/captures"
   browser: "chromium"

@@ -2,13 +2,13 @@
 
 DAWG records one browser tab, sanitizes the captured data, and packages the session as a portable OCI artifact. The recommended workflow uses the desktop app together with the DAWG Browser Extension.
 
-> **Current prerelease:** [`0.2.5-naughty`](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3) (`naughty-3`) — desktop `0.2.5`; extension display version `0.2.5_naughty`.
+> **Current prerelease:** `0.3.1-middlechild` — desktop `0.3.1`; extension display version `0.3.1_middlechild`.
 
 ## Quick Start: Desktop App
 
 ### 1. Install DAWG
 
-Download the available desktop installer assets from the [0.2.5-naughty GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3).
+Visit [GitHub releases](https://github.com/Slaviors-Group/dawg/releases) for published installers and other assets.
 
 When an AppImage is not attached to the release, see [Installation](/docs/installation) to build it from source.
 
@@ -47,18 +47,29 @@ dawg doctor
 1. Open **Capture** in the desktop app.
 2. Enter an `http://` or `https://` target URL.
 3. Optionally enter an artifact name.
-4. Select **Start Capture**.
-5. DAWG focuses an existing tab with the exact normalized URL or opens a new tab. Reproduce the issue in that tab.
+4. Leave **Safe** selected for bounded standard diagnostics, or select
+   **Enhanced Diagnostics** and confirm its warning when additional CDP evidence
+   is appropriate.
+5. Select **Start Capture**. DAWG focuses an existing tab with the exact
+   normalized URL or opens a new tab. Reproduce the issue in that tab.
 6. Select **Stop Capture**. Wait while the engine drains extension events, sanitizes the session, packages the OCI layout, and registers it in the local catalog.
 
 The extension records:
 
 - rrweb DOM snapshots and incremental events, with DOM input fields masked;
 - click and input actions;
-- request and response metadata available through Chrome's `webRequest` API;
-- request bodies when Chrome exposes them.
+- bounded console, error, and network metadata from the Safe profile;
+- CDP console, exception, and network evidence when consented Enhanced
+  Diagnostics is available;
+- eligible text or structured response bodies only in Enhanced, subject to
+  content-type, size, concurrency, and aggregate limits.
 
-Response bodies are not captured. Input action values and request metadata reach the local engine before sanitization, so inspect an artifact before sharing it.
+Safe does not retrieve response bodies through CDP. Enhanced records a body
+state—such as `captured`, `redacted`, `truncated`, `blocked`, `unavailable`, or
+`capture-failed`—when it cannot retain an eligible body. If CDP cannot attach,
+DAWG records a degradation and continues in Safe mode. Input action values and
+request metadata reach the local engine before sanitization, so inspect an
+artifact before sharing it.
 
 ### 5. Inspect and Manage Artifacts
 
@@ -75,7 +86,15 @@ A `.dawg` file is a ZIP-based transport archive. Import validates its paths, lin
 
 ### 6. Replay
 
-Open **Replay Engine**, search or filter the catalog, select an artifact, and choose **Run Replay**. DAWG opens an interactive Chromium replay with play/pause, skip, speed, and timeline controls. **Stop Replay** cancels the in-flight replay and terminates the tracked engine/browser process tree. The standard CLI replay remains the noninteractive option that saves a final screenshot.
+Open **Replay Engine**, search or filter the catalog, and select an artifact.
+The Replay Diagnostics workspace shows packaged console, network, and error
+evidence, including evidence states. After review confirmation, it can export a
+sanitized HAR or copy cURL for a selected request; copied cURL can mutate a live
+service. Choose **Run Replay** to open an interactive Chromium replay with
+play/pause, skip, speed, and timeline controls. **Stop Replay** cancels the
+in-flight replay and terminates the tracked engine/browser process tree. The
+standard CLI replay remains the noninteractive option that saves a final
+screenshot.
 
 On Windows, browser replay runs in native compatibility mode and skips Docker Compose isolation and database restoration. Supported non-Windows environment replay uses rootless Docker.
 
@@ -87,7 +106,7 @@ The CLI uses the same extension-driven capture and artifact catalog as the deskt
 
 ```bash
 # Start an extension-driven capture
-dawg capture --url https://example.test --title "Checkout timeout"
+dawg capture --url https://example.test --title "Checkout timeout" --diagnostics-profile safe
 
 # Reproduce the issue in the selected browser tab, then stop and package
 dawg capture stop
@@ -97,6 +116,9 @@ dawg artifacts list
 
 # Inspect and replay an artifact directory
 dawg inspect <artifact-directory>
+dawg diagnostics inspect <artifact-directory>
+dawg diagnostics export-har <artifact-directory> --output evidence.har
+dawg diagnostics copy-curl <artifact-directory> --request-id <request-id>
 dawg run <artifact-directory>
 
 # Export it for another DAWG installation
@@ -131,7 +153,11 @@ When capture starts, DAWG:
 6. packages the result as a digest-addressed OCI Image Layout;
 7. registers the validated artifact in the persistent local catalog.
 
-Replay uses the bundled Playwright Chromium runtime to reconstruct the rrweb session. If the artifact includes environment, database, or cassette layers, the engine restores or serves them where the host platform supports those operations.
+Replay uses the bundled Playwright Chromium runtime to reconstruct the rrweb
+session. Diagnostic evidence supports investigation but is not injected into or
+used to re-execute the original application. If the artifact includes
+environment, database, or cassette layers, the engine restores or serves them
+where the host platform supports those operations.
 
 ## Next Steps
 

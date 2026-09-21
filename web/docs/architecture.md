@@ -1,6 +1,6 @@
 # Architecture
 
-DAWG `0.2.5-naughty` captures a browser session through an extension, sanitizes supported JSONL streams, packages them as an OCI Image Layout, and renders the recording for replay and verification.
+DAWG `0.3.1-middlechild` captures a browser session through an extension, sanitizes supported JSONL streams and retained diagnostic bodies, packages them as an OCI Image Layout, and renders the recording for replay and verification.
 
 ## Pipeline Overview
 
@@ -20,9 +20,9 @@ flowchart TD
 
 | Stage | Main responsibility |
 |---|---|
-| Capture | Record rrweb events, browser actions, frontend HTTP metadata, and optional environment inputs |
-| Sanitize | Replace recognized secrets and PII in supported JSONL files, then evaluate a Rego allow decision |
-| Package | Validate metadata and create content-addressed OCI layers |
+| Capture | Record rrweb events, browser actions, Safe or Enhanced diagnostic evidence, and optional environment inputs |
+| Sanitize | Replace recognized secrets and PII in supported JSONL files and retained diagnostic bodies, then evaluate a Rego allow decision |
+| Package | Validate metadata and create content-addressed OCI layers, including bounded diagnostics when present |
 | Store | Register locally, export/import a `.dawg` archive, or push/pull through an OCI registry |
 | Replay | Restore available environment data and render the rrweb timeline in Playwright Chromium |
 | Verify | Compare replay exit status and any available HTTP and screenshot outcomes |
@@ -38,7 +38,7 @@ The current `dawg capture` path is extension-driven. Although the source tree co
 5. `dawg capture stop` asks the extension to drain buffered data before finalization.
 6. The daemon sanitizes the session, packages it, and adds it to the local catalog.
 
-The extension requires Chrome 116 or newer and requests access to `<all_urls>`. It records only requests associated with the selected tab.
+The extension requires Chrome 116 or newer and requests access to `<all_urls>`. It records only requests associated with the selected tab. Its `debugger` permission is used only when an Enhanced capture is requested.
 
 ### Session Data
 
@@ -51,12 +51,33 @@ The extension requires Chrome 116 or newer and requests access to `<all_urls>`. 
 | `env/lockfile.json` | Optional resolved environment lock data |
 | `db/diff.jsonl` | Optional normalized ORM database-diff stream |
 | `logs/structured.jsonl` | Optional structured JSON logs |
+| `diagnostics/console.jsonl` | Bounded console evidence |
+| `diagnostics/network.jsonl` | Bounded network evidence with per-body evidence states |
+| `diagnostics/errors.jsonl` | Browser errors and capture degradations |
+| `diagnostics/bodies/` | Sanitized bodies retained by Enhanced capture only |
 
-rrweb runs with `maskAllInputs: true`. The separate action stream can still contain entered values, so sanitization includes both streams. Frontend response bodies are not currently captured.
+rrweb runs with `maskAllInputs: true`. The separate action stream can still contain entered values, so sanitization includes both streams.
+
+### Diagnostic evidence fidelity
+
+**Safe** is the default profile. It collects bounded main-world/extension console,
+error, and network metadata without using CDP to retrieve response bodies.
+
+**Enhanced** is a consented CDP profile. It adds CDP console, exception, and
+network records and requests response bodies only when their MIME type is JSON,
+GraphQL, form-encoded, or text. Per-body, aggregate-body, record, and layer
+limits bound what can be retained. CDP cannot attach or may detach during a
+session; these conditions are recorded as degradations, and initial attach
+failure continues in Safe mode.
+
+Every diagnostic value can state `captured`, `redacted`, `preview-only`,
+`truncated`, `blocked`, `unavailable`, `not-requested`, or `capture-failed`.
+These are fidelity markers, not recovery mechanisms: DAWG does not reconstruct
+body content that was not retained.
 
 ## Sanitization and Policy Gate
 
-The sanitizer rewrites a fixed set of JSONL files in place through temporary files. It uses field-path and value heuristics for secrets, PII, and payment-card data. Email addresses, phone numbers, and names receive deterministic SHA-256-derived synthetic values; other detections become `[REDACTED]`.
+The sanitizer rewrites a fixed set of JSONL files in place through temporary files and sanitizes retained diagnostic bodies before packaging. It uses field-path and value heuristics for secrets, PII, and payment-card data. Email addresses, phone numbers, and names receive deterministic SHA-256-derived synthetic values; other detections become `[REDACTED]`.
 
 After rewriting, the engine evaluates `data.dawg.sanitizer.allow`. The policy receives only redaction counters and blocked-field names—not the complete capture. Packaging requires an allowed `sanitize-report.json`.
 
@@ -76,7 +97,7 @@ A packaged artifact is an OCI Image Layout:
         └── <digest>
 ```
 
-The DAWG manifest is validated against `schema/manifest/v0.2.5-naughty.json`. It requires the schema version, SHA-256 artifact ID, creation time, non-empty title, source, at least one layer, sanitization metadata, determinism metadata, and expected outcome.
+The DAWG manifest is validated against the schema matching its declared version. DAWG `0.3.1-middlechild` requires diagnostic summary metadata in addition to the schema version, SHA-256 artifact ID, creation time, non-empty title, source, at least one layer, sanitization metadata, determinism metadata, and expected outcome. The summary identifies the selected profile, sources, counts, retained/redacted/blocked/truncated body totals, limits, and any degradations.
 
 ### Current Layer Types
 
@@ -86,6 +107,8 @@ The DAWG manifest is validated against `schema/manifest/v0.2.5-naughty.json`. It
 | Database | `application/vnd.dawg.db.fixture+tar.zstd` | zstd-compressed tar |
 | Trace | `application/vnd.dawg.trace.rrweb+jsonl.zstd` | zstd-compressed tar |
 | Cassette | `application/vnd.dawg.cassette+tar.zstd` | zstd-compressed tar |
+| Diagnostics | `application/vnd.dawg.diagnostics+tar.zstd` | zstd-compressed tar of console, network, and error records |
+| Diagnostic bodies | `application/vnd.dawg.diagnostic-bodies+tar.zstd` | zstd-compressed tar of sanitized retained bodies |
 
 The trace layer groups `traces/`, `actions/`, `http/`, and `logs/`. Descriptors and blobs use SHA-256 content addressing.
 
@@ -108,7 +131,24 @@ Replay is a rendering pipeline rather than action re-execution:
 
 Interactive replay renders the recorded viewport in a fixed stage and scales or letterboxes that stage when the Chromium window is resized or maximized. `FAKETIME` only affects a target environment that consumes it. A random seed is represented in the manifest types but is not applied during replay.
 
-Recorded action events are not executed, and replay does not navigate or run through the original application's workflow. It visualizes the captured rrweb recording.
+Recorded action events are not executed, and replay does not navigate or run through the original application's workflow. It visualizes the captured rrweb recording; diagnostic evidence is available for inspection and export, not replayed into the original application.
+
+Desktop derives an **approximate** replay offset from a diagnostic's capture
+millisecond timestamp (network records prefer `timing.startedAt`) and the first
+rrweb timestamp. It only offers a seek when the value falls within the recorded
+rrweb range. A newline-delimited local control message is forwarded to the
+interactive player, which clamps the offset before seeking. Missing or
+out-of-range timestamps deliberately show no correlation.
+
+## Evidence review and removal
+
+`dawg diagnostics remove` validates the complete source OCI layout, unpacks it
+into a private staging directory, removes requested complete categories or
+individual retained body files, and packages a fresh OCI layout. This leaves the
+source unchanged, recomputes descriptors and logical artifact identity, and
+drops any source provenance rather than implying it still attests to modified
+evidence. Removing a body updates any matching network reference to the explicit
+`unavailable` state; DAWG never reconstructs removed content.
 
 ### Platform Boundaries
 
@@ -152,7 +192,7 @@ dawg/
 │   ├── src/                      # React UI
 │   └── src-tauri/                # Tauri host
 ├── schema/
-│   ├── manifest/v0.2.5-naughty.json
+│   ├── manifest/v0.3.1-middlechild.json
 │   ├── mediatypes.json
 │   └── policies/default.rego
 ├── tools/sync-versions.cjs
