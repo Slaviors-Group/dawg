@@ -78,7 +78,11 @@ const entryState = (entry: Evidence) =>
 const entryTime = (entry: Evidence) =>
   firstText(entry, ["timestamp", "time", "occurredAt", "createdAt", "at"]);
 
-const replayOffsetForEntry = (entry: Evidence, firstTimestamp?: number, durationMs?: number): number | null => {
+const replayOffsetForEntry = (
+  entry: Evidence,
+  firstTimestamp?: number,
+  durationMs?: number,
+): number | null => {
   if (!Number.isFinite(firstTimestamp) || !Number.isFinite(durationMs)) return null;
   const timing = isRecord(entry.timing) ? entry.timing : null;
   const candidate = timing?.startedAt ?? entry.timestamp;
@@ -141,7 +145,8 @@ export function ReplayDiagnosticInspector({
   const [stateFilter, setStateFilter] = useState("all");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const activeTabDefinition = WORKSPACE_TABS.find((tab) => tab.id === activeTab) ?? WORKSPACE_TABS[0];
+  const activeTabDefinition =
+    WORKSPACE_TABS.find((tab) => tab.id === activeTab) ?? WORKSPACE_TABS[0];
   const diagnostics = isRecord(manifest?.diagnostics) ? manifest.diagnostics : null;
   const hasDiagnostics = diagnosticEvidence?.summary !== undefined || diagnostics !== null;
 
@@ -168,7 +173,10 @@ export function ReplayDiagnosticInspector({
   }, [activeTab, activeTabDefinition.keys, diagnostics, diagnosticEvidence, manifest]);
 
   const availableStates = useMemo(
-    () => Array.from(new Set(evidence.map(entryState).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+    () =>
+      Array.from(new Set(evidence.map(entryState).filter(Boolean))).sort((a, b) =>
+        a.localeCompare(b),
+      ),
     [evidence],
   );
 
@@ -184,7 +192,7 @@ export function ReplayDiagnosticInspector({
     setSearch("");
     setStateFilter("all");
     setSelectedIndex(0);
-  }, [activeTab, manifest]);
+  }, [evidence]);
 
   useEffect(() => {
     if (selectedIndex >= filteredEvidence.length) setSelectedIndex(0);
@@ -192,7 +200,11 @@ export function ReplayDiagnosticInspector({
 
   const selectedEvidence = filteredEvidence[selectedIndex];
   const selectedReplayOffset = selectedEvidence
-    ? replayOffsetForEntry(selectedEvidence, diagnosticEvidence?.timeline?.firstTimestamp, diagnosticEvidence?.timeline?.durationMs)
+    ? replayOffsetForEntry(
+        selectedEvidence,
+        diagnosticEvidence?.timeline?.firstTimestamp,
+        diagnosticEvidence?.timeline?.durationMs,
+      )
     : null;
   const emptyCopy = tabEmptyCopy[activeTab];
 
