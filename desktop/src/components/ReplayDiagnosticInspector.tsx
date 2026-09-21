@@ -188,6 +188,7 @@ export function ReplayDiagnosticInspector({
     });
   }, [evidence, search, stateFilter]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset filters when the evidence list changes
   useEffect(() => {
     setSearch("");
     setStateFilter("all");
@@ -217,12 +218,20 @@ export function ReplayDiagnosticInspector({
         />
         <div className="flex items-center gap-2">
           {onExportHAR && diagnosticEvidence?.network.length ? (
-            <button type="button" onClick={onExportHAR} className="text-xs font-medium text-brand-600 hover:text-brand-700">
+            <button
+              type="button"
+              onClick={onExportHAR}
+              className="text-xs font-medium text-brand-600 hover:text-brand-700"
+            >
               Export HAR
             </button>
           ) : null}
           {onRemoveDiagnostics && diagnosticEvidence?.summary ? (
-            <button type="button" onClick={onRemoveDiagnostics} className="text-xs font-medium text-brand-600 hover:text-brand-700">
+            <button
+              type="button"
+              onClick={onRemoveDiagnostics}
+              className="text-xs font-medium text-brand-600 hover:text-brand-700"
+            >
               Remove evidence…
             </button>
           ) : null}
@@ -234,7 +243,11 @@ export function ReplayDiagnosticInspector({
         </div>
       </CardHeader>
 
-      <div className="border-b border-border px-3 sm:px-5" role="tablist" aria-label="Replay diagnostics">
+      <div
+        className="border-b border-border px-3 sm:px-5"
+        role="tablist"
+        aria-label="Replay diagnostics"
+      >
         <div className="flex gap-1 overflow-x-auto">
           {WORKSPACE_TABS.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -379,19 +392,31 @@ export function ReplayDiagnosticInspector({
                         )}
                       </div>
                       <div className="mb-3 flex flex-wrap gap-x-3 gap-y-2">
-                        {activeTab === "network" && onCopyCurl && typeof selectedEvidence.requestId === "string" ? (
-                          <button type="button" onClick={() => onCopyCurl(selectedEvidence.requestId as string)} className="text-xs font-medium text-brand-600 hover:text-brand-700">
+                        {activeTab === "network" &&
+                        onCopyCurl &&
+                        typeof selectedEvidence.requestId === "string" ? (
+                          <button
+                            type="button"
+                            onClick={() => onCopyCurl(selectedEvidence.requestId as string)}
+                            className="text-xs font-medium text-brand-600 hover:text-brand-700"
+                          >
                             Copy as cURL
                           </button>
                         ) : null}
                         {onSeekReplay && selectedReplayOffset !== null ? (
-                          <button type="button" onClick={() => onSeekReplay(selectedReplayOffset)} className="text-xs font-medium text-brand-600 hover:text-brand-700">
+                          <button
+                            type="button"
+                            onClick={() => onSeekReplay(selectedReplayOffset)}
+                            className="text-xs font-medium text-brand-600 hover:text-brand-700"
+                          >
                             Seek replay to approximately {formatReplayOffset(selectedReplayOffset)}
                           </button>
                         ) : null}
                       </div>
                       {diagnosticEvidence?.timeline && selectedReplayOffset === null ? (
-                        <p className="mb-3 text-xs text-text-tertiary">No replay correlation is available for this record.</p>
+                        <p className="mb-3 text-xs text-text-tertiary">
+                          No replay correlation is available for this record.
+                        </p>
                       ) : null}
                       <CodeBlock
                         code={JSON.stringify(selectedEvidence, null, 2)}
