@@ -14,10 +14,15 @@ import { useEngine } from "../context/EngineContext";
 import {
   chooseArtifactArchive,
   chooseArtifactExportPath,
+  chooseDiagnosticHARPath,
+  chooseDiagnosticRemovalParentDirectory,
   defaultArtifactExportName,
 } from "../lib/artifactDialogs";
-import { engine } from "../lib/engine";
+import { type DiagnosticCategory, type DiagnosticEvidence, type InspectResult, engine } from "../lib/engine";
 import { LogStreamer } from "./LogStreamer";
+import { DiagnosticReviewModal } from "./DiagnosticReviewModal";
+import { DiagnosticRemovalModal } from "./DiagnosticRemovalModal";
+import { ReplayDiagnosticInspector } from "./ReplayDiagnosticInspector";
 import { Button } from "./ui/Button";
 import { Card, CardHeader, CardTitle } from "./ui/Card";
 import { EmptyState } from "./ui/EmptyState";
@@ -41,6 +46,13 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
   const [isCancelling, setIsCancelling] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [manifest, setManifest] = useState<InspectResult | null>(null);
+  const [isLoadingManifest, setIsLoadingManifest] = useState(false);
+  const [manifestError, setManifestError] = useState<string | null>(null);
+  const [diagnosticEvidence, setDiagnosticEvidence] = useState<DiagnosticEvidence | null>(null);
+  const [reviewAction, setReviewAction] = useState<"artifact" | "har" | "curl" | null>(null);
+  const [reviewRequestId, setReviewRequestId] = useState<string | null>(null);
+  const [isDiagnosticRemovalOpen, setIsDiagnosticRemovalOpen] = useState(false);
 
   useEffect(() => {
     if (
@@ -55,6 +67,40 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
     () => artifacts.find((artifact) => artifact.path === selectedArtifact),
     [artifacts, selectedArtifact],
   );
+
+  useEffect(() => {
+    let disposed = false;
+    if (!selectedArtifact) {
+      setManifest(null);
+      setDiagnosticEvidence(null);
+      setManifestError(null);
+      setIsLoadingManifest(false);
+      return () => {
+        disposed = true;
+      };
+    }
+
+    setManifest(null);
+    setDiagnosticEvidence(null);
+    setManifestError(null);
+    setIsLoadingManifest(true);
+    void Promise.all([engine.inspectArtifact({ path: selectedArtifact }), engine.inspectDiagnostics(selectedArtifact)])
+      .then(([result, evidence]) => {
+        if (disposed) return;
+        setManifest(result);
+        setDiagnosticEvidence(evidence);
+      })
+      .catch((inspectError) => {
+        if (!disposed) setManifestError(String(inspectError));
+      })
+      .finally(() => {
+        if (!disposed) setIsLoadingManifest(false);
+      });
+
+    return () => {
+      disposed = true;
+    };
+  }, [selectedArtifact]);
 
   const sandboxStatus = useMemo(() => {
     if (isWindows) {
@@ -98,7 +144,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
     }
   };
 
-  const handleExportArtifact = async () => {
+  const exportArtifactAfterReview = async () => {
     if (!selectedArtifactItem || isExporting) return;
     const output = await chooseArtifactExportPath(
       defaultArtifactExportName(
@@ -115,6 +161,41 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
       // EngineContext records the actionable error in the shared log stream.
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const exportHARAfterReview = async () => {
+    if (!selectedArtifactItem) return;
+    const output = await chooseDiagnosticHARPath(
+      defaultArtifactExportName(selectedArtifactItem.title || selectedArtifactItem.id, selectedArtifactItem.createdAt).replace(/\.dawg$/i, ".har"),
+    );
+    if (!output) return;
+    await engine.exportDiagnosticsHAR(selectedArtifactItem.path, output);
+    addLogLine(`Exported sanitized HAR to ${output}.`);
+  };
+
+  const copyCurlAfterReview = async () => {
+    if (!selectedArtifactItem || !reviewRequestId) return;
+    const command = await engine.copyDiagnosticsCurl(selectedArtifactItem.path, reviewRequestId);
+    await navigator.clipboard.writeText(command);
+    addLogLine(`Copied reviewed cURL for request ${reviewRequestId}.`);
+  };
+
+  const removeDiagnosticsAfterReview = async (request: { categories: DiagnosticCategory[]; bodyRefs: string[]; parentDirectory: string; directoryName: string }) => {
+    if (!selectedArtifactItem) return;
+    const separator = request.parentDirectory.includes("\\") ? "\\" : "/";
+    const outputDir = `${request.parentDirectory.replace(/[\\/]+$/, "")}${separator}${request.directoryName}`;
+    try {
+      const result = await engine.removeDiagnostics({
+        artifact: selectedArtifactItem.path,
+        outputDir,
+        categories: request.categories,
+        bodyRefs: request.bodyRefs,
+      });
+      addLogLine(`Created reviewed artifact without selected diagnostics: ${result.directory}.`);
+    } catch (error) {
+      addLogLine(`[ERROR] Could not create reviewed artifact: ${String(error)}`);
+      throw error;
     }
   };
 
@@ -229,7 +310,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
                 type="button"
                 variant="secondary"
                 className="flex-1 sm:flex-none"
-                onClick={handleExportArtifact}
+                onClick={() => setReviewAction("artifact")}
                 disabled={!selectedArtifactItem || isReplaying}
                 loading={isExporting}
                 iconLeft={<Export size={16} />}
@@ -267,6 +348,48 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
           </div>
         </div>
       </Card>
+
+      <ReplayDiagnosticInspector
+        manifest={manifest}
+        diagnosticEvidence={diagnosticEvidence}
+        loading={isLoadingManifest}
+        error={manifestError}
+        onExportHAR={() => setReviewAction("har")}
+        onRemoveDiagnostics={() => setIsDiagnosticRemovalOpen(true)}
+        onSeekReplay={(offsetMs) => {
+          void engine.seekReplay(offsetMs)
+            .then(() => addLogLine(`Seeked interactive replay to approximately ${offsetMs}ms.`))
+            .catch((error) => addLogLine(`[ERROR] Could not seek replay: ${String(error)}`));
+        }}
+        onCopyCurl={(requestId) => {
+          setReviewRequestId(requestId);
+          setReviewAction("curl");
+        }}
+      />
+
+      <DiagnosticRemovalModal
+        open={isDiagnosticRemovalOpen}
+        evidence={diagnosticEvidence}
+        defaultDirectoryName={selectedArtifactItem ? defaultArtifactExportName(selectedArtifactItem.title || selectedArtifactItem.id, selectedArtifactItem.createdAt).replace(/\.dawg$/i, "-reviewed") : "dawg-reviewed"}
+        onClose={() => setIsDiagnosticRemovalOpen(false)}
+        onChooseParentDirectory={chooseDiagnosticRemovalParentDirectory}
+        onConfirm={removeDiagnosticsAfterReview}
+      />
+
+      <DiagnosticReviewModal
+        open={reviewAction !== null}
+        action={reviewAction}
+        evidence={diagnosticEvidence}
+        onClose={() => {
+          setReviewAction(null);
+          setReviewRequestId(null);
+        }}
+        onConfirm={async () => {
+          if (reviewAction === "artifact") await exportArtifactAfterReview();
+          if (reviewAction === "har") await exportHARAfterReview();
+          if (reviewAction === "curl") await copyCurlAfterReview();
+        }}
+      />
 
       <Card>
         <CardHeader bordered={false}>

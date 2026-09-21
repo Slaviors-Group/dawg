@@ -33,6 +33,8 @@ func buildLayers(sessionDirectory string) ([]layerBlob, error) {
 		{name: "database-fixture", mediaType: dawgtypes.MediaTypeDatabaseFixture, directories: []string{"db"}, compressed: true},
 		{name: "trace", mediaType: dawgtypes.MediaTypeTrace, directories: []string{"traces", "actions", "http", "logs"}, compressed: true},
 		{name: "cassette", mediaType: dawgtypes.MediaTypeCassette, directories: []string{"cassettes"}, compressed: true},
+		{name: "diagnostics", mediaType: dawgtypes.MediaTypeDiagnostics, directories: []string{"diagnostics/console.jsonl", "diagnostics/network.jsonl", "diagnostics/errors.jsonl"}, compressed: true},
+		{name: "diagnostic-bodies", mediaType: dawgtypes.MediaTypeDiagnosticBodies, directories: []string{"diagnostics/bodies"}, compressed: true},
 	}
 
 	layers := make([]layerBlob, 0, len(sources))
@@ -43,6 +45,12 @@ func buildLayers(sessionDirectory string) ([]layerBlob, error) {
 		}
 		if !included {
 			continue
+		}
+		if source.mediaType == dawgtypes.MediaTypeDiagnostics && len(contents) > int(dawgtypes.DefaultDiagnosticLimits().MaxLayerBytes) {
+			return nil, fmt.Errorf("packager: diagnostic records exceed %d byte limit", dawgtypes.DefaultDiagnosticLimits().MaxLayerBytes)
+		}
+		if source.mediaType == dawgtypes.MediaTypeDiagnosticBodies && len(contents) > int(dawgtypes.DefaultDiagnosticLimits().MaxBodiesBytes) {
+			return nil, fmt.Errorf("packager: diagnostic bodies exceed %d byte limit", dawgtypes.DefaultDiagnosticLimits().MaxBodiesBytes)
 		}
 		if source.compressed {
 			contents, err = compressZstd(contents)
@@ -71,11 +79,17 @@ func archiveDirectories(sessionDirectory string, directories []string) ([]byte, 
 	paths := []string{}
 	for _, directory := range directories {
 		root := filepath.Join(sessionDirectory, filepath.FromSlash(directory))
-		if _, err := os.Stat(root); err != nil {
+		if info, err := os.Stat(root); err != nil {
 			if os.IsNotExist(err) {
 				continue
 			}
 			return nil, false, fmt.Errorf("inspect %s: %w", root, err)
+		} else if !info.IsDir() {
+			if info.Mode()&fs.ModeSymlink != 0 || !info.Mode().IsRegular() {
+				return nil, false, fmt.Errorf("refuse non-regular file %s", root)
+			}
+			paths = append(paths, root)
+			continue
 		}
 		err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
 			if err != nil {

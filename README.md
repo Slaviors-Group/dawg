@@ -7,22 +7,17 @@ session as an OCI Image Layout, and replays its rrweb DOM trace in Chromium. The
 repository contains a Go CLI, a Tauri desktop application, and a Chromium
 Manifest V3 extension.
 
-> **Current prerelease:** [`0.2.7-naughty`](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-4)
+> **Current prerelease:** `0.3.1-middlechild`
 >
-> Application and schema: `0.2.7-naughty` · Desktop: `0.2.7` · Extension: `0.2.5_naughty`
+> Application and artifact schema: `0.3.1-middlechild` · Desktop: `0.3.1` · Extension: `0.3.1_middlechild`
 
 ## 📦 Install the Current Release
 
-[Download DAWG 0.2.7 for Windows x64](https://github.com/Slaviors-Group/dawg/releases/download/naughty-4/DAWG_0.2.7_x64-setup.exe), or view the
-[`0.2.7-naughty` (`naughty-4`) GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-4)
-for checksums and other assets. The direct installer link becomes available when
-the release is published.
-
-Linux targets are configured in Tauri; build the AppImage from source with
-`desktop/build-bundle.sh` when an AppImage is not attached to the release.
-
-See [all releases](https://github.com/Slaviors-Group/dawg/releases) for older
-prereleases and their assets.
+DAWG `0.3.1-middlechild` is the current application and artifact-schema release.
+Use the [GitHub releases page](https://github.com/Slaviors-Group/dawg/releases)
+for published installers, checksums, and release assets. Linux targets are
+configured in Tauri; build the AppImage from source with
+`desktop/build-bundle.sh` when an AppImage is not attached to a release.
 
 ## 🔎 Current Capabilities
 
@@ -31,15 +26,17 @@ prereleases and their assets.
   frontend request/response metadata.
 - **Sanitization before packaging:** heuristic secret/PII rules and an OPA policy
   process supported JSONL streams before an artifact is published.
+- **Diagnostic evidence:** **Safe** capture records bounded console/error and network metadata without CDP body retrieval. **Enhanced Diagnostics** is an explicit, consented CDP opt-in that adds CDP console, exception, and network evidence; it can retain eligible text or structured response bodies within capture limits. Retained diagnostic evidence is sanitized before packaging, and CDP degradation or safe fallback is recorded.
 - **OCI artifacts:** sessions are stored as digest-addressed OCI Image Layouts
   under `~/.dawg/artifacts/` by default.
 - **Portable `.dawg` archives:** validated artifacts can be exported as ZIP-based
   `.dawg` files and imported into another DAWG installation.
 - **Persistent catalog:** `~/.dawg/artifact-catalog.json` tracks captured,
   imported, and previously uncataloged local artifacts.
-- **Browser replay:** Desktop launches interactive Playwright Chromium with
-  play/pause, skip, speed, and timeline controls. Standard CLI replay records
-  diagnostics, writes a final screenshot, and exits.
+- **Browser replay and review:** Desktop launches interactive Playwright Chromium
+  with play/pause, skip, speed, and timeline controls. Its Replay workspace
+  reviews packaged diagnostic evidence and can export sanitized HAR or copy a
+  reviewed cURL request. Standard CLI replay writes a final screenshot and exits.
 - **Desktop process control:** an active replay can be cancelled. On Windows,
   cancellation and application shutdown terminate the tracked engine process
   tree, including Node.js, Chromium, and mitmdump descendants.
@@ -49,6 +46,14 @@ prereleases and their assets.
 
 ## ⚠️ Security and Runtime Boundaries
 
+- Diagnostic evidence is a bounded packaged record, not a browser archive. It
+  does not restore the original application JavaScript runtime, source maps,
+  cookies, Chrome DevTools Network history, or unavailable/blocked/truncated
+  body content. DAWG does not reconstruct missing evidence after capture.
+- **Safe** does not retrieve response bodies through CDP. **Enhanced** requests
+  them only for eligible JSON, GraphQL, form, or text response content; binary,
+  oversized, unavailable, and failed retrievals are represented by an evidence
+  state instead of a body value.
 - rrweb masks input fields in DOM snapshots. Separate action events contain the
   entered value, and request metadata can contain headers and request bodies,
   until the engine sanitizes the capture at stop time. Review an artifact before
@@ -82,10 +87,11 @@ dawg/
 
 1. Install the desktop application or build the engine and desktop resources.
 2. Install the [DAWG Browser Extension from the Chrome Web Store](https://chromewebstore.google.com/detail/peiigoeakholhhbbbbfkeojomekmmokj?utm_source=item-share-cb). Chrome or Chromium 116 or newer is required. Use an unpacked `extension/` directory through `chrome://extensions` only for development.
-3. Open the target page, enter its URL in DAWG, and optionally enter an artifact
-   title.
+3. Open the target page, enter its URL in DAWG, optionally enter an artifact
+   title, and choose **Safe** (default) or consent to **Enhanced Diagnostics**.
 4. Select **Start Capture**. The extension focuses an exact matching tab or opens
-   the URL and starts recording the top-level document.
+   the URL and starts recording the top-level document. If Enhanced CDP setup is
+   unavailable, the capture falls back to Safe and records the degradation.
 5. Reproduce the issue, then select **Stop Capture**. The engine waits for the
    extension to drain events, sanitizes the session, packages it, and registers
    it in the local catalog.
@@ -110,7 +116,7 @@ Run commands from `engine/` during source development or use the installed
 dawg init [directory] [--force]
 
 # Start an extension-driven capture
-dawg capture --url https://example.test --title "Checkout timeout"
+dawg capture --url https://example.test --title "Checkout timeout" --diagnostics-profile safe
 
 # Stop, sanitize, package, and register the active capture
 dawg capture stop
@@ -122,6 +128,10 @@ dawg artifacts import <file.dawg>
 
 # Inspect, replay, and verify an artifact
 dawg inspect <artifact-directory>
+dawg diagnostics inspect <artifact-directory>
+dawg diagnostics export-har <artifact-directory> --output evidence.har
+dawg diagnostics copy-curl <artifact-directory> --request-id <request-id>
+dawg diagnostics remove <artifact-directory> --output-dir <new-artifact-directory> --remove-category console --remove-body-ref diagnostics/bodies/response_request-id.json
 dawg run <artifact-directory> [--interactive]
 dawg verify <artifact-directory> --against local
 
@@ -134,8 +144,9 @@ dawg doctor [--output json]
 ```
 
 Capture also accepts optional `--compose-file`, `--db-diff-file`, `--log-file`,
-`--policy-file`, and `--session-dir` inputs. `--unsafe-skip-sanitize` is limited
-to localhost targets.
+`--policy-file`, and `--session-dir` inputs. `--diagnostics-profile` accepts
+`safe` (default) or `enhanced`. `--unsafe-skip-sanitize` is limited to localhost
+targets.
 
 ## 🧑‍💻 Development
 
@@ -216,9 +227,9 @@ Node.js, and mitmproxy versions.
 
 ```json
 {
-  "appVersion": "0.2.7-naughty",
-  "desktopVersion": "0.2.7",
-  "extensionVersion": "0.2.5_naughty",
+  "appVersion": "0.3.1-middlechild",
+  "desktopVersion": "0.3.1",
+  "extensionVersion": "0.3.1_middlechild",
   "runtime": {
     "mitmproxy": "12.2.3",
     "node": "22.14.0"
@@ -234,8 +245,8 @@ npm run check:versions
 ```
 
 The synchronizer normalizes labels for npm, Cargo, Tauri, the schema, and Chrome.
-Chrome receives numeric `version: "0.2.5"` plus display label
-`version_name: "0.2.5_naughty"`. Dependency versions remain managed by package
+Chrome receives numeric `version: "0.3.1"` plus display label
+`version_name: "0.3.1_middlechild"`. Dependency versions remain managed by package
 manifests and lockfiles.
 
 ## ✅ Validation

@@ -74,7 +74,11 @@ func Package(request dawgtypes.PackageRequest) (dawgtypes.PackagedArtifact, erro
 		}
 	}
 
-	manifestValue := buildManifest(request, metadata, report, layers)
+	diagnostics, err := diagnosticSummary(request.SessionDirectory, metadata, report.PolicyVersion)
+	if err != nil {
+		return dawgtypes.PackagedArtifact{}, err
+	}
+	manifestValue := buildManifest(request, metadata, report, layers, diagnostics)
 	if request.SchemaPath == "" {
 		request.SchemaPath, err = manifest.DefaultSchemaPath()
 		if err != nil {
@@ -173,7 +177,7 @@ func readCaptureMetadata(sessionDirectory string) (dawgtypes.CaptureMetadata, er
 	return metadata, nil
 }
 
-func buildManifest(request dawgtypes.PackageRequest, metadata dawgtypes.CaptureMetadata, report dawgtypes.SanitizeReport, layers []layerBlob) manifest.Manifest {
+func buildManifest(request dawgtypes.PackageRequest, metadata dawgtypes.CaptureMetadata, report dawgtypes.SanitizeReport, layers []layerBlob, diagnostics dawgtypes.DiagnosticsSummary) manifest.Manifest {
 	layerSpecs := make([]dawgtypes.LayerSpec, 0, len(layers))
 	for _, layer := range layers {
 		layerSpecs = append(layerSpecs, layer.spec)
@@ -190,6 +194,7 @@ func buildManifest(request dawgtypes.PackageRequest, metadata dawgtypes.CaptureM
 		},
 		Determinism:     metadata.Determinism,
 		ExpectedOutcome: request.ExpectedOutcome,
+		Diagnostics:     &diagnostics,
 	}
 }
 

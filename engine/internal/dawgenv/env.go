@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Slaviors-Group/dawg/engine/internal/manifest"
 	"github.com/Slaviors-Group/dawg/engine/internal/procutil"
 )
 
@@ -472,17 +473,17 @@ func RunDoctor(ctx context.Context, engineVersion string) DoctorReport {
 	}
 	report.Components = append(report.Components, policyStatus)
 
-	if _, err := ResolveSchema("0.2.7-naughty"); err == nil {
+	if _, err := ResolveSchema(manifest.SchemaVersion); err == nil {
 		report.Components = append(report.Components, ComponentStatus{
 			Name:      "schema:manifest",
 			Installed: true,
-			Version:   "0.2.7-naughty",
+			Version:   manifest.SchemaVersion,
 		})
 	} else {
 		report.Components = append(report.Components, ComponentStatus{
 			Name:      "schema:manifest",
 			Installed: false,
-			Error:     "manifest schema v0.2.7-naughty not found",
+			Error:     fmt.Sprintf("manifest schema v%s not found", manifest.SchemaVersion),
 		})
 		report.Status = "degraded"
 	}

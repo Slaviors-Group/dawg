@@ -125,7 +125,7 @@ const schemaVersion = appVersion;
 const oldSchemaVersion = currentSchemaVersion();
 
 updateJSON("engine/package.json", (pkg) => { pkg.version = appVersion; });
-updateJSON("desktop/package.json", (pkg) => { pkg.version = appVersion; });
+updateJSON("desktop/package.json", (pkg) => { pkg.version = desktopVersion; });
 updateJSON("extension/manifest.json", (manifest) => {
   manifest.version = extensionVersion.version;
   if (extensionVersion.versionName) {
@@ -136,10 +136,10 @@ updateJSON("extension/manifest.json", (manifest) => {
 });
 updateJSON("desktop/src-tauri/tauri.conf.json", (config) => { config.version = desktopVersion; });
 
-for (const lockFile of ["engine/package-lock.json", "desktop/package-lock.json"]) {
+for (const [lockFile, packageVersion] of [["engine/package-lock.json", appVersion], ["desktop/package-lock.json", desktopVersion]]) {
   updateJSON(lockFile, (lock) => {
-    lock.version = appVersion;
-    if (lock.packages?.[""]) lock.packages[""].version = appVersion;
+    lock.version = packageVersion;
+    if (lock.packages?.[""]) lock.packages[""].version = packageVersion;
   });
 }
 
@@ -207,17 +207,16 @@ for (const relativePath of schemaReferenceFiles) {
   writeText(file, original.split(oldSchemaVersion).join(schemaVersion));
 }
 
-const oldSchemaFile = path.join(root, "schema", "manifest", `v${oldSchemaVersion}.json`);
-const newSchemaFile = path.join(root, "schema", "manifest", `v${schemaVersion}.json`);
-const schemaContents = fs.readFileSync(oldSchemaFile, "utf8").split(oldSchemaVersion).join(schemaVersion);
-if (oldSchemaFile !== newSchemaFile) {
-  if (!fs.existsSync(newSchemaFile) || fs.readFileSync(newSchemaFile, "utf8") !== schemaContents) {
-    drift.push(relative(newSchemaFile));
-    if (!checkOnly) fs.writeFileSync(newSchemaFile, schemaContents);
-    changed = true;
-  }
-} else {
-  writeText(oldSchemaFile, schemaContents);
+// Manifest schema changes are security contracts. New release schemas must be
+// authored and reviewed explicitly; never clone the previous schema during a
+// version bump. Historical schemas remain immutable compatibility fixtures.
+const currentSchemaFile = path.join(root, "schema", "manifest", `v${schemaVersion}.json`);
+if (!fs.existsSync(currentSchemaFile)) {
+  throw new Error(`Missing explicit manifest schema ${relative(currentSchemaFile)}`);
+}
+const currentSchemaContents = fs.readFileSync(currentSchemaFile, "utf8");
+if (!currentSchemaContents.includes(`\"schemaVersion\": { \"const\": \"${schemaVersion}\"`) && !currentSchemaContents.includes(`\"const\": \"${schemaVersion}\"`)) {
+  throw new Error(`Manifest schema ${relative(currentSchemaFile)} does not declare ${schemaVersion}`);
 }
 
 if (checkOnly) {

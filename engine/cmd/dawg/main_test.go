@@ -10,6 +10,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
+	"github.com/Slaviors-Group/dawg/engine/internal/manifest"
 )
 
 func TestRootCommandPrintsHelp(t *testing.T) {
@@ -187,7 +190,7 @@ func TestInspectReturnsValidatedManifestJSON(t *testing.T) {
 	if err := json.Unmarshal(buffer.Bytes(), &value); err != nil {
 		t.Fatalf("decode inspect output: %v", err)
 	}
-	if value["schemaVersion"] != "0.2.7-naughty" || value["title"] == "" {
+	if value["schemaVersion"] != manifest.SchemaVersion || value["title"] == "" {
 		t.Fatalf("unexpected inspect output: %#v", value)
 	}
 }
@@ -199,7 +202,21 @@ func TestInspectAcceptsLegacyManifest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read manifest fixture: %v", err)
 	}
-	contents = bytes.Replace(contents, []byte("0.2.7-naughty"), []byte("0.2.3-naughty"), 1)
+	var legacy map[string]any
+	if err := json.Unmarshal(contents, &legacy); err != nil {
+		t.Fatalf("decode manifest fixture: %v", err)
+	}
+	delete(legacy, "diagnostics")
+	legacy["schemaVersion"] = "0.2.3-naughty"
+	legacy["layers"] = []any{map[string]any{
+		"mediaType": string(dawgtypes.MediaTypeEnvironment),
+		"digest":    "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+		"size":      2048,
+	}}
+	contents, err = json.Marshal(legacy)
+	if err != nil {
+		t.Fatalf("encode legacy manifest: %v", err)
+	}
 	if err := os.WriteFile(filepath.Join(directory, "dawg-manifest.json"), contents, 0o600); err != nil {
 		t.Fatalf("write artifact manifest: %v", err)
 	}
@@ -223,7 +240,7 @@ func TestInspectRejectsUnsupportedManifestVersion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read manifest fixture: %v", err)
 	}
-	contents = bytes.Replace(contents, []byte("0.2.7-naughty"), []byte("0.2.4-naughty"), 1)
+	contents = bytes.Replace(contents, []byte(manifest.SchemaVersion), []byte("0.2.4-naughty"), 1)
 	if err := os.WriteFile(filepath.Join(directory, "dawg-manifest.json"), contents, 0o600); err != nil {
 		t.Fatalf("write artifact manifest: %v", err)
 	}

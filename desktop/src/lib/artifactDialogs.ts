@@ -19,6 +19,23 @@ export async function chooseArtifactExportPath(defaultName: string): Promise<str
   return selected ? ensureDawgExtension(selected) : null;
 }
 
+export async function chooseDiagnosticRemovalParentDirectory(): Promise<string | null> {
+  const selected = await open({
+    multiple: false,
+    directory: true,
+  });
+  return typeof selected === "string" ? selected : null;
+}
+
+export async function chooseDiagnosticHARPath(defaultName: string): Promise<string | null> {
+  const selected = await save({
+    defaultPath: defaultName.toLowerCase().endsWith(".har") ? defaultName : `${defaultName}.har`,
+    filters: [{ name: "HTTP Archive", extensions: ["har"] }],
+  });
+  if (!selected) return null;
+  return selected.toLowerCase().endsWith(".har") ? selected : `${selected}.har`;
+}
+
 export function defaultArtifactExportName(title: string, createdAt: string): string {
   const timestamp = new Date(createdAt)
     .toISOString()

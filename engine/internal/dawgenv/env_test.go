@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"github.com/Slaviors-Group/dawg/engine/internal/manifest"
 )
 
 func TestResourceDirOverride(t *testing.T) {
@@ -97,4 +99,13 @@ func TestDoctorReport(t *testing.T) {
 	if len(report.Components) == 0 {
 		t.Errorf("expected non-empty Components in report")
 	}
+	for _, component := range report.Components {
+		if component.Name == "schema:manifest" {
+			if component.Version != manifest.SchemaVersion {
+				t.Errorf("schema component version = %q, want %q", component.Version, manifest.SchemaVersion)
+			}
+			return
+		}
+	}
+	t.Error("expected schema:manifest component")
 }

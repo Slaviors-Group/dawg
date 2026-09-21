@@ -74,6 +74,7 @@ func buildTestOCIArtifact(t *testing.T, directory string) string {
 	t.Helper()
 	layer := []byte("layer")
 	layerDigest := sha256.Sum256(layer)
+	diagnostics := dawgtypes.EmptyDiagnosticsSummary(dawgtypes.DiagnosticProfileSafe, "1")
 	value := manifest.Manifest{
 		SchemaVersion: manifest.SchemaVersion,
 		ID:            "sha256:" + fmt.Sprintf("%064x", 1),
@@ -88,6 +89,7 @@ func buildTestOCIArtifact(t *testing.T, directory string) string {
 		Sanitize:        dawgtypes.ManifestSanitize{PolicyVersion: "1", FieldsRedacted: 0},
 		Determinism:     dawgtypes.DeterminismConfig{ClockFrozenAt: mustTime(t, "2026-09-01T09:00:00Z"), RandomSeed: 1},
 		ExpectedOutcome: dawgtypes.ExpectedOutcome{Type: "assertion", Description: "test", AssertionFile: "assertions/test.json"},
+		Diagnostics:     &diagnostics,
 	}
 	config, err := manifest.Marshal(value)
 	if err != nil {

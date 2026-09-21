@@ -3,5 +3,7 @@
   "envLockfile": "application/vnd.dawg.env.lockfile+tar",
   "dbFixture": "application/vnd.dawg.db.fixture+tar.zstd",
   "trace": "application/vnd.dawg.trace.rrweb+jsonl.zstd",
-  "cassette": "application/vnd.dawg.cassette+tar.zstd"
+  "cassette": "application/vnd.dawg.cassette+tar.zstd",
+  "diagnostics": "application/vnd.dawg.diagnostics+tar.zstd",
+  "diagnosticBodies": "application/vnd.dawg.diagnostic-bodies+tar.zstd"
 }

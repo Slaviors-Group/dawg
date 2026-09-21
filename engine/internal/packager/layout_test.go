@@ -33,8 +33,8 @@ func TestPackageCreatesValidOCIImageLayout(t *testing.T) {
 	if err := manifest.Validate(schemaPath(t), value); err != nil {
 		t.Fatalf("validate DAWG manifest: %v", err)
 	}
-	if len(value.Layers) != 4 {
-		t.Fatalf("expected four OCI layers, got %#v", value.Layers)
+	if len(value.Layers) != 6 {
+		t.Fatalf("expected six OCI layers including diagnostics, got %#v", value.Layers)
 	}
 	for _, layer := range value.Layers {
 		assertBlobDigest(t, outputDirectory, layer.Digest, layer.Size)
@@ -45,6 +45,13 @@ func TestPackageCreatesValidOCIImageLayout(t *testing.T) {
 	}
 	if contents, err := os.ReadFile(filepath.Join(unpackedDirectory, "actions", "browser.jsonl")); err != nil || !strings.Contains(string(contents), "click") {
 		t.Fatalf("packaged artifact omitted browser actions: contents=%q err=%v", contents, err)
+	}
+	if contents, err := os.ReadFile(filepath.Join(unpackedDirectory, "diagnostics", "network.jsonl")); err != nil || !strings.Contains(string(contents), "request-1") {
+		t.Fatalf("packaged artifact omitted diagnostic network evidence: contents=%q err=%v", contents, err)
+	}
+	evidence, err := ReadDiagnostics(outputDirectory)
+	if err != nil || len(evidence.Console) != 1 || len(evidence.Network) != 1 || len(evidence.Bodies) != 1 || evidence.Timeline == nil || evidence.Timeline.DurationMs != 2500 {
+		t.Fatalf("read packaged diagnostics: evidence=%#v err=%v", evidence, err)
 	}
 
 	indexContents, err := os.ReadFile(filepath.Join(outputDirectory, "index.json"))
@@ -62,6 +69,87 @@ func TestPackageCreatesValidOCIImageLayout(t *testing.T) {
 		t.Fatalf("OCI digest mismatch: index=%s result=%s", index.Manifests[0].Digest, artifact.OCIManifestDigest)
 	}
 	assertBlobDigest(t, outputDirectory, artifact.OCIManifestDigest, index.Manifests[0].Size)
+
+	reviewedDirectory := filepath.Join(t.TempDir(), "reviewed-artifact")
+	reviewed, err := RepackageDiagnostics(DiagnosticRemovalRequest{InputDirectory: outputDirectory, OutputDirectory: reviewedDirectory, Categories: []string{"console", "network", "errors", "bodies"}})
+	if err != nil {
+		t.Fatalf("repackage removed diagnostics: %v", err)
+	}
+	if reviewed.Directory != reviewedDirectory || reviewed.Directory == artifact.Directory {
+		t.Fatalf("unexpected reviewed artifact: %#v", reviewed)
+	}
+	remaining, err := ReadDiagnostics(reviewedDirectory)
+	if err != nil || len(remaining.Console) != 0 || len(remaining.Network) != 0 || len(remaining.Errors) != 0 || len(remaining.Bodies) != 0 {
+		t.Fatalf("removed diagnostics remained: evidence=%#v err=%v", remaining, err)
+	}
+	original, err := ReadDiagnostics(outputDirectory)
+	if err != nil || len(original.Network) != 1 {
+		t.Fatalf("original artifact was changed: evidence=%#v err=%v", original, err)
+	}
+}
+
+func TestRepackageDiagnosticsPreservesUnselectedEvidence(t *testing.T) {
+	sessionDirectory := createSanitizedSession(t, true)
+	input := filepath.Join(t.TempDir(), "artifact")
+	if _, err := Package(packageRequest(sessionDirectory, input)); err != nil {
+		t.Fatalf("package input: %v", err)
+	}
+
+	t.Run("remove console only", func(t *testing.T) {
+		output := filepath.Join(t.TempDir(), "without-console")
+		if _, err := RepackageDiagnostics(DiagnosticRemovalRequest{InputDirectory: input, OutputDirectory: output, Categories: []string{"console"}}); err != nil {
+			t.Fatalf("repackage console: %v", err)
+		}
+		evidence, err := ReadDiagnostics(output)
+		if err != nil {
+			t.Fatalf("read reviewed evidence: %v", err)
+		}
+		if len(evidence.Console) != 0 || len(evidence.Network) != 1 || len(evidence.Errors) != 1 || len(evidence.Bodies) != 1 {
+			t.Fatalf("unexpected reviewed evidence: %#v", evidence)
+		}
+	})
+
+	t.Run("remove a single body reference", func(t *testing.T) {
+		output := filepath.Join(t.TempDir(), "without-body")
+		if _, err := RepackageDiagnostics(DiagnosticRemovalRequest{InputDirectory: input, OutputDirectory: output, BodyRefs: []string{"diagnostics/bodies/response-request-1.json"}}); err != nil {
+			t.Fatalf("repackage body: %v", err)
+		}
+		evidence, err := ReadDiagnostics(output)
+		if err != nil {
+			t.Fatalf("read reviewed evidence: %v", err)
+		}
+		if len(evidence.Bodies) != 0 || len(evidence.Network) != 1 {
+			t.Fatalf("unexpected body-removal evidence: %#v", evidence)
+		}
+		response, _ := evidence.Network[0]["response"].(map[string]any)
+		body, _ := response["body"].(map[string]any)
+		if body["state"] != "unavailable" || body["ref"] != nil {
+			t.Fatalf("body reference was not rewritten: %#v", body)
+		}
+	})
+
+	t.Run("reject existing output and invalid source OCI", func(t *testing.T) {
+		if _, err := RepackageDiagnostics(DiagnosticRemovalRequest{InputDirectory: input, OutputDirectory: input, Categories: []string{"console"}}); err == nil {
+			t.Fatal("expected existing input output rejection")
+		}
+		if _, err := RepackageDiagnostics(DiagnosticRemovalRequest{InputDirectory: input, OutputDirectory: t.TempDir(), Categories: []string{"console"}}); err == nil {
+			t.Fatal("expected existing output rejection")
+		}
+		manifestValue, err := manifest.Read(filepath.Join(input, "dawg-manifest.json"))
+		if err != nil {
+			t.Fatalf("read input manifest: %v", err)
+		}
+		digestPath, err := layerDigestPath(manifestValue.Layers[0].Digest)
+		if err != nil {
+			t.Fatalf("parse fixture digest: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(input, "blobs", "sha256", digestPath), []byte("tampered"), 0o600); err != nil {
+			t.Fatalf("tamper source blob: %v", err)
+		}
+		if _, err := RepackageDiagnostics(DiagnosticRemovalRequest{InputDirectory: input, OutputDirectory: filepath.Join(t.TempDir(), "rejected"), Categories: []string{"console"}}); err == nil {
+			t.Fatal("expected invalid source OCI rejection")
+		}
+	})
 }
 
 func TestPackageRefusesDeniedSanitizationReport(t *testing.T) {
@@ -141,11 +229,16 @@ func createSanitizedSession(t *testing.T, exportAllowed bool) string {
 	})
 	writeTextFixture(t, filepath.Join(directory, "env", "lockfile.json"), "{\"backend\":\"sha256:pinned\"}\n")
 	writeTextFixture(t, filepath.Join(directory, "db", "diff.jsonl"), "{\"table\":\"orders\"}\n")
-	writeTextFixture(t, filepath.Join(directory, "traces", "rrweb.jsonl"), "{\"type\":2}\n")
+	writeTextFixture(t, filepath.Join(directory, "traces", "rrweb.jsonl"), "{\"type\":2,\"timestamp\":1788256800000}\n{\"type\":3,\"timestamp\":1788256802500}\n")
 	writeTextFixture(t, filepath.Join(directory, "actions", "browser.jsonl"), "{\"type\":\"click\",\"selector\":\"#checkout\"}\n")
 	writeTextFixture(t, filepath.Join(directory, "http", "frontend.jsonl"), "{\"id\":\"request-1\"}\n")
 	writeTextFixture(t, filepath.Join(directory, "logs", "structured.jsonl"), "{\"level\":\"info\"}\n")
 	writeTextFixture(t, filepath.Join(directory, "cassettes", "thirdparty.jsonl"), "{\"id\":\"cassette-1\"}\n")
+	writeTextFixture(t, filepath.Join(directory, "diagnostics", "profile.json"), "{\"profile\":\"safe\"}\n")
+	writeTextFixture(t, filepath.Join(directory, "diagnostics", "console.jsonl"), "{\"id\":\"console-1\",\"source\":\"main-world\",\"text\":\"checkout failed\"}\n")
+	writeTextFixture(t, filepath.Join(directory, "diagnostics", "network.jsonl"), "{\"id\":\"network-1\",\"source\":\"safe-extension\",\"requestId\":\"request-1\",\"request\":{\"body\":{\"state\":\"not-requested\"}},\"response\":{\"body\":{\"state\":\"captured\",\"ref\":\"diagnostics/bodies/response-request-1.json\",\"sha256\":\"sha256:fixture\",\"size\":23,\"contentType\":\"application/json\"}}}\n")
+	writeTextFixture(t, filepath.Join(directory, "diagnostics", "errors.jsonl"), "{\"id\":\"error-1\",\"source\":\"main-world\",\"text\":\"checkout failed\"}\n")
+	writeTextFixture(t, filepath.Join(directory, "diagnostics", "bodies", "response-request-1.json"), "{\"message\":\"sanitized\"}\n")
 	return directory
 }
 
@@ -174,7 +267,7 @@ func schemaPath(t *testing.T) string {
 }
 
 func schemaPathForPackage() string {
-	return filepath.Join("..", "..", "..", "schema", "manifest", "v0.2.7-naughty.json")
+	return filepath.Join("..", "..", "..", "schema", "manifest", "v0.3.1-middlechild.json")
 }
 
 func writeJSONFixture(t *testing.T, path string, value any) {
