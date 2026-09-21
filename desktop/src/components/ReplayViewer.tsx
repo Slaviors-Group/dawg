@@ -18,10 +18,15 @@ import {
   chooseDiagnosticRemovalParentDirectory,
   defaultArtifactExportName,
 } from "../lib/artifactDialogs";
-import { type DiagnosticCategory, type DiagnosticEvidence, type InspectResult, engine } from "../lib/engine";
-import { LogStreamer } from "./LogStreamer";
-import { DiagnosticReviewModal } from "./DiagnosticReviewModal";
+import {
+  type DiagnosticCategory,
+  type DiagnosticEvidence,
+  type InspectResult,
+  engine,
+} from "../lib/engine";
 import { DiagnosticRemovalModal } from "./DiagnosticRemovalModal";
+import { DiagnosticReviewModal } from "./DiagnosticReviewModal";
+import { LogStreamer } from "./LogStreamer";
 import { ReplayDiagnosticInspector } from "./ReplayDiagnosticInspector";
 import { Button } from "./ui/Button";
 import { Card, CardHeader, CardTitle } from "./ui/Card";
@@ -84,7 +89,10 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
     setDiagnosticEvidence(null);
     setManifestError(null);
     setIsLoadingManifest(true);
-    void Promise.all([engine.inspectArtifact({ path: selectedArtifact }), engine.inspectDiagnostics(selectedArtifact)])
+    void Promise.all([
+      engine.inspectArtifact({ path: selectedArtifact }),
+      engine.inspectDiagnostics(selectedArtifact),
+    ])
       .then(([result, evidence]) => {
         if (disposed) return;
         setManifest(result);
@@ -167,7 +175,10 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
   const exportHARAfterReview = async () => {
     if (!selectedArtifactItem) return;
     const output = await chooseDiagnosticHARPath(
-      defaultArtifactExportName(selectedArtifactItem.title || selectedArtifactItem.id, selectedArtifactItem.createdAt).replace(/\.dawg$/i, ".har"),
+      defaultArtifactExportName(
+        selectedArtifactItem.title || selectedArtifactItem.id,
+        selectedArtifactItem.createdAt,
+      ).replace(/\.dawg$/i, ".har"),
     );
     if (!output) return;
     await engine.exportDiagnosticsHAR(selectedArtifactItem.path, output);
@@ -181,7 +192,12 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
     addLogLine(`Copied reviewed cURL for request ${reviewRequestId}.`);
   };
 
-  const removeDiagnosticsAfterReview = async (request: { categories: DiagnosticCategory[]; bodyRefs: string[]; parentDirectory: string; directoryName: string }) => {
+  const removeDiagnosticsAfterReview = async (request: {
+    categories: DiagnosticCategory[];
+    bodyRefs: string[];
+    parentDirectory: string;
+    directoryName: string;
+  }) => {
     if (!selectedArtifactItem) return;
     const separator = request.parentDirectory.includes("\\") ? "\\" : "/";
     const outputDir = `${request.parentDirectory.replace(/[\\/]+$/, "")}${separator}${request.directoryName}`;
@@ -357,7 +373,8 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
         onExportHAR={() => setReviewAction("har")}
         onRemoveDiagnostics={() => setIsDiagnosticRemovalOpen(true)}
         onSeekReplay={(offsetMs) => {
-          void engine.seekReplay(offsetMs)
+          void engine
+            .seekReplay(offsetMs)
             .then(() => addLogLine(`Seeked interactive replay to approximately ${offsetMs}ms.`))
             .catch((error) => addLogLine(`[ERROR] Could not seek replay: ${String(error)}`));
         }}
@@ -370,7 +387,14 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
       <DiagnosticRemovalModal
         open={isDiagnosticRemovalOpen}
         evidence={diagnosticEvidence}
-        defaultDirectoryName={selectedArtifactItem ? defaultArtifactExportName(selectedArtifactItem.title || selectedArtifactItem.id, selectedArtifactItem.createdAt).replace(/\.dawg$/i, "-reviewed") : "dawg-reviewed"}
+        defaultDirectoryName={
+          selectedArtifactItem
+            ? defaultArtifactExportName(
+                selectedArtifactItem.title || selectedArtifactItem.id,
+                selectedArtifactItem.createdAt,
+              ).replace(/\.dawg$/i, "-reviewed")
+            : "dawg-reviewed"
+        }
         onClose={() => setIsDiagnosticRemovalOpen(false)}
         onChooseParentDirectory={chooseDiagnosticRemovalParentDirectory}
         onConfirm={removeDiagnosticsAfterReview}
