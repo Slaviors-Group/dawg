@@ -48,9 +48,19 @@
     }).catch(() => {});
   }
 
+  const SENSITIVE_FIELD_PATTERN = /pass|pwd|secret|token|ssn|social|credit|card|cvv|cvc|pin|otp|auth/i;
+
+  function isSensitiveField(target) {
+    const inputType = (target.type || "").toLowerCase();
+    const fieldName = (target.name || target.id || target.autocomplete || "").toLowerCase();
+    if (inputType === "password") return true;
+    return SENSITIVE_FIELD_PATTERN.test(fieldName) || SENSITIVE_FIELD_PATTERN.test(inputType);
+  }
+
   function handleInteractionInput(event) {
     if (!isRecording) return;
     const selector = buildSelector(event.target);
+    const sensitive = isSensitiveField(event.target);
     chrome.runtime.sendMessage({
       type: "DAWG_ACTION_EVENT",
       payload: {
@@ -59,7 +69,7 @@
         selector: selector,
         fieldName: event.target.name || "",
         inputType: event.target.type || "",
-        value: event.target.value || ""
+        value: sensitive ? "" : (event.target.value || "")
       }
     }).catch(() => {});
   }
