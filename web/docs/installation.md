@@ -7,21 +7,38 @@ DAWG is available as a self-contained desktop application or as source for engin
 The current prerelease is `0.3.1-middlechild`. It includes desktop version
 `0.3.1` and extension display version `0.3.1_middlechild`.
 
-Visit [GitHub releases](https://github.com/Slaviors-Group/dawg/releases) for
-published installers, checksums, and other assets. Linux targets are configured;
-build the AppImage from source with `desktop/build-bundle.sh` when an AppImage
-is not attached to a release.
+Download the installer for your platform directly from the latest GitHub release:
 
-See [all releases](https://github.com/Slaviors-Group/dawg/releases) for older prereleases and assets.
+- [Download DAWG for Windows (x64 installer)](https://github.com/Slaviors-Group/dawg/releases/latest/download/DAWG_0.3.1_x64-setup.exe)
+- [Download DAWG for Linux (x86_64 AppImage)](https://github.com/Slaviors-Group/dawg/releases/latest/download/DAWG_0.3.1_amd64.AppImage)
+
+The Windows link downloads the NSIS installer. The Linux link downloads the
+AppImage. After downloading the AppImage, make it executable and start it:
+
+```bash
+chmod +x DAWG_0.3.1_amd64.AppImage
+./DAWG_0.3.1_amd64.AppImage
+```
+
+See [all releases](https://github.com/Slaviors-Group/dawg/releases) for
+checksums, release notes, older prereleases, and other assets.
 
 ## Desktop Application
 
 ### Windows
 
-1. Download and run the Windows x64 NSIS installer.
+1. Select **Download DAWG for Windows** above and run the downloaded x64 NSIS installer.
 2. Launch DAWG.
 3. Open the runtime diagnostics and confirm the engine reports **Ready**.
 4. Install the browser extension before starting a capture.
+
+### Linux
+
+1. Select **Download DAWG for Linux** above.
+2. Make the downloaded AppImage executable: `chmod +x DAWG_0.3.1_amd64.AppImage`.
+3. Launch it: `./DAWG_0.3.1_amd64.AppImage`.
+4. Open the runtime diagnostics and confirm the engine reports **Ready**.
+5. Install the browser extension before starting a capture.
 
 The package stages the Go engine, Node.js, mitmdump, Playwright and Chromium for replay, schemas, policies, and the browser extension. These components do not require separate system installation for the packaged application.
 
