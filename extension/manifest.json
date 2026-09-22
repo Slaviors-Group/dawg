@@ -38,7 +38,7 @@
         "<all_urls>"
       ],
       "js": [
-        "lib/rrweb.min.js",
+        "lib/rrweb.js",
         "content/recorder.js"
       ],
       "run_at": "document_start"

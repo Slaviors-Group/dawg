@@ -151,12 +151,12 @@ test("daemon starts and stops one target tab with an acknowledged drain", async 
     scriptExecutions.some(
       ({ target, files }) =>
         target.tabId === 7 &&
-        files.join(",") === "lib/rrweb.min.js,content/recorder.js"
+        files.join(",") === "lib/rrweb.js,content/recorder.js"
     )
   );
   const operations = operationLog.slice(startAt);
   const attachAt = operations.indexOf("debugger:attach");
-  const recorderAt = operations.indexOf("script:lib/rrweb.min.js,content/recorder.js");
+  const recorderAt = operations.indexOf("script:lib/rrweb.js,content/recorder.js");
   assert.ok(attachAt >= 0, "enhanced capture did not attach the debugger");
   assert.ok(recorderAt > attachAt, `rrweb started before debugger attachment: ${operations.join(", ")}`);
 
