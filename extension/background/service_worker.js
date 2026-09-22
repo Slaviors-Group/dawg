@@ -295,7 +295,7 @@ async function startRecorderInTab(tabId) {
       });
       await chrome.scripting.executeScript({
         target: { tabId },
-        files: ["lib/rrweb.min.js", "content/recorder.js"]
+        files: ["lib/rrweb.js", "content/recorder.js"]
       });
       const response = await chrome.tabs.sendMessage(tabId, { type: "START_RECORDING" });
       if (response && response.status === "started") return;
