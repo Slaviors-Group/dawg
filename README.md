@@ -14,10 +14,16 @@ Manifest V3 extension.
 ## 📦 Install the Current Release
 
 DAWG `0.3.1-middlechild` is the current application and artifact-schema release.
-Use the [GitHub releases page](https://github.com/Slaviors-Group/dawg/releases)
-for published installers, checksums, and release assets. Linux targets are
-configured in Tauri; build the AppImage from source with
-`desktop/build-bundle.sh` when an AppImage is not attached to a release.
+
+- [Download DAWG for Windows (x64 installer)](https://github.com/Slaviors-Group/dawg/releases/latest/download/DAWG_0.3.1_x64-setup.exe)
+- [Download DAWG for Linux (x86_64 AppImage)](https://github.com/Slaviors-Group/dawg/releases/latest/download/DAWG_0.3.1_amd64.AppImage)
+
+These links download the matching asset from the latest GitHub release directly.
+After downloading the Linux AppImage, make it executable with
+`chmod +x DAWG_0.3.1_amd64.AppImage` and run it with
+`./DAWG_0.3.1_amd64.AppImage`. Visit the
+[GitHub releases page](https://github.com/Slaviors-Group/dawg/releases) for
+checksums, release notes, and older assets.
 
 ## 🔎 Current Capabilities
 
