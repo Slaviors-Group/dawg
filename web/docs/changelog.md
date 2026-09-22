@@ -4,7 +4,7 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 
 ## Middlechild family — `0.3.x`
 
-### `0.3.1-middlechild`
+### [0.3.1-middlechild](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild)
 
 **Desktop:** `0.3.1` · **Extension display version:** `0.3.1_middlechild`
 
