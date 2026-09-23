@@ -7,21 +7,21 @@ session as an OCI Image Layout, and replays its rrweb DOM trace in Chromium. The
 repository contains a Go CLI, a Tauri desktop application, and a Chromium
 Manifest V3 extension.
 
-> **Current prerelease:** [`0.3.2-middlechild`](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-2)
+> **Current prerelease:** [`0.3.3-middlechild`](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-3)
 >
-> Application and artifact schema: `0.3.2-middlechild` · Desktop: `0.3.2` · Extension: `0.3.1_middlechild`
+> Application and artifact schema: `0.3.3-middlechild` · Desktop: `0.3.3` · Extension: `0.3.1_middlechild`
 
 ## 📦 Install the Current Release
 
-DAWG [`0.3.2-middlechild`](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-2) is the current application and artifact-schema release.
+DAWG [`0.3.3-middlechild`](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-3) is the current application and artifact-schema release.
 
-- [Download DAWG for Windows (x64 installer)](https://github.com/Slaviors-Group/dawg/releases/latest/download/DAWG_0.3.2_x64-setup.exe)
-- [Download DAWG for Linux (x86_64 AppImage)](https://github.com/Slaviors-Group/dawg/releases/latest/download/DAWG_0.3.2_amd64.AppImage)
+- [Download DAWG for Windows (x64 installer)](https://github.com/Slaviors-Group/dawg/releases/latest/download/DAWG_0.3.3_x64-setup.exe)
+- [Download DAWG for Linux (x86_64 AppImage)](https://github.com/Slaviors-Group/dawg/releases/latest/download/DAWG_0.3.3_amd64.AppImage)
 
 These links download the matching asset from the latest GitHub release directly.
 After downloading the Linux AppImage, make it executable with
-`chmod +x DAWG_0.3.2_amd64.AppImage` and run it with
-`./DAWG_0.3.2_amd64.AppImage`. Visit the
+`chmod +x DAWG_0.3.3_amd64.AppImage` and run it with
+`./DAWG_0.3.3_amd64.AppImage`. Visit the
 [GitHub releases page](https://github.com/Slaviors-Group/dawg/releases) for
 checksums, release notes, and older assets.
 
@@ -233,8 +233,8 @@ Node.js, and mitmproxy versions.
 
 ```json
 {
-  "appVersion": "0.3.2-middlechild",
-  "desktopVersion": "0.3.2",
+  "appVersion": "0.3.3-middlechild",
+  "desktopVersion": "0.3.3",
   "extensionVersion": "0.3.1_middlechild",
   "runtime": {
     "mitmproxy": "12.2.3",

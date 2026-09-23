@@ -71,7 +71,7 @@ func TestValidateJSONRejectsMalformedSchema(t *testing.T) {
 
 func TestReadValidatedAcceptsSupportedVersions(t *testing.T) {
 	contents := validManifestContents(t)
-	for _, version := range []string{"0.2.3-naughty", "0.2.5-naughty", "0.2.7-naughty", SchemaVersion} {
+	for _, version := range []string{"0.2.3-naughty", "0.2.5-naughty", "0.2.7-naughty", "0.3.1-middlechild", "0.3.2-middlechild", SchemaVersion} {
 		t.Run(version, func(t *testing.T) {
 			versionedContents := contents
 			if version != SchemaVersion {
@@ -79,13 +79,15 @@ func TestReadValidatedAcceptsSupportedVersions(t *testing.T) {
 				if err := json.Unmarshal(contents, &legacy); err != nil {
 					t.Fatalf("decode current fixture: %v", err)
 				}
-				delete(legacy, "diagnostics")
 				legacy["schemaVersion"] = version
-				legacy["layers"] = []any{map[string]any{
-					"mediaType": string(dawgtypes.MediaTypeEnvironment),
-					"digest":    "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
-					"size":      2048,
-				}}
+				if version == "0.2.3-naughty" || version == "0.2.5-naughty" || version == "0.2.7-naughty" {
+					delete(legacy, "diagnostics")
+					legacy["layers"] = []any{map[string]any{
+						"mediaType": string(dawgtypes.MediaTypeEnvironment),
+						"digest":    "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+						"size":      2048,
+					}}
+				}
 				versionedContents, _ = json.Marshal(legacy)
 			}
 			path := writeManifest(t, versionedContents)
