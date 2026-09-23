@@ -6,6 +6,10 @@ type DiagnosticProfile string
 const (
 	DiagnosticProfileSafe     DiagnosticProfile = "safe"
 	DiagnosticProfileEnhanced DiagnosticProfile = "enhanced"
+
+	// MaxJSONLRecordBytes is the largest record accepted throughout the capture,
+	// sanitization, packaging, and verification pipeline.
+	MaxJSONLRecordBytes = 16 << 20
 )
 
 // EvidenceState describes why a diagnostic value is or is not present.

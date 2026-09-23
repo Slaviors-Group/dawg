@@ -3,6 +3,7 @@ package packager
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 
@@ -25,6 +26,8 @@ func compressZstd(contents []byte) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+var errDecompressedLayerTooLarge = errors.New("packager: decompressed layer exceeds size limit")
+
 func decompressZstd(contents []byte) ([]byte, error) {
 	reader, err := zstd.NewReader(bytes.NewReader(contents))
 	if err != nil {
@@ -34,6 +37,22 @@ func decompressZstd(contents []byte) ([]byte, error) {
 	decoded, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, fmt.Errorf("packager: decompress layer: %w", err)
+	}
+	return decoded, nil
+}
+
+func decompressZstdLimited(contents []byte, limit int64) ([]byte, error) {
+	reader, err := zstd.NewReader(bytes.NewReader(contents))
+	if err != nil {
+		return nil, fmt.Errorf("packager: open zstd layer: %w", err)
+	}
+	defer reader.Close()
+	decoded, err := io.ReadAll(io.LimitReader(reader, limit+1))
+	if err != nil {
+		return nil, fmt.Errorf("packager: decompress layer: %w", err)
+	}
+	if int64(len(decoded)) > limit {
+		return nil, fmt.Errorf("%w (%d bytes)", errDecompressedLayerTooLarge, limit)
 	}
 	return decoded, nil
 }

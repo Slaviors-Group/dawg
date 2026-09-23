@@ -1,6 +1,6 @@
 [package]
 name = "dawg-desktop"
-version = "0.3.1"
+version = "0.3.2"
 description = "DAWG App - Alpha ver."
 authors = ["slaviors"]
 edition = "2024"
