@@ -52,7 +52,11 @@ func diagnosticSummary(sessionDirectory string, metadata dawgtypes.CaptureMetada
 			return dawgtypes.DiagnosticsSummary{}, fmt.Errorf("packager: open %s: %w", relative.path, err)
 		}
 		scanner := bufio.NewScanner(file)
-		scanner.Buffer(make([]byte, 64*1024), int(summary.Limits.MaxConsoleRecordBytes))
+		recordLimit := dawgtypes.MaxJSONLRecordBytes
+		if relative.kind == "console" {
+			recordLimit = int(summary.Limits.MaxConsoleRecordBytes)
+		}
+		scanner.Buffer(make([]byte, 64*1024), recordLimit)
 		for scanner.Scan() {
 			var record map[string]any
 			if err := json.Unmarshal(scanner.Bytes(), &record); err != nil {

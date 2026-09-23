@@ -1,7 +1,7 @@
 {
   "name": "dawg-engine-scripts",
   "private": true,
-  "version": "0.3.1-middlechild",
+  "version": "0.3.2-middlechild",
   "type": "commonjs",
   "scripts": {
     "sync:versions": "node ../tools/sync-versions.cjs",
