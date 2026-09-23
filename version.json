@@ -1,6 +1,6 @@
 {
-  "appVersion": "0.3.1-middlechild",
-  "desktopVersion": "0.3.1",
+  "appVersion": "0.3.2-middlechild",
+  "desktopVersion": "0.3.2",
   "extensionVersion": "0.3.1_middlechild",
   "runtime": {
     "mitmproxy": "12.2.3",

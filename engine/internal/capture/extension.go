@@ -21,13 +21,15 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
 )
 
 const (
 	wsReadTimeout    = 60 * time.Second
 	wsWriteTimeout   = 2 * time.Second
 	wsDrainTimeout   = 5 * time.Second
-	maxStreamBytes   = 16 << 20
+	maxStreamBytes   = dawgtypes.MaxJSONLRecordBytes
 	webSocketGUID    = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 	wsOpcodeContinue = byte(0x0)
 	wsOpcodeText     = byte(0x1)

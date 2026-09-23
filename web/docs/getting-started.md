@@ -2,15 +2,20 @@
 
 DAWG records one browser tab, sanitizes the captured data, and packages the session as a portable OCI artifact. The recommended workflow uses the desktop app together with the DAWG Browser Extension.
 
-> **Current prerelease:** `0.3.1-middlechild` — desktop `0.3.1`; extension display version `0.3.1_middlechild`.
+> **Current prerelease:** [`0.3.2-middlechild`](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-2) — desktop `0.3.2`; extension display version `0.3.1_middlechild`.
 
 ## Quick Start: Desktop App
 
 ### 1. Install DAWG
 
-Visit [GitHub releases](https://github.com/Slaviors-Group/dawg/releases) for published installers and other assets.
+Download the latest release directly:
 
-When an AppImage is not attached to the release, see [Installation](/docs/installation) to build it from source.
+- [Windows x64 installer](https://github.com/Slaviors-Group/dawg/releases/latest/download/DAWG_0.3.2_x64-setup.exe)
+- [Linux x86_64 AppImage](https://github.com/Slaviors-Group/dawg/releases/latest/download/DAWG_0.3.2_amd64.AppImage)
+
+See [Installation](/docs/installation) for Linux AppImage launch steps and the
+[GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-2)
+for checksums and release notes.
 
 The packaged desktop app includes the engine, Node.js, mitmdump, Playwright, Chromium for replay, schemas, policies, and an installable copy of the extension. You do not need to install those runtimes separately.
 

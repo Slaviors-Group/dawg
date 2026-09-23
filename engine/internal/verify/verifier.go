@@ -38,15 +38,17 @@ func (v *Verifier) Verify(ctx context.Context, replay dawgtypes.ReplayOutput, or
 	actualHTTPPath := replay.Outcomes.HTTPResponses
 	if actualHTTPPath != "" {
 		mismatches, err := CompareHTTPResponses(expectedHTTPPath, actualHTTPPath)
-		if err == nil {
-			httpCheck := dawgtypes.Check{
-				Type:     dawgtypes.CheckTypeHTTPResponse,
-				Expected: "0 mismatches",
-				Actual:   fmt.Sprintf("%d mismatches", mismatches),
-				Passed:   mismatches == 0,
-			}
-			result.Checks = append(result.Checks, httpCheck)
+		httpCheck := dawgtypes.Check{
+			Type:     dawgtypes.CheckTypeHTTPResponse,
+			Expected: "0 mismatches",
 		}
+		if err != nil {
+			httpCheck.Actual = fmt.Sprintf("comparison unavailable: %v", err)
+		} else {
+			httpCheck.Actual = fmt.Sprintf("%d mismatches", mismatches)
+			httpCheck.Passed = mismatches == 0
+		}
+		result.Checks = append(result.Checks, httpCheck)
 	}
 
 	// Compare screenshots only when the manifest declares an assertion file.

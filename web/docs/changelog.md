@@ -4,6 +4,25 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 
 ## Middlechild family — `0.3.x`
 
+### [0.3.2-middlechild](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-2) - 2026-09-23
+
+**Desktop:** `0.3.2` · **Extension display version:** `0.3.1_middlechild`
+
+### Fixed
+
+- Large rrweb events no longer fail diagnostic timeline extraction because of Go's default scanner token limit.
+- Diagnostic record streams are no longer limited by the retained-body file-size limit.
+- Oversized replay traces omit only optional timeline correlation; diagnostic inspection, HAR export, and cURL export remain available.
+- HTTP verification now records response-comparison failures instead of silently omitting the check.
+
+### Changed
+
+- Capture, sanitization, diagnostic packaging, and HTTP verification now share a 16 MiB JSONL record limit.
+- Diagnostic-layer decompression is bounded before data is retained in memory.
+- New artifacts use the explicit `v0.3.2-middlechild` manifest schema; previous supported artifact schemas remain readable.
+
+---
+
 ### [0.3.1-middlechild](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild)
 
 **Desktop:** `0.3.1` · **Extension display version:** `0.3.1_middlechild`

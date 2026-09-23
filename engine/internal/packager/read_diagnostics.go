@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -35,6 +36,8 @@ type ReplayTimeline struct {
 	DurationMs     int64 `json:"durationMs"`
 }
 
+var errTraceCorrelationLimit = errors.New("diagnostics: trace layer exceeds correlation size limit")
+
 // ReadDiagnostics verifies declared diagnostic blobs before reading their
 // bounded tar entries. Legacy artifacts return empty evidence and no error.
 func ReadDiagnostics(layoutDirectory string) (DiagnosticEvidence, error) {
@@ -46,7 +49,7 @@ func ReadDiagnostics(layoutDirectory string) (DiagnosticEvidence, error) {
 	for _, layer := range value.Layers {
 		if layer.MediaType == dawgtypes.MediaTypeTrace {
 			timeline, timelineErr := readReplayTimeline(layoutDirectory, layer)
-			if timelineErr != nil {
+			if timelineErr != nil && !errors.Is(timelineErr, errTraceCorrelationLimit) {
 				return DiagnosticEvidence{}, timelineErr
 			}
 			result.Timeline = timeline
@@ -74,12 +77,9 @@ func ReadDiagnostics(layoutDirectory string) (DiagnosticEvidence, error) {
 		if int64(len(contents)) != layer.Size || fmt.Sprintf("sha256:%x", digest) != layer.Digest {
 			return DiagnosticEvidence{}, fmt.Errorf("diagnostics: layer descriptor does not match blob")
 		}
-		decoded, err := decompressZstd(contents)
+		decoded, err := decompressZstdLimited(contents, limit)
 		if err != nil {
 			return DiagnosticEvidence{}, err
-		}
-		if int64(len(decoded)) > limit {
-			return DiagnosticEvidence{}, fmt.Errorf("diagnostics: layer exceeds uncompressed size limit")
 		}
 		if err := readDiagnosticTar(decoded, layer.MediaType, &result); err != nil {
 			return DiagnosticEvidence{}, err
@@ -92,7 +92,7 @@ func readReplayTimeline(layoutDirectory string, layer dawgtypes.LayerSpec) (*Rep
 	const maxCompressedTraceBytes = 64 << 20
 	const maxDecodedTraceBytes = 128 << 20
 	if layer.Size < 0 || layer.Size > maxCompressedTraceBytes {
-		return nil, fmt.Errorf("diagnostics: trace layer exceeds correlation size limit")
+		return nil, errTraceCorrelationLimit
 	}
 	digestPath, err := layerDigestPath(layer.Digest)
 	if err != nil {
@@ -106,12 +106,12 @@ func readReplayTimeline(layoutDirectory string, layer dawgtypes.LayerSpec) (*Rep
 	if int64(len(contents)) != layer.Size || fmt.Sprintf("sha256:%x", digest) != layer.Digest {
 		return nil, fmt.Errorf("diagnostics: trace layer descriptor does not match blob")
 	}
-	decoded, err := decompressZstd(contents)
+	decoded, err := decompressZstdLimited(contents, maxDecodedTraceBytes)
+	if errors.Is(err, errDecompressedLayerTooLarge) {
+		return nil, errTraceCorrelationLimit
+	}
 	if err != nil {
 		return nil, err
-	}
-	if len(decoded) > maxDecodedTraceBytes {
-		return nil, fmt.Errorf("diagnostics: trace layer exceeds correlation size limit")
 	}
 	reader := tar.NewReader(bytes.NewReader(decoded))
 	for {
@@ -133,25 +133,29 @@ func readReplayTimeline(layoutDirectory string, layer dawgtypes.LayerSpec) (*Rep
 }
 
 func parseReplayTimeline(reader io.Reader) (*ReplayTimeline, error) {
-	scanner := bufio.NewScanner(reader)
-	scanner.Buffer(make([]byte, 64*1024), 1<<20)
+	lineReader := bufio.NewReader(reader)
 	var timeline ReplayTimeline
 	found := false
-	for scanner.Scan() {
-		var event struct {
-			Timestamp int64 `json:"timestamp"`
+	for {
+		line, err := lineReader.ReadBytes('\n')
+		if len(line) > 0 {
+			var event struct {
+				Timestamp int64 `json:"timestamp"`
+			}
+			if json.Unmarshal(line, &event) == nil && event.Timestamp > 0 {
+				if !found {
+					timeline.FirstTimestamp = event.Timestamp
+					found = true
+				}
+				timeline.LastTimestamp = event.Timestamp
+			}
 		}
-		if err := json.Unmarshal(scanner.Bytes(), &event); err != nil || event.Timestamp <= 0 {
-			continue
+		if err == io.EOF {
+			break
 		}
-		if !found {
-			timeline.FirstTimestamp = event.Timestamp
-			found = true
+		if err != nil {
+			return nil, fmt.Errorf("diagnostics: scan replay trace: %w", err)
 		}
-		timeline.LastTimestamp = event.Timestamp
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("diagnostics: scan replay trace: %w", err)
 	}
 	if !found || timeline.LastTimestamp < timeline.FirstTimestamp {
 		return nil, nil
@@ -161,6 +165,14 @@ func parseReplayTimeline(reader io.Reader) (*ReplayTimeline, error) {
 }
 
 func readDiagnosticTar(contents []byte, mediaType dawgtypes.MediaType, result *DiagnosticEvidence) error {
+	limits := dawgtypes.DefaultDiagnosticLimits()
+	maxEntries := 3
+	maxEntryBytes := limits.MaxLayerBytes
+	if mediaType == dawgtypes.MediaTypeDiagnosticBodies {
+		maxEntries = int(limits.MaxNetworkRecords * 2)
+		maxEntryBytes = limits.MaxBodyBytes
+	}
+
 	reader := tar.NewReader(bytes.NewReader(contents))
 	entries := 0
 	for {
@@ -172,7 +184,7 @@ func readDiagnosticTar(contents []byte, mediaType dawgtypes.MediaType, result *D
 			return fmt.Errorf("diagnostics: read tar: %w", err)
 		}
 		entries++
-		if entries > 20_000 || header.Typeflag != tar.TypeReg || header.Size < 0 || header.Size > 256<<10 || strings.Contains(header.Name, "..") || filepath.IsAbs(header.Name) {
+		if entries > maxEntries || header.Typeflag != tar.TypeReg || header.Size < 0 || header.Size > maxEntryBytes || strings.Contains(header.Name, "..") || filepath.IsAbs(header.Name) {
 			return fmt.Errorf("diagnostics: unsafe diagnostic tar entry %q", header.Name)
 		}
 		contents, err := io.ReadAll(io.LimitReader(reader, header.Size+1))
