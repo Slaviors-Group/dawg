@@ -2,7 +2,7 @@
 layout: home
 title: "DAWG - Digs Any Web-app Glitch"
 titleTemplate: "Desktop Capture and Portable .dawg Artifacts"
-description: "DAWG 0.3.2-middlechild pairs a Tauri desktop app with a Chromium extension to capture, sanitize, catalog, import, export, and replay portable OCI-based .dawg artifacts."
+description: "DAWG 0.3.3-middlechild pairs a Tauri desktop app with a Chromium extension to capture, sanitize, catalog, import, export, and replay portable OCI-based .dawg artifacts."
 head:
   - [meta, { name: "theme-color", content: "#6B21D9" }]
   - [meta, { property: "og:type", content: "website" }]

@@ -8,9 +8,10 @@ import {
   ShieldCheck,
   SquaresFour,
 } from "@phosphor-icons/react";
+import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { CaptureControls } from "./components/CaptureControls";
 import { Dashboard } from "./components/Dashboard";
@@ -50,7 +51,26 @@ function ShellContent() {
   const [replayArtifactPath, setReplayArtifactPath] = useState<string | undefined>();
   const [showDoctor, setShowDoctor] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const { engineStatus, isCheckingEngine, isCapturing, addLogLine } = useEngine();
+  const startupArtifactHandled = useRef(false);
+  const { engineStatus, isCheckingEngine, isCapturing, addLogLine, importArtifact } = useEngine();
+
+  useEffect(() => {
+    if (startupArtifactHandled.current) return;
+    startupArtifactHandled.current = true;
+
+    void invoke<string | null>("startup_artifact")
+      .then(async (archive) => {
+        if (!archive) return;
+        setActiveTab("dashboard");
+        addLogLine(`Opening DAWG artifact ${archive}.`);
+        try {
+          await importArtifact(archive);
+        } catch {
+          // EngineContext records the actionable error in the shared log stream.
+        }
+      })
+      .catch((error) => addLogLine(`[WARN] Could not open the launch artifact: ${String(error)}`));
+  }, [addLogLine, importArtifact]);
 
   const handleInstallWebExtension = async () => {
     try {
