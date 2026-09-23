@@ -4,6 +4,21 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 
 ## Middlechild family — `0.3.x`
 
+### [0.3.3-middlechild](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-3) - 2026-09-23
+
+**Desktop:** `0.3.3` · **Extension display version:** `0.3.1_middlechild`
+
+### Added
+
+- Exported `.dawg` artifacts now register as **DAWG Artifact** documents in desktop bundles, using the DAWG paw application icon.
+- Double-clicking an associated `.dawg` archive opens DAWG and imports it through the existing validated import flow.
+
+### Changed
+
+- New artifacts use the explicit `v0.3.3-middlechild` manifest schema; existing supported artifact schemas remain readable.
+
+---
+
 ### [0.3.2-middlechild](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-2) - 2026-09-23
 
 **Desktop:** `0.3.2` · **Extension display version:** `0.3.1_middlechild`

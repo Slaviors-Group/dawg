@@ -663,6 +663,20 @@ async fn run_replay(
 }
 
 #[tauri::command]
+fn startup_artifact() -> Option<String> {
+    std::env::args_os()
+        .skip(1)
+        .map(PathBuf::from)
+        .find(|path| {
+            path.is_file()
+                && path
+                    .extension()
+                    .is_some_and(|extension| extension.eq_ignore_ascii_case("dawg"))
+        })
+        .map(|path| path.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
 async fn cancel_replay(registry: tauri::State<'_, ProcessRegistry>) -> Result<bool, String> {
     Ok(registry.cancel_replay())
 }
@@ -708,6 +722,7 @@ pub fn run() {
             list_artifacts,
             import_artifact,
             export_artifact,
+            startup_artifact,
             run_replay,
             cancel_replay,
             seek_replay,
