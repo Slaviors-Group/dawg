@@ -175,8 +175,7 @@
         padding: 0 !important;
     }
 
-    /* Let VitePress control the navbar's responsive positioning: it scrolls
-     naturally on small screens and becomes fixed on desktop. */
+    /* Keep the VitePress navbar fixed at every breakpoint. */
     .VPNav {
         z-index: 50;
         border-bottom: 1px solid var(--color-border);
@@ -230,8 +229,19 @@
 }
 
 @media (max-width: 47.9375rem) {
+  .VPNav {
+    position: fixed !important;
+    top: var(--vp-layout-top-height, 0px);
+    left: 0;
+  }
+
+  .VPContent,
+  .dh-home-root .VPContent,
+  .dh-home-root .VPContent.has-sidebar {
+    padding-top: var(--vp-nav-height) !important;
+  }
+
   .VPNavBar {
-    position: relative !important;
     z-index: 3 !important;
   }
 
