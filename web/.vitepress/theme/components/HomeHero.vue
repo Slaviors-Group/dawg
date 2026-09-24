@@ -11,7 +11,6 @@ function onScroll() {
 onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }))
 onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
-// As user scrolls 0→400px, transform goes from 8deg→0deg and scale 0.92→1
 function tiltStyle() {
   const progress = Math.min(scrollY.value / 400, 1)
   const rotateX = 8 - progress * 8
@@ -39,12 +38,11 @@ function tiltStyle() {
         </p>
 
         <div class="dh-hero-ctas">
-          <a class="dh-cta dh-cta-lg" href="https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_x64-setup.exe">Download for Windows</a>
-          <a class="dh-ghost dh-ghost-lg" href="https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_amd64.AppImage">Download Linux AppImage</a>
+          <a class="dh-cta dh-cta-lg" href="/docs/getting-started">Get Started</a>
+          <a class="dh-ghost dh-ghost-lg" href="https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_x64-setup.exe">Download for Windows</a>
           <a class="dh-options" href="/docs/installation">Installation options &rarr;</a>
         </div>
       </div>
-
 
       <div class="dh-preview-wrap" ref="heroRef">
         <div class="dh-preview-frame" :style="tiltStyle()">
@@ -137,7 +135,6 @@ function tiltStyle() {
 .dh-options { width: 100%; color: var(--color-text-secondary); font-size: 14px; font-weight: 600; text-decoration: none; }
 .dh-options:hover { color: var(--color-text-primary); }
 
-
 .dh-preview-wrap {
   position: relative;
   z-index: 10;
@@ -155,7 +152,7 @@ function tiltStyle() {
 .dh-preview-img {
   width: 100%;
   display: block;
-  /* Deter right-click menu, drag-to-new-tab, and selection */
+
   pointer-events: none;
   -webkit-user-drag: none;
   user-select: none;
