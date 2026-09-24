@@ -68,16 +68,105 @@
     window.dispatchEvent(new CustomEvent("dawg-diagnostics-control", { detail: { active } }));
   }
 
+  function browserIdentity(userAgent, brands) {
+    const brand = (brands || []).find((item) => /Chrome|Chromium|Edge|Opera/i.test(item.brand));
+    if (brand) return { name: brand.brand, version: brand.version };
+    const match = userAgent.match(/(Edg|OPR|Chrome|Chromium|Firefox|Version)\/([\d.]+)/);
+    const names = { Edg: "Microsoft Edge", OPR: "Opera", Version: /Safari/.test(userAgent) ? "Safari" : "Unknown" };
+    return match ? { name: names[match[1]] || match[1], version: match[2] } : { name: "Unknown", version: "" };
+  }
+
+  function operatingSystem(userAgent, platform, platformVersion) {
+    let name = platform || "Unknown";
+    if (/Windows/i.test(userAgent)) name = "Windows";
+    else if (/Android/i.test(userAgent)) name = "Android";
+    else if (/iPhone|iPad|iPod/i.test(userAgent)) name = "iOS";
+    else if (/Mac OS X/i.test(userAgent)) name = "macOS";
+    else if (/Linux/i.test(userAgent)) name = "Linux";
+    return { name, version: platformVersion || "" };
+  }
+
+  async function collectDeviceProfile() {
+    const userAgent = navigator.userAgent || "";
+    const userAgentData = navigator.userAgentData;
+    let highEntropy = {};
+    if (userAgentData?.getHighEntropyValues) {
+      highEntropy = await userAgentData
+        .getHighEntropyValues(["architecture", "bitness", "model", "platformVersion", "uaFullVersion", "fullVersionList"])
+        .catch(() => ({}));
+    }
+    const brands = userAgentData?.brands || [];
+    const fullVersionBrand = (highEntropy.fullVersionList || []).find((item) =>
+      /Chrome|Chromium|Edge|Opera/i.test(item.brand)
+    );
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    return {
+      formatVersion: "1",
+      capturedAt: new Date().toISOString(),
+      browser: {
+        ...browserIdentity(userAgent, brands),
+        fullVersion: fullVersionBrand?.version || highEntropy.uaFullVersion || "",
+        brands
+      },
+      operatingSystem: {
+        ...operatingSystem(userAgent, userAgentData?.platform || navigator.platform, highEntropy.platformVersion),
+        architecture: highEntropy.architecture || "",
+        bitness: highEntropy.bitness || ""
+      },
+      device: {
+        model: highEntropy.model || "",
+        type: userAgentData?.mobile ? "mobile" : navigator.maxTouchPoints > 0 ? "touch-capable" : "desktop",
+        mobile: Boolean(userAgentData?.mobile),
+        hostname: { state: "unavailable", reason: "Browser security prevents access to the device hostname." },
+        manufacturer: { state: "unavailable", reason: "Browser APIs do not expose a reliable device manufacturer." }
+      },
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      screen: {
+        width: window.screen.width,
+        height: window.screen.height,
+        availableWidth: window.screen.availWidth,
+        availableHeight: window.screen.availHeight,
+        colorDepth: window.screen.colorDepth,
+        pixelRatio: window.devicePixelRatio
+      },
+      locale: {
+        language: navigator.language || "",
+        languages: Array.from(navigator.languages || []),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || ""
+      },
+      hardware: {
+        logicalProcessors: navigator.hardwareConcurrency || null,
+        deviceMemoryGiB: navigator.deviceMemory || null,
+        processorModel: { state: "unavailable", reason: "Browser APIs expose logical capacity but not the CPU model." },
+        storage: { state: "unavailable", reason: "Browser APIs do not expose physical storage devices." }
+      },
+      network: {
+        connectionType: connection?.type || "",
+        effectiveType: connection?.effectiveType || "",
+        downlinkMbps: connection?.downlink ?? null,
+        roundTripTimeMs: connection?.rtt ?? null,
+        saveData: connection?.saveData ?? null,
+        ipAddresses: { state: "unavailable", reason: "Browser APIs do not expose reliable IP addresses without an external service." },
+        macAddress: { state: "unavailable", reason: "Browser security prevents access to MAC addresses." }
+      },
+      page: { url: location.href },
+      userAgent
+    };
+  }
+
+  function sendDeviceProfile() {
+    void collectDeviceProfile()
+      .then((payload) => chrome.runtime.sendMessage({ type: "DAWG_DEVICE_INFO", payload }))
+      .catch(() => {});
+  }
+
   function startRecording() {
     if (isRecording) return;
-    isRecording = true;
-    setDiagnosticsActive(true);
+    if (typeof rrweb === "undefined" || typeof rrweb.record !== "function") {
+      throw new Error("rrweb recorder is unavailable");
+    }
 
-    document.addEventListener("click", handleInteractionClick, true);
-    document.addEventListener("input", handleInteractionInput, true);
-
-    if (typeof rrweb !== "undefined" && typeof rrweb.record === "function") {
-      stopRecord = rrweb.record({
+    stopRecord = rrweb.record({
         // Mask values in rrweb snapshots. The separate action stream is
         // sanitized by the engine before packaging.
         maskAllInputs: true,
@@ -89,7 +178,16 @@
           }).catch(() => {});
         }
       });
+    if (typeof stopRecord !== "function") {
+      stopRecord = null;
+      throw new Error("rrweb recorder did not start");
     }
+
+    isRecording = true;
+    setDiagnosticsActive(true);
+    document.addEventListener("click", handleInteractionClick, true);
+    document.addEventListener("input", handleInteractionInput, true);
+    sendDeviceProfile();
   }
 
   function stopRecording() {
@@ -108,8 +206,12 @@
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "START_RECORDING") {
-      startRecording();
-      sendResponse({ status: "started" });
+      try {
+        startRecording();
+        sendResponse({ status: "started" });
+      } catch (error) {
+        sendResponse({ status: "error", error: error.message });
+      }
     } else if (message.type === "STOP_RECORDING") {
       stopRecording();
       sendResponse({ status: "stopped" });

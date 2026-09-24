@@ -58,9 +58,12 @@ export default defineConfig({
       },
       { text: "Changelog", link: "/docs/changelog" },
       {
-        text: "v0.3.3-middlechild",
-        link: "https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-3",
+        text: "v0.3.5-middlechild",
         items: [
+          {
+            text: "Current release",
+            link: "https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-5",
+          },
           {
             text: "Releases",
             link: "https://github.com/Slaviors-Group/dawg/releases",

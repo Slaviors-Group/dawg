@@ -42,6 +42,7 @@
       // Preserve the page-visible call exactly before observing it.
       const result = Reflect.apply(original, this, args);
       emit("console", {
+        occurredAt: Date.now(),
         level,
         kind: "console-api",
         text: args.map(bounded).join(" "),
@@ -65,6 +66,7 @@
   }
 
   window.addEventListener("error", (event) => emit("error", {
+    occurredAt: Date.now(),
     kind: "exception",
     level: "error",
     text: bounded(event.message || "Uncaught error"),
@@ -73,6 +75,7 @@
     stack: bounded(event.error?.stack || "")
   }), true);
   window.addEventListener("unhandledrejection", (event) => emit("error", {
+    occurredAt: Date.now(),
     kind: "unhandled-rejection",
     level: "error",
     text: bounded(event.reason),

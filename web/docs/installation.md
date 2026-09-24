@@ -4,20 +4,20 @@ DAWG is available as a self-contained desktop application or as source for engin
 
 ## Current Release
 
-The current prerelease is [`0.3.3-middlechild`](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-3). It includes desktop version
-`0.3.3` and extension display version `0.3.1_middlechild`.
+The current prerelease is [`0.3.5-middlechild`](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-5). It includes desktop version
+`0.3.5` and extension display version `0.3.5_middlechild`.
 
-Download the installer for your platform directly from the latest GitHub release:
+Download the installer for your platform directly from the `middlechild-5` GitHub release:
 
-- [Download DAWG for Windows (x64 installer)](https://github.com/Slaviors-Group/dawg/releases/latest/download/DAWG_0.3.3_x64-setup.exe)
-- [Download DAWG for Linux (x86_64 AppImage)](https://github.com/Slaviors-Group/dawg/releases/latest/download/DAWG_0.3.3_amd64.AppImage)
+- [Download DAWG for Windows (x64 installer)](https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_x64-setup.exe)
+- [Download DAWG for Linux (x86_64 AppImage)](https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_amd64.AppImage)
 
 The Windows link downloads the NSIS installer. The Linux link downloads the
 AppImage. After downloading the AppImage, make it executable and start it:
 
 ```bash
-chmod +x DAWG_0.3.3_amd64.AppImage
-./DAWG_0.3.3_amd64.AppImage
+chmod +x DAWG_0.3.5_amd64.AppImage
+./DAWG_0.3.5_amd64.AppImage
 ```
 
 See [all releases](https://github.com/Slaviors-Group/dawg/releases) for
@@ -35,8 +35,8 @@ checksums, release notes, older prereleases, and other assets.
 ### Linux
 
 1. Select **Download DAWG for Linux** above.
-2. Make the downloaded AppImage executable: `chmod +x DAWG_0.3.3_amd64.AppImage`.
-3. Launch it: `./DAWG_0.3.3_amd64.AppImage`.
+2. Make the downloaded AppImage executable: `chmod +x DAWG_0.3.5_amd64.AppImage`.
+3. Launch it: `./DAWG_0.3.5_amd64.AppImage`.
 4. Open the runtime diagnostics and confirm the engine reports **Ready**.
 5. Install the browser extension before starting a capture.
 

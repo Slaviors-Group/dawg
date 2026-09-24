@@ -138,6 +138,12 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string, interactive bo
 		ChromiumPath: dawgenv.ResolveChromiumExecutable(),
 		Interactive:  interactive,
 	}
+	if interactive {
+		player.ReplayEventSink = func(event json.RawMessage) error {
+			_, err := fmt.Fprintf(os.Stderr, "DAWG_REPLAY_EVENT\t%s\n", event)
+			return err
+		}
+	}
 
 	outcome, replayErr := player.Replay(ctx, tmpDir)
 

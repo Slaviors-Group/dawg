@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dawg.dev/schema/manifest/v0.3.5-middlechild.json",
+  "title": "DAWG Diagnostic Evidence Artifact Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "createdAt", "title", "source", "layers", "sanitize", "determinism", "expectedOutcome", "diagnostics"],
+  "properties": {
+    "schemaVersion": { "const": "0.3.5-middlechild" },
+    "id": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "title": { "type": "string", "minLength": 1 },
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["reporter", "environment", "repoCommit"],
+      "properties": {
+        "reporter": { "type": "string", "minLength": 1 },
+        "environment": { "type": "string", "minLength": 1 },
+        "repoCommit": { "type": "string", "minLength": 1 }
+      }
+    },
+    "layers": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["mediaType", "digest", "size"],
+        "properties": {
+          "mediaType": { "enum": [
+            "application/vnd.dawg.env.lockfile+tar",
+            "application/vnd.dawg.db.fixture+tar.zstd",
+            "application/vnd.dawg.trace.rrweb+jsonl.zstd",
+            "application/vnd.dawg.cassette+tar.zstd",
+            "application/vnd.dawg.diagnostics+tar.zstd",
+            "application/vnd.dawg.diagnostic-bodies+tar.zstd"
+          ] },
+          "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+          "size": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "sanitize": {
+      "type": "object", "additionalProperties": false,
+      "required": ["policyVersion", "fieldsRedacted"],
+      "properties": {
+        "policyVersion": { "type": "string", "minLength": 1 },
+        "fieldsRedacted": { "type": "integer", "minimum": 0 },
+        "reviewedBy": { "type": "string" }
+      }
+    },
+    "determinism": {
+      "type": "object", "additionalProperties": false,
+      "required": ["clockFrozenAt", "randomSeed"],
+      "properties": {
+        "clockFrozenAt": { "type": "string", "format": "date-time" },
+        "randomSeed": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["signedBy", "attestation"],
+      "properties": { "signedBy": { "type": "string" }, "attestation": { "type": "string" } }
+    },
+    "expectedOutcome": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "description", "assertionFile"],
+      "properties": {
+        "type": { "const": "assertion" },
+        "description": { "type": "string", "minLength": 1 },
+        "assertionFile": { "type": "string", "minLength": 1 }
+      }
+    },
+    "diagnostics": {
+      "type": "object", "additionalProperties": false,
+      "required": ["formatVersion", "profile", "sources", "consoleEvents", "networkEvents", "errorEvents", "retainedRequestBodies", "retainedResponseBodies", "redactedBodies", "blockedBodies", "truncatedBodies", "policyVersion", "limits"],
+      "properties": {
+        "formatVersion": { "const": "1" },
+        "profile": { "enum": ["safe", "enhanced"] },
+        "sources": { "type": "array", "uniqueItems": true, "items": { "enum": ["safe-extension", "main-world", "cdp"] } },
+        "consoleEvents": { "type": "integer", "minimum": 0 },
+        "networkEvents": { "type": "integer", "minimum": 0 },
+        "errorEvents": { "type": "integer", "minimum": 0 },
+        "retainedRequestBodies": { "type": "integer", "minimum": 0 },
+        "retainedResponseBodies": { "type": "integer", "minimum": 0 },
+        "redactedBodies": { "type": "integer", "minimum": 0 },
+        "blockedBodies": { "type": "integer", "minimum": 0 },
+        "truncatedBodies": { "type": "integer", "minimum": 0 },
+        "policyVersion": { "type": "string", "minLength": 1 },
+        "degradations": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "limits": {
+          "type": "object", "additionalProperties": false,
+          "required": ["maxConsoleRecordBytes", "maxConsoleRecords", "maxNetworkRecords", "maxBodyBytes", "maxBodiesBytes", "maxLayerBytes"],
+          "properties": {
+            "maxConsoleRecordBytes": { "type": "integer", "minimum": 1 },
+            "maxConsoleRecords": { "type": "integer", "minimum": 1 },
+            "maxNetworkRecords": { "type": "integer", "minimum": 1 },
+            "maxBodyBytes": { "type": "integer", "minimum": 1 },
+            "maxBodiesBytes": { "type": "integer", "minimum": 1 },
+            "maxLayerBytes": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    }
+  }
+}

@@ -71,7 +71,7 @@ func TestValidateJSONRejectsMalformedSchema(t *testing.T) {
 
 func TestReadValidatedAcceptsSupportedVersions(t *testing.T) {
 	contents := validManifestContents(t)
-	for _, version := range []string{"0.2.3-naughty", "0.2.5-naughty", "0.2.7-naughty", "0.3.1-middlechild", "0.3.2-middlechild", SchemaVersion} {
+	for _, version := range []string{"0.2.3-naughty", "0.2.5-naughty", "0.2.7-naughty", "0.3.1-middlechild", "0.3.2-middlechild", "0.3.3-middlechild", SchemaVersion} {
 		t.Run(version, func(t *testing.T) {
 			versionedContents := contents
 			if version != SchemaVersion {

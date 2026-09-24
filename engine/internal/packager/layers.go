@@ -33,7 +33,7 @@ func buildLayers(sessionDirectory string) ([]layerBlob, error) {
 		{name: "database-fixture", mediaType: dawgtypes.MediaTypeDatabaseFixture, directories: []string{"db"}, compressed: true},
 		{name: "trace", mediaType: dawgtypes.MediaTypeTrace, directories: []string{"traces", "actions", "http", "logs"}, compressed: true},
 		{name: "cassette", mediaType: dawgtypes.MediaTypeCassette, directories: []string{"cassettes"}, compressed: true},
-		{name: "diagnostics", mediaType: dawgtypes.MediaTypeDiagnostics, directories: []string{"diagnostics/console.jsonl", "diagnostics/network.jsonl", "diagnostics/errors.jsonl"}, compressed: true},
+		{name: "diagnostics", mediaType: dawgtypes.MediaTypeDiagnostics, directories: []string{"diagnostics/console.jsonl", "diagnostics/network.jsonl", "diagnostics/errors.jsonl", "diagnostics/device.jsonl"}, compressed: true},
 		{name: "diagnostic-bodies", mediaType: dawgtypes.MediaTypeDiagnosticBodies, directories: []string{"diagnostics/bodies"}, compressed: true},
 	}
 

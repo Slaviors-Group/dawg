@@ -35,7 +35,7 @@ func newDiagnosticsRemoveCommand() *cobra.Command {
 		return json.NewEncoder(command.OutOrStdout()).Encode(artifact)
 	}}
 	command.Flags().StringVar(&output, "output-dir", "", "New artifact directory")
-	command.Flags().StringSliceVar(&categories, "remove-category", nil, "Diagnostic category to remove: console, network, errors, or bodies")
+	command.Flags().StringSliceVar(&categories, "remove-category", nil, "Diagnostic category to remove: console, network, errors, device, or bodies")
 	command.Flags().StringSliceVar(&bodyRefs, "remove-body-ref", nil, "Retained diagnostic body path to remove, such as diagnostics/bodies/response_request-id.json")
 	return command
 }

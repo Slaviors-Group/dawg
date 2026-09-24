@@ -10,6 +10,41 @@ import (
 	"testing"
 )
 
+func TestEventPlayerStreamsInteractiveEventsAndKeepsDiagnostics(t *testing.T) {
+	nodeBinary, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node is required to execute replay scripts")
+	}
+	directory := t.TempDir()
+	scriptPath := filepath.Join(directory, "events.cjs")
+	script := `process.stdout.write('{"protocol":"dawg.replay.v1","sequence":1,"type":"ready"}\n');
+process.stdout.write('{"protocol":"dawg.replay.v1","sequence":2,"type":"state"}\n');
+process.stderr.write('replay diagnostic\n');`
+	if err := os.WriteFile(scriptPath, []byte(script), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var events []string
+	player := EventPlayer{
+		NodeBinary:  nodeBinary,
+		ScriptPath:  scriptPath,
+		Interactive: true,
+		ReplayEventSink: func(event json.RawMessage) error {
+			events = append(events, string(event))
+			return nil
+		},
+	}
+	outcome, err := player.Replay(context.Background(), directory)
+	if err != nil {
+		t.Fatalf("replay: %v", err)
+	}
+	if len(events) != 2 {
+		t.Fatalf("expected two streamed events, got %#v", events)
+	}
+	if outcome.Output != "replay diagnostic\n" {
+		t.Fatalf("unexpected replay diagnostics: %q", outcome.Output)
+	}
+}
+
 func TestEventPlayerPassesInteractiveArgument(t *testing.T) {
 	nodeBinary, err := exec.LookPath("node")
 	if err != nil {

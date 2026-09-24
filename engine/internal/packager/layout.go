@@ -52,6 +52,9 @@ func Package(request dawgtypes.PackageRequest) (dawgtypes.PackagedArtifact, erro
 	if err != nil {
 		return dawgtypes.PackagedArtifact{}, err
 	}
+	if err := validateReplayTrace(request.SessionDirectory); err != nil {
+		return dawgtypes.PackagedArtifact{}, err
+	}
 	layers, err := buildLayers(request.SessionDirectory)
 	if err != nil {
 		return dawgtypes.PackagedArtifact{}, err

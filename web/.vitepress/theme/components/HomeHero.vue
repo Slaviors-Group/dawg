@@ -39,12 +39,13 @@ function tiltStyle() {
         </p>
 
         <div class="dh-hero-ctas">
-          <a class="dh-cta dh-cta-lg" href="/docs/getting-started">Get Started</a>
-          <a class="dh-ghost dh-ghost-lg" href="https://github.com/Slaviors-Group/dawg" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+          <a class="dh-cta dh-cta-lg" href="https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_x64-setup.exe">Download for Windows</a>
+          <a class="dh-ghost dh-ghost-lg" href="https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_amd64.AppImage">Download Linux AppImage</a>
+          <a class="dh-options" href="/docs/installation">Installation options &rarr;</a>
         </div>
       </div>
 
-      <!-- Single scroll-reveal image -->
+
       <div class="dh-preview-wrap" ref="heroRef">
         <div class="dh-preview-frame" :style="tiltStyle()">
           <img
@@ -133,8 +134,10 @@ function tiltStyle() {
 }
 .dh-ghost-lg { padding: 16px 36px; font-size: 16px; }
 .dh-ghost:hover { background: var(--color-surface-hover); }
+.dh-options { width: 100%; color: var(--color-text-secondary); font-size: 14px; font-weight: 600; text-decoration: none; }
+.dh-options:hover { color: var(--color-text-primary); }
 
-/* ── Scroll-reveal preview ── */
+
 .dh-preview-wrap {
   position: relative;
   z-index: 10;

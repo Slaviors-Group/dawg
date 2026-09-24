@@ -8,7 +8,7 @@ import { EmptyState } from "./ui/EmptyState";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
 
-type WorkspaceTab = "timeline" | "console" | "network" | "errors" | "artifact";
+type WorkspaceTab = "timeline" | "console" | "network" | "errors" | "device" | "artifact";
 type Evidence = Record<string, unknown>;
 
 const WORKSPACE_TABS: Array<{
@@ -24,6 +24,7 @@ const WORKSPACE_TABS: Array<{
   },
   { id: "network", label: "Network", keys: ["network", "requests"] },
   { id: "errors", label: "Errors", keys: ["errors", "exceptions"] },
+  { id: "device", label: "Device", keys: ["device"] },
   {
     id: "artifact",
     label: "Artifact",
@@ -36,6 +37,8 @@ interface ReplayDiagnosticInspectorProps {
   diagnosticEvidence?: DiagnosticEvidence | null;
   loading?: boolean;
   error?: string | null;
+  replayTimeMs?: number;
+  replayActive?: boolean;
   onExportHAR?: () => void;
   onRemoveDiagnostics?: () => void;
   onSeekReplay?: (offsetMs: number) => void;
@@ -96,8 +99,12 @@ const replayOffsetForEntry = (
   durationMs?: number,
 ): number | null => {
   if (!Number.isFinite(firstTimestamp) || !Number.isFinite(durationMs)) return null;
+  const replay = isRecord(entry.replay) ? entry.replay : null;
+  if (replay?.state === "correlated" && Number.isFinite(Number(replay.offsetMs))) {
+    return Math.round(Number(replay.offsetMs));
+  }
   const timing = isRecord(entry.timing) ? entry.timing : null;
-  const candidate = timing?.startedAt ?? entry.timestamp;
+  const candidate = entry.occurredAt ?? timing?.startedAt ?? entry.timestamp;
   const timestamp = typeof candidate === "number" ? candidate : Number(candidate);
   if (!Number.isFinite(timestamp)) return null;
   const offset = timestamp - (firstTimestamp as number);
@@ -105,9 +112,98 @@ const replayOffsetForEntry = (
   return Math.round(offset);
 };
 
+const networkAtReplayTime = (entry: Evidence, replayTimeMs: number): Evidence => {
+  const replay = isRecord(entry.replay) ? entry.replay : null;
+  if (!replay) return entry;
+  const firstByteOffset = Number(replay.firstByteOffsetMs);
+  const finishedOffset = Number(replay.finishedOffsetMs);
+  const projected: Evidence = { ...entry };
+  if (Number.isFinite(firstByteOffset) && replayTimeMs < firstByteOffset) {
+    projected.response = undefined;
+    projected.failure = undefined;
+    return projected;
+  }
+  if (Number.isFinite(finishedOffset) && replayTimeMs < finishedOffset) {
+    projected.failure = undefined;
+    if (isRecord(projected.response)) {
+      const response = { ...projected.response };
+      response.body = { state: "pending" };
+      projected.response = response;
+    }
+  }
+  return projected;
+};
+
 const formatReplayOffset = (offsetMs: number) => {
   const totalSeconds = Math.floor(offsetMs / 1000);
   return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}.${String(offsetMs % 1000).padStart(3, "0")}`;
+};
+
+const deviceProfileRows = (profile: Evidence) => {
+  const browser = isRecord(profile.browser) ? profile.browser : {};
+  const operatingSystem = isRecord(profile.operatingSystem) ? profile.operatingSystem : {};
+  const device = isRecord(profile.device) ? profile.device : {};
+  const viewport = isRecord(profile.viewport) ? profile.viewport : {};
+  const screen = isRecord(profile.screen) ? profile.screen : {};
+  const locale = isRecord(profile.locale) ? profile.locale : {};
+  const hardware = isRecord(profile.hardware) ? profile.hardware : {};
+  const network = isRecord(profile.network) ? profile.network : {};
+  const page = isRecord(profile.page) ? profile.page : {};
+  const unavailable = (value: unknown) => {
+    const descriptor = isRecord(value) ? value : {};
+    return textValue(descriptor.reason) || textValue(descriptor.state) || "Unavailable";
+  };
+  const join = (...values: unknown[]) => values.map(textValue).filter(Boolean).join(" ");
+  const dimensions = (value: Evidence) =>
+    value.width && value.height ? `${textValue(value.width)} × ${textValue(value.height)}` : "Unavailable";
+
+  return [
+    { label: "Browser", value: join(browser.name, browser.fullVersion || browser.version) || "Unknown" },
+    { label: "Operating system", value: join(operatingSystem.name, operatingSystem.version) || "Unknown" },
+    { label: "Architecture", value: join(operatingSystem.architecture, operatingSystem.bitness) || "Unavailable" },
+    { label: "Device", value: join(device.model, device.type) || "Unavailable" },
+    { label: "Manufacturer", value: unavailable(device.manufacturer) },
+    { label: "Hostname", value: unavailable(device.hostname) },
+    { label: "Viewport", value: dimensions(viewport) },
+    {
+      label: "Screen",
+      value: `${dimensions(screen)}${screen.pixelRatio ? ` @ ${textValue(screen.pixelRatio)}×` : ""}`,
+    },
+    { label: "Language", value: textValue(locale.language) || "Unavailable" },
+    { label: "Timezone", value: textValue(locale.timezone) || "Unavailable" },
+    {
+      label: "Hardware",
+      value:
+        [
+          hardware.logicalProcessors ? `${textValue(hardware.logicalProcessors)} logical processors` : "",
+          hardware.deviceMemoryGiB ? `${textValue(hardware.deviceMemoryGiB)} GiB reported memory` : "",
+        ]
+          .filter(Boolean)
+          .join(" · ") || "Unavailable",
+    },
+    {
+      label: "Connection",
+      value:
+        [
+          textValue(network.connectionType),
+          textValue(network.effectiveType),
+          network.downlinkMbps ? `${textValue(network.downlinkMbps)} Mbps` : "",
+          network.roundTripTimeMs ? `${textValue(network.roundTripTimeMs)} ms RTT` : "",
+        ]
+          .filter(Boolean)
+          .join(" · ") || "Unavailable",
+    },
+    { label: "Processor model", value: unavailable(hardware.processorModel) },
+    { label: "Storage", value: unavailable(hardware.storage) },
+    { label: "IP address", value: unavailable(network.ipAddresses) },
+    { label: "MAC address", value: unavailable(network.macAddress) },
+    { label: "Page URL", value: textValue(page.url) || "Unavailable" },
+    {
+      label: "Captured at",
+      value: profile.capturedAt ? new Date(String(profile.capturedAt)).toLocaleString() : "Unavailable",
+    },
+    { label: "User agent", value: textValue(profile.userAgent) || "Unavailable" },
+  ];
 };
 
 const badgeVariant = (state: string): "default" | "success" | "warning" | "error" | "info" => {
@@ -136,6 +232,10 @@ const tabEmptyCopy: Record<WorkspaceTab, { title: string; description: string }>
     title: "No error evidence recorded",
     description: "This manifest does not include captured error samples.",
   },
+  device: {
+    title: "No device profile recorded",
+    description: "This artifact predates browser device capture or the profile was removed during review.",
+  },
   artifact: {
     title: "No artifact evidence recorded",
     description: "This manifest does not include diagnostic artifact samples or layers.",
@@ -147,6 +247,8 @@ export function ReplayDiagnosticInspector({
   diagnosticEvidence = null,
   loading = false,
   error = null,
+  replayTimeMs = 0,
+  replayActive = false,
   onExportHAR,
   onRemoveDiagnostics,
   onSeekReplay,
@@ -156,6 +258,7 @@ export function ReplayDiagnosticInspector({
   const [search, setSearch] = useState("");
   const [stateFilter, setStateFilter] = useState("all");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [evidenceMode, setEvidenceMode] = useState<"replay" | "all">("replay");
 
   const activeTabDefinition =
     WORKSPACE_TABS.find((tab) => tab.id === activeTab) ?? WORKSPACE_TABS[0];
@@ -166,9 +269,11 @@ export function ReplayDiagnosticInspector({
     if (!manifest) return [];
 
     const evidenceEntries: Record<string, unknown> = {
+      timeline: diagnosticEvidence?.timeline ?? null,
       console: diagnosticEvidence?.console ?? [],
       network: diagnosticEvidence?.network ?? [],
       errors: diagnosticEvidence?.errors ?? [],
+      device: diagnosticEvidence?.device ?? null,
     };
     if (activeTab in evidenceEntries) {
       const entries = toEvidence(evidenceEntries[activeTab]);
@@ -184,21 +289,35 @@ export function ReplayDiagnosticInspector({
     return [];
   }, [activeTab, activeTabDefinition.keys, diagnostics, diagnosticEvidence, manifest]);
 
+  const visibleAtReplayTime = useMemo(() => {
+    if (!replayActive || evidenceMode === "all" || !["console", "network", "errors"].includes(activeTab)) {
+      return evidence;
+    }
+    return evidence.filter((entry) => {
+      const offset = replayOffsetForEntry(
+        entry,
+        diagnosticEvidence?.timeline?.firstTimestamp,
+        diagnosticEvidence?.timeline?.durationMs,
+      );
+      return offset !== null && offset <= replayTimeMs;
+    });
+  }, [activeTab, diagnosticEvidence?.timeline, evidence, evidenceMode, replayActive, replayTimeMs]);
+
   const availableStates = useMemo(
     () =>
-      Array.from(new Set(evidence.map(entryState).filter(Boolean))).sort((a, b) =>
+      Array.from(new Set(visibleAtReplayTime.map(entryState).filter(Boolean))).sort((a, b) =>
         a.localeCompare(b),
       ),
-    [evidence],
+    [visibleAtReplayTime],
   );
 
   const filteredEvidence = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return evidence.filter((entry) => {
+    return visibleAtReplayTime.filter((entry) => {
       if (stateFilter !== "all" && entryState(entry) !== stateFilter) return false;
       return !query || JSON.stringify(entry).toLowerCase().includes(query);
     });
-  }, [evidence, search, stateFilter]);
+  }, [search, stateFilter, visibleAtReplayTime]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset filters when the evidence list changes
   useEffect(() => {
@@ -212,6 +331,10 @@ export function ReplayDiagnosticInspector({
   }, [filteredEvidence.length, selectedIndex]);
 
   const selectedEvidence = filteredEvidence[selectedIndex];
+  const displayedEvidence =
+    selectedEvidence && activeTab === "network" && replayActive && evidenceMode === "replay"
+      ? networkAtReplayTime(selectedEvidence, replayTimeMs)
+      : selectedEvidence;
   const selectedReplayOffset = selectedEvidence
     ? replayOffsetForEntry(
         selectedEvidence,
@@ -314,7 +437,16 @@ export function ReplayDiagnosticInspector({
             </div>
           )}
 
-          {evidence.length === 0 ? (
+          {activeTab === "device" && diagnosticEvidence?.device ? (
+            <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
+              {deviceProfileRows(diagnosticEvidence.device).map((row) => (
+                <div key={row.label} className={row.label === "User agent" || row.label === "Page URL" ? "sm:col-span-2" : ""}>
+                  <p className="text-xs font-semibold text-text-tertiary">{row.label}</p>
+                  <p className="mt-1 wrap-break-word text-sm text-text-primary">{row.value}</p>
+                </div>
+              ))}
+            </div>
+          ) : evidence.length === 0 ? (
             <EmptyState
               icon={<Info size={32} weight="light" />}
               title={emptyCopy.title}
@@ -322,6 +454,31 @@ export function ReplayDiagnosticInspector({
             />
           ) : (
             <div className="flex flex-col gap-4">
+              {replayActive && ["console", "network", "errors"].includes(activeTab) ? (
+                <fieldset className="flex items-center gap-2 border-0 p-0">
+                  <legend className="sr-only">Diagnostic timeline mode</legend>
+                  <button
+                    type="button"
+                    onClick={() => setEvidenceMode("replay")}
+                    className={[
+                      "rounded-md px-3 py-1.5 text-xs font-medium",
+                      evidenceMode === "replay" ? "bg-brand-500 text-white" : "bg-canvas-subtle text-text-secondary",
+                    ].join(" ")}
+                  >
+                    Replay time ({visibleAtReplayTime.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEvidenceMode("all")}
+                    className={[
+                      "rounded-md px-3 py-1.5 text-xs font-medium",
+                      evidenceMode === "all" ? "bg-brand-500 text-white" : "bg-canvas-subtle text-text-secondary",
+                    ].join(" ")}
+                  >
+                    All captured ({evidence.length})
+                  </button>
+                </fieldset>
+              ) : null}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
                 <Input
                   id="diagnostic-search"
@@ -337,7 +494,7 @@ export function ReplayDiagnosticInspector({
                   value={stateFilter}
                   onChange={setStateFilter}
                   options={[
-                    { value: "all", label: `All states (${evidence.length})` },
+                    { value: "all", label: `All states (${visibleAtReplayTime.length})` },
                     ...availableStates.map((state) => ({ value: state, label: state })),
                   ]}
                 />
@@ -421,7 +578,7 @@ export function ReplayDiagnosticInspector({
                             onClick={() => onSeekReplay(selectedReplayOffset)}
                             className="text-xs font-medium text-brand-600 hover:text-brand-700"
                           >
-                            Seek replay to approximately {formatReplayOffset(selectedReplayOffset)}
+                            Seek replay to {formatReplayOffset(selectedReplayOffset)}
                           </button>
                         ) : null}
                       </div>
@@ -431,7 +588,7 @@ export function ReplayDiagnosticInspector({
                         </p>
                       ) : null}
                       <CodeBlock
-                        code={JSON.stringify(selectedEvidence, null, 2)}
+                        code={JSON.stringify(displayedEvidence, null, 2)}
                         language="json"
                         maxHeight="16rem"
                       />

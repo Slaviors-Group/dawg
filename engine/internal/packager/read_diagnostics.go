@@ -20,15 +20,17 @@ import (
 // DiagnosticEvidence is the bounded, already-sanitized evidence available to
 // local inspectors and exporters. It never reconstructs missing body content.
 type DiagnosticEvidence struct {
-	Summary  *dawgtypes.DiagnosticsSummary `json:"summary,omitempty"`
-	Timeline *ReplayTimeline               `json:"timeline,omitempty"`
-	Console  []map[string]any              `json:"console"`
-	Network  []map[string]any              `json:"network"`
-	Errors   []map[string]any              `json:"errors"`
-	Bodies   map[string]string             `json:"bodies"`
+	Summary       *dawgtypes.DiagnosticsSummary `json:"summary,omitempty"`
+	Timeline      *ReplayTimeline               `json:"timeline,omitempty"`
+	TimelineState string                        `json:"timelineState"`
+	Console       []map[string]any              `json:"console"`
+	Network       []map[string]any              `json:"network"`
+	Errors        []map[string]any              `json:"errors"`
+	Device        map[string]any                `json:"device,omitempty"`
+	Bodies        map[string]string             `json:"bodies"`
 }
 
-// ReplayTimeline describes the rrweb time range used for approximate
+// ReplayTimeline describes the literal rrweb epoch range used for
 // diagnostic-to-replay correlation. It is omitted when no valid trace exists.
 type ReplayTimeline struct {
 	FirstTimestamp int64 `json:"firstTimestamp"`
@@ -45,12 +47,17 @@ func ReadDiagnostics(layoutDirectory string) (DiagnosticEvidence, error) {
 	if err != nil {
 		return DiagnosticEvidence{}, fmt.Errorf("diagnostics: read manifest: %w", err)
 	}
-	result := DiagnosticEvidence{Summary: value.Diagnostics, Console: []map[string]any{}, Network: []map[string]any{}, Errors: []map[string]any{}, Bodies: map[string]string{}}
+	result := DiagnosticEvidence{Summary: value.Diagnostics, TimelineState: "unavailable", Console: []map[string]any{}, Network: []map[string]any{}, Errors: []map[string]any{}, Bodies: map[string]string{}}
 	for _, layer := range value.Layers {
 		if layer.MediaType == dawgtypes.MediaTypeTrace {
 			timeline, timelineErr := readReplayTimeline(layoutDirectory, layer)
 			if timelineErr != nil && !errors.Is(timelineErr, errTraceCorrelationLimit) {
 				return DiagnosticEvidence{}, timelineErr
+			}
+			if errors.Is(timelineErr, errTraceCorrelationLimit) {
+				result.TimelineState = "limit-exceeded"
+			} else if timeline != nil {
+				result.TimelineState = "available"
 			}
 			result.Timeline = timeline
 			continue
@@ -85,6 +92,7 @@ func ReadDiagnostics(layoutDirectory string) (DiagnosticEvidence, error) {
 			return DiagnosticEvidence{}, err
 		}
 	}
+	correlateDiagnosticEvidence(&result)
 	return result, nil
 }
 
@@ -143,11 +151,13 @@ func parseReplayTimeline(reader io.Reader) (*ReplayTimeline, error) {
 				Timestamp int64 `json:"timestamp"`
 			}
 			if json.Unmarshal(line, &event) == nil && event.Timestamp > 0 {
-				if !found {
+				if !found || event.Timestamp < timeline.FirstTimestamp {
 					timeline.FirstTimestamp = event.Timestamp
-					found = true
 				}
-				timeline.LastTimestamp = event.Timestamp
+				if !found || event.Timestamp > timeline.LastTimestamp {
+					timeline.LastTimestamp = event.Timestamp
+				}
+				found = true
 			}
 		}
 		if err == io.EOF {
@@ -164,9 +174,79 @@ func parseReplayTimeline(reader io.Reader) (*ReplayTimeline, error) {
 	return &timeline, nil
 }
 
+func correlateDiagnosticEvidence(result *DiagnosticEvidence) {
+	for _, record := range result.Console {
+		timestamp, ok := firstTimestamp(record["occurredAt"], record["timestamp"])
+		annotateReplayCorrelation(record, timestamp, ok, result.Timeline)
+	}
+	for _, record := range result.Errors {
+		timestamp, ok := firstTimestamp(record["occurredAt"], record["timestamp"])
+		annotateReplayCorrelation(record, timestamp, ok, result.Timeline)
+	}
+	for _, record := range result.Network {
+		timing, _ := record["timing"].(map[string]any)
+		startedAt, ok := firstTimestamp(timing["startedAt"], record["startedAt"], record["timestamp"])
+		annotateReplayCorrelation(record, startedAt, ok, result.Timeline)
+		replay, _ := record["replay"].(map[string]any)
+		if result.Timeline != nil {
+			if firstByteAt, ok := firstTimestamp(timing["firstByteAt"]); ok {
+				replay["firstByteOffsetMs"] = firstByteAt - result.Timeline.FirstTimestamp
+			}
+			if finishedAt, ok := firstTimestamp(timing["finishedAt"]); ok {
+				replay["finishedOffsetMs"] = finishedAt - result.Timeline.FirstTimestamp
+			}
+		}
+	}
+}
+
+func annotateReplayCorrelation(record map[string]any, timestamp int64, hasTimestamp bool, timeline *ReplayTimeline) {
+	replay := map[string]any{"state": "missing-timestamp"}
+	if !hasTimestamp {
+		record["replay"] = replay
+		return
+	}
+	replay["occurredAt"] = timestamp
+	if timeline == nil {
+		replay["state"] = "timeline-unavailable"
+		record["replay"] = replay
+		return
+	}
+	offset := timestamp - timeline.FirstTimestamp
+	replay["offsetMs"] = offset
+	switch {
+	case timestamp < timeline.FirstTimestamp:
+		replay["state"] = "before-timeline"
+	case timestamp > timeline.LastTimestamp:
+		replay["state"] = "after-timeline"
+	default:
+		replay["state"] = "correlated"
+	}
+	record["replay"] = replay
+}
+
+func firstTimestamp(values ...any) (int64, bool) {
+	for _, value := range values {
+		switch typed := value.(type) {
+		case float64:
+			if typed > 0 {
+				return int64(typed), true
+			}
+		case int64:
+			if typed > 0 {
+				return typed, true
+			}
+		case json.Number:
+			if parsed, err := typed.Int64(); err == nil && parsed > 0 {
+				return parsed, true
+			}
+		}
+	}
+	return 0, false
+}
+
 func readDiagnosticTar(contents []byte, mediaType dawgtypes.MediaType, result *DiagnosticEvidence) error {
 	limits := dawgtypes.DefaultDiagnosticLimits()
-	maxEntries := 3
+	maxEntries := 4
 	maxEntryBytes := limits.MaxLayerBytes
 	if mediaType == dawgtypes.MediaTypeDiagnosticBodies {
 		maxEntries = int(limits.MaxNetworkRecords * 2)
@@ -204,6 +284,18 @@ func readDiagnosticTar(contents []byte, mediaType dawgtypes.MediaType, result *D
 			destination = &result.Network
 		case "diagnostics/errors.jsonl":
 			destination = &result.Errors
+		case "diagnostics/device.jsonl":
+			for _, line := range strings.Split(strings.TrimSpace(string(contents)), "\n") {
+				if line == "" {
+					continue
+				}
+				var record map[string]any
+				if err := json.Unmarshal([]byte(line), &record); err != nil {
+					return fmt.Errorf("diagnostics: decode %s: %w", name, err)
+				}
+				result.Device = record
+			}
+			continue
 		default:
 			return fmt.Errorf("diagnostics: unexpected records entry %q", name)
 		}

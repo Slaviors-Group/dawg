@@ -45,9 +45,13 @@ function publicState() {
   return { isRecording, recordingTabId, targetUrl, diagnosticsProfile, daemonUrl };
 }
 
+function persistedState() {
+  return { ...publicState(), sessionToken };
+}
+
 async function persistState() {
   try {
-    await chrome.storage.session.set({ [STATE_KEY]: publicState() });
+    await chrome.storage.session.set({ [STATE_KEY]: persistedState() });
   } catch (error) {
     debugLog(`Could not persist state: ${error.message}`);
   }
@@ -64,6 +68,14 @@ async function restoreState() {
       sessionToken = typeof saved.sessionToken === "string" ? saved.sessionToken : null;
       diagnosticsProfile = saved.diagnosticsProfile === "enhanced" ? "enhanced" : "safe";
       setDaemonUrl(saved.daemonUrl || DEFAULT_DAEMON_URL);
+      if (isRecording && !sessionToken) {
+        debugLog("Discarding restored capture state without a session token");
+        isRecording = false;
+        recordingTabId = null;
+        targetUrl = null;
+        diagnosticsProfile = "safe";
+        await persistState();
+      }
     }
   } catch (error) {
     debugLog(`Could not restore state: ${error.message}`);
@@ -385,14 +397,14 @@ chrome.debugger?.onEvent?.addListener((source, method, params) => {
   if (!isRecording || diagnosticsProfile !== "enhanced" || source.tabId !== recordingTabId) return;
   if (method === "Runtime.consoleAPICalled") {
     void sendToDaemon("DAWG_DIAGNOSTIC_CONSOLE", {
-      source: "cdp", level: params.type === "warning" ? "warn" : params.type || "log", kind: "console-api",
+      source: "cdp", occurredAt: Date.now(), level: params.type === "warning" ? "warn" : params.type || "log", kind: "console-api",
       text: (params.args || []).map((arg) => arg.value ?? arg.description ?? arg.type).join(" "),
       arguments: (params.args || []).slice(0, 20).map((arg) => ({ type: arg.type, value: arg.value, preview: arg.description, state: arg.value === undefined ? "preview-only" : "captured" })),
       pageUrl: targetUrl
     });
   } else if (method === "Runtime.exceptionThrown" || method === "Log.entryAdded") {
     const details = params.exceptionDetails || params.entry || {};
-    void sendToDaemon("DAWG_DIAGNOSTIC_ERROR", { source: "cdp", level: "error", kind: "exception", text: details.text || "Browser exception", pageUrl: details.url || targetUrl, stack: details.exception?.description || "" });
+    void sendToDaemon("DAWG_DIAGNOSTIC_ERROR", { source: "cdp", occurredAt: Date.now(), level: "error", kind: "exception", text: details.text || "Browser exception", pageUrl: details.url || targetUrl, stack: details.exception?.description || "" });
   } else if (method === "Network.requestWillBeSent") {
     cdpRequests.set(params.requestId, { requestId: params.requestId, source: "cdp", method: params.request?.method, url: params.request?.url, resourceType: params.type, startedAt: Date.now(), request: { headers: cdpHeaders(params.request?.headers), body: { state: "not-requested" } }, response: { body: { state: "unavailable" } } });
   } else if (method === "Network.responseReceived") {
@@ -510,6 +522,7 @@ async function performStopCapture() {
   isRecording = false;
   recordingTabId = null;
   targetUrl = null;
+  sessionToken = null;
   await persistState();
   pendingRequests.clear();
   await Promise.allSettled([...pendingDeliveries]);
@@ -528,9 +541,6 @@ async function performStopCapture() {
       tabId
     }, stoppingToken);
   }
-
-  sessionToken = null;
-  await persistState();
 
   if (ws) {
     const socket = ws;
@@ -669,20 +679,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
     return true;
   }
-  if (message.type === "DAWG_RRWEB_EVENT") {
-    if (isRecording && sender.tab?.id === recordingTabId) {
-      void sendToDaemon("DAWG_RRWEB_EVENT", message.payload);
-    }
-    return false;
-  }
-  if (message.type === "DAWG_ACTION_EVENT") {
-    if (isRecording && sender.tab?.id === recordingTabId) {
-      void sendToDaemon("DAWG_ACTION_EVENT", message.payload);
-    }
+  if (["DAWG_RRWEB_EVENT", "DAWG_ACTION_EVENT", "DAWG_DEVICE_INFO"].includes(message.type)) {
+    void initializeState().then(async () => {
+      if (!isRecording || sender.tab?.id !== recordingTabId || !sessionToken) return;
+      await sendToDaemon(message.type, message.payload);
+    });
     return false;
   }
   if (message.type === "CMD_START_CAPTURE") {
     void (async () => {
+      await initializeState();
       setDaemonUrl(message.daemonUrl || DEFAULT_DAEMON_URL);
       await persistState();
       await ensureDaemonConnection();

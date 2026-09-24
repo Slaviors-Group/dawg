@@ -1,6 +1,6 @@
 # Architecture
 
-DAWG `0.3.3-middlechild` captures a browser session through an extension, sanitizes supported JSONL streams and retained diagnostic bodies, packages them as an OCI Image Layout, and renders the recording for replay and verification.
+DAWG `0.3.5-middlechild` captures a browser session through an extension, sanitizes supported JSONL streams and retained diagnostic bodies, packages them as an OCI Image Layout, and renders the recording for replay and verification.
 
 ## Pipeline Overview
 
@@ -54,7 +54,12 @@ The extension requires Chrome 116 or newer and requests access to `<all_urls>`. 
 | `diagnostics/console.jsonl` | Bounded console evidence |
 | `diagnostics/network.jsonl` | Bounded network evidence with per-body evidence states |
 | `diagnostics/errors.jsonl` | Browser errors and capture degradations |
+| `diagnostics/device.jsonl` | Sanitized browser, OS, display, locale, hardware-capacity, and connection hints |
 | `diagnostics/bodies/` | Sanitized bodies retained by Enhanced capture only |
+
+The device profile uses only browser-exposed values. MAC addresses, hostnames,
+and reliable IP addresses are unavailable in normal browser APIs; DAWG records
+that limitation instead of contacting an external lookup service.
 
 rrweb runs with `maskAllInputs: true`. The separate action stream can still contain entered values, so sanitization includes both streams.
 
@@ -97,7 +102,7 @@ A packaged artifact is an OCI Image Layout:
         └── <digest>
 ```
 
-The DAWG manifest is validated against the schema matching its declared version. DAWG `0.3.3-middlechild` requires diagnostic summary metadata in addition to the schema version, SHA-256 artifact ID, creation time, non-empty title, source, at least one layer, sanitization metadata, determinism metadata, and expected outcome. The summary identifies the selected profile, sources, counts, retained/redacted/blocked/truncated body totals, limits, and any degradations.
+The DAWG manifest is validated against the schema matching its declared version. DAWG `0.3.5-middlechild` requires diagnostic summary metadata in addition to the schema version, SHA-256 artifact ID, creation time, non-empty title, source, at least one layer, sanitization metadata, determinism metadata, and expected outcome. The summary identifies the selected profile, sources, counts, retained/redacted/blocked/truncated body totals, limits, and any degradations.
 
 ### Current Layer Types
 
@@ -133,12 +138,14 @@ Interactive replay renders the recorded viewport in a fixed stage and scales or 
 
 Recorded action events are not executed, and replay does not navigate or run through the original application's workflow. It visualizes the captured rrweb recording; diagnostic evidence is available for inspection and export, not replayed into the original application.
 
-Desktop derives an **approximate** replay offset from a diagnostic's capture
-millisecond timestamp (network records prefer `timing.startedAt`) and the first
-rrweb timestamp. It only offers a seek when the value falls within the recorded
-rrweb range. A newline-delimited local control message is forwarded to the
-interactive player, which clamps the offset before seeking. Missing or
-out-of-range timestamps deliberately show no correlation.
+Chromium's rrweb player is the authoritative interactive replay clock. A
+versioned newline-delimited protocol carries play, pause, seek, speed, and state
+messages through Node, the Go engine, and Tauri so Chromium and Desktop controls
+remain synchronized. Console and error evidence prefers its source `occurredAt`
+time, while network evidence uses request start, first-byte, and completion
+timestamps relative to the first rrweb timestamp. Evidence appears at those
+literal offsets; backward seeks reconstruct the earlier view, and uncorrelated
+records remain available through **All captured**.
 
 ## Evidence review and removal
 
@@ -192,7 +199,7 @@ dawg/
 │   ├── src/                      # React UI
 │   └── src-tauri/                # Tauri host
 ├── schema/
-│   ├── manifest/v0.3.3-middlechild.json
+│   ├── manifest/v0.3.5-middlechild.json
 │   ├── mediatypes.json
 │   └── policies/default.rego
 ├── tools/sync-versions.cjs

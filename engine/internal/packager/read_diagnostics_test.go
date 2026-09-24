@@ -27,6 +27,35 @@ func TestParseReplayTimelineAcceptsLargeRRWebEvent(t *testing.T) {
 	}
 }
 
+func TestParseReplayTimelineUsesMinimumAndMaximumTimestamps(t *testing.T) {
+	trace := "{\"type\":3,\"timestamp\":3000}\n{\"type\":2,\"timestamp\":1000}\n{\"type\":3,\"timestamp\":2000}\n"
+	timeline, err := parseReplayTimeline(strings.NewReader(trace))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if timeline == nil || timeline.FirstTimestamp != 1000 || timeline.LastTimestamp != 3000 || timeline.DurationMs != 2000 {
+		t.Fatalf("unexpected timeline: %#v", timeline)
+	}
+}
+
+func TestCorrelateDiagnosticEvidenceUsesSourceAndNetworkStageTimes(t *testing.T) {
+	result := DiagnosticEvidence{
+		Timeline: &ReplayTimeline{FirstTimestamp: 1000, LastTimestamp: 5000, DurationMs: 4000},
+		Console:  []map[string]any{{"occurredAt": float64(1500), "timestamp": float64(1800)}},
+		Errors:   []map[string]any{{"timestamp": float64(2200)}},
+		Network:  []map[string]any{{"timing": map[string]any{"startedAt": float64(2000), "firstByteAt": float64(2500), "finishedAt": float64(3000)}}},
+	}
+	correlateDiagnosticEvidence(&result)
+	consoleReplay := result.Console[0]["replay"].(map[string]any)
+	if consoleReplay["state"] != "correlated" || consoleReplay["offsetMs"] != int64(500) {
+		t.Fatalf("unexpected console correlation: %#v", consoleReplay)
+	}
+	networkReplay := result.Network[0]["replay"].(map[string]any)
+	if networkReplay["offsetMs"] != int64(1000) || networkReplay["firstByteOffsetMs"] != int64(1500) || networkReplay["finishedOffsetMs"] != int64(2000) {
+		t.Fatalf("unexpected network correlation: %#v", networkReplay)
+	}
+}
+
 func TestReadDiagnosticTarAllowsLargeRecordStreams(t *testing.T) {
 	line := `{"id":"network-1","payload":"` + strings.Repeat("x", 300<<10) + `"}`
 	var archive bytes.Buffer

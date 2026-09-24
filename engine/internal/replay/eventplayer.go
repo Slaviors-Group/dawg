@@ -1,12 +1,15 @@
 package replay
 
 import (
+	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/Slaviors-Group/dawg/engine/internal/procutil"
@@ -14,12 +17,13 @@ import (
 
 // EventPlayer replays a recorded browser session through Playwright.
 type EventPlayer struct {
-	NodeBinary    string
-	ScriptPath    string
-	BrowsersDir   string
-	ChromiumPath  string
-	Interactive   bool
-	ReplayTimeout time.Duration
+	NodeBinary      string
+	ScriptPath      string
+	BrowsersDir     string
+	ChromiumPath    string
+	Interactive     bool
+	ReplayTimeout   time.Duration
+	ReplayEventSink func(json.RawMessage) error
 }
 
 // ReplayOutcome captures the results of a browser replay run.
@@ -71,9 +75,7 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 		arguments = append(arguments, "--interactive")
 	}
 	cmd := exec.CommandContext(replayContext, nodeBinary, arguments...)
-	// Interactive players consume only explicit JSON control messages from the
-	// parent process. Inheriting stdin keeps CLI use interactive while allowing
-	// Desktop to relay a seek request to the headed player.
+	// Interactive stdin carries only versioned replay-control messages.
 	if player.Interactive {
 		cmd.Stdin = os.Stdin
 	}
@@ -88,13 +90,56 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 		cmd.Env = append(cmd.Env, "DAWG_CHROMIUM_EXECUTABLE_PATH="+player.ChromiumPath)
 	}
 
-	var outputBuf bytes.Buffer
-	cmd.Stdout = &outputBuf
-	cmd.Stderr = &outputBuf
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return ReplayOutcome{}, fmt.Errorf("replay: open browser stdout: %w", err)
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return ReplayOutcome{}, fmt.Errorf("replay: open browser stderr: %w", err)
+	}
 
 	if err := cmd.Start(); err != nil {
 		return ReplayOutcome{}, fmt.Errorf("replay: failed to start browser replay: %w", err)
 	}
+
+	var stdoutBuf bytes.Buffer
+	var stderrBuf bytes.Buffer
+	readerErrors := make(chan error, 2)
+	var readers sync.WaitGroup
+	readers.Add(2)
+	go func() {
+		defer readers.Done()
+		scanner := bufio.NewScanner(stdout)
+		scanner.Buffer(make([]byte, 64*1024), 16<<20)
+		for scanner.Scan() {
+			line := append([]byte(nil), scanner.Bytes()...)
+			if player.Interactive && player.ReplayEventSink != nil {
+				if !json.Valid(line) {
+					readerErrors <- fmt.Errorf("replay: invalid browser event: %q", line)
+					return
+				}
+				if err := player.ReplayEventSink(json.RawMessage(line)); err != nil {
+					readerErrors <- fmt.Errorf("replay: forward browser event: %w", err)
+					return
+				}
+				continue
+			}
+			stdoutBuf.Write(line)
+			stdoutBuf.WriteByte('\n')
+		}
+		readerErrors <- scanner.Err()
+	}()
+	go func() {
+		defer readers.Done()
+		scanner := bufio.NewScanner(stderr)
+		scanner.Buffer(make([]byte, 64*1024), 16<<20)
+		for scanner.Scan() {
+			stderrBuf.Write(scanner.Bytes())
+			stderrBuf.WriteByte('\n')
+		}
+		readerErrors <- scanner.Err()
+	}()
 
 	job, jobErr := NewReplayJob()
 	if jobErr == nil && job != nil {
@@ -102,8 +147,18 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 		defer job.Close()
 	}
 
-	err := cmd.Wait()
-	output := outputBuf.Bytes()
+	err = cmd.Wait()
+	readers.Wait()
+	var readerErr error
+	for range 2 {
+		if current := <-readerErrors; current != nil && readerErr == nil {
+			readerErr = current
+		}
+	}
+	output := append(stderrBuf.Bytes(), stdoutBuf.Bytes()...)
+	if readerErr != nil && err == nil {
+		err = readerErr
+	}
 
 	if err != nil {
 		if replayContext.Err() == context.DeadlineExceeded {

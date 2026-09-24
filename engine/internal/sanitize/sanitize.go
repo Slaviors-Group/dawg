@@ -25,6 +25,7 @@ var captureFiles = []string{
 	"diagnostics/console.jsonl",
 	"diagnostics/network.jsonl",
 	"diagnostics/errors.jsonl",
+	"diagnostics/device.jsonl",
 }
 
 // SanitizeFiles redacts supported JSONL capture files in place and returns a report before policy evaluation.
@@ -255,6 +256,9 @@ func sanitizeValue(value any, path, file string, line int) (any, int, []dawgtype
 				continue
 			}
 			if stringValue, ok := child.(string); ok {
+				if isDeviceDescriptorField(file, childPath) {
+					continue
+				}
 				if key == "body" {
 					if decoded, ok := decodeJSONBody(stringValue); ok {
 						sanitized, nestedScanned, nestedRedactions := sanitizeValue(decoded, childPath, file, line)
@@ -307,6 +311,24 @@ func sanitizeValue(value any, path, file string, line int) (any, int, []dawgtype
 		return typedValue, fieldsScanned, redactions
 	default:
 		return value, 0, nil
+	}
+}
+
+func isDeviceDescriptorField(file, path string) bool {
+	if filepath.ToSlash(file) != "diagnostics/device.jsonl" {
+		return false
+	}
+	switch path {
+	case "browser.name", "operatingSystem.name",
+		"device.hostname.state", "device.hostname.reason",
+		"device.manufacturer.state", "device.manufacturer.reason",
+		"hardware.processorModel.state", "hardware.processorModel.reason",
+		"hardware.storage.state", "hardware.storage.reason",
+		"network.ipAddresses.state", "network.ipAddresses.reason",
+		"network.macAddress.state", "network.macAddress.reason":
+		return true
+	default:
+		return false
 	}
 }
 

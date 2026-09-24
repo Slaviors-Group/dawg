@@ -95,13 +95,15 @@ export interface ReplayTimeline {
 export interface DiagnosticEvidence {
   summary?: Record<string, unknown>;
   timeline?: ReplayTimeline;
+  timelineState?: "available" | "unavailable" | "limit-exceeded";
   console: Array<Record<string, unknown>>;
   network: Array<Record<string, unknown>>;
   errors: Array<Record<string, unknown>>;
+  device?: Record<string, unknown>;
   bodies: Record<string, string>;
 }
 
-export type DiagnosticCategory = "console" | "network" | "errors" | "bodies";
+export type DiagnosticCategory = "console" | "network" | "errors" | "device" | "bodies";
 
 export interface RemoveDiagnosticsOptions {
   artifact: string;
@@ -118,6 +120,32 @@ export interface PackagedArtifact {
 
 export interface RunReplayOptions {
   artifact: string;
+}
+
+export type ReplaySpeed = 0.5 | 1 | 1.5 | 2 | 4;
+export type ReplayControlType = "play" | "pause" | "seek" | "setSpeed" | "getState";
+
+export interface ReplayControl {
+  id: string;
+  type: ReplayControlType;
+  offsetMs?: number;
+  speed?: ReplaySpeed;
+}
+
+export interface ReplayEvent {
+  protocol: "dawg.replay.v1";
+  sequence: number;
+  type: "ready" | "state" | "ack" | "error" | "finished" | "closed";
+  reason?: string;
+  commandId?: string | null;
+  command?: ReplayControlType;
+  currentTimeMs?: number;
+  durationMs?: number;
+  firstTimestamp?: number;
+  lastTimestamp?: number;
+  playing?: boolean;
+  speed?: ReplaySpeed;
+  message?: string;
 }
 
 export interface RunReplayResult {
@@ -309,11 +337,24 @@ export class EngineBridge {
     }
   }
 
-  async seekReplay(offsetMs: number): Promise<void> {
-    if (!Number.isFinite(offsetMs) || offsetMs < 0) {
+  async controlReplay(command: ReplayControl): Promise<void> {
+    if (!command.id.trim()) throw new Error("Replay controls require a command ID.");
+    if (
+      command.type === "seek" &&
+      (typeof command.offsetMs !== "number" || !Number.isFinite(command.offsetMs) || command.offsetMs < 0)
+    ) {
       throw new Error("Replay seek offset must be a non-negative number.");
     }
-    await invoke("seek_replay", { offsetMs: Math.round(offsetMs) });
+    await invoke("control_replay", {
+      command: {
+        ...command,
+        offsetMs: command.offsetMs === undefined ? undefined : Math.round(command.offsetMs),
+      },
+    });
+  }
+
+  async seekReplay(offsetMs: number): Promise<void> {
+    await this.controlReplay({ id: `seek-${Date.now()}`, type: "seek", offsetMs });
   }
 
   async verifyResult(options: VerifyOptions): Promise<VerifyResult> {
