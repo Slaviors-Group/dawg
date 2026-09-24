@@ -1,0 +1,108 @@
+name: Bug report
+description: Report a reproducible problem in the current DAWG release
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a DAWG problem. This public repository is
+        maintained by Slaviors Group; external pull requests and patches are
+        not accepted. Please report only reproducible problems in the current
+        published release.
+
+        Do not include credentials, private URLs, personal information, or an
+        unreviewed `.dawg` artifact. Sanitization reduces exposure but is not a
+        confidentiality guarantee.
+
+  - type: dropdown
+    id: part
+    attributes:
+      label: Part
+      description: Which DAWG area is affected?
+      options:
+        - Engine
+        - Browser extension
+        - Desktop application
+        - Web documentation/site
+        - CLI
+        - Capture or artifact packaging
+        - Replay
+        - Installation or update
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Current DAWG version
+      description: Include the application/artifact, Desktop, and extension versions when relevant.
+      placeholder: "0.3.5-middlechild; Desktop 0.3.5; Extension 0.3.5_middlechild"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I reproduced this with the latest published DAWG release.
+          required: true
+        - label: I searched existing issues and did not find the same current-release problem.
+          required: true
+        - label: I removed secrets, personal data, private URLs, and unreviewed artifacts from this report.
+          required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: Issue
+      description: Describe what happened and the impact.
+      placeholder: "DAWG…"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: List the smallest safe sequence that consistently triggers the problem.
+      placeholder: |
+        1. …
+        2. …
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-outcome
+    attributes:
+      label: Expected outcome
+      description: Describe what should happen when the issue is not present.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proof
+    attributes:
+      label: Footage or proof
+      description: Attach screenshots, screen recordings, or sanitized logs. If none are available, explain why.
+    validations:
+      required: true
+
+  - type: input
+    id: found-at
+    attributes:
+      label: Found at
+      description: Date, time, and timezone when you first observed the issue.
+      placeholder: "2026-09-24 14:30 UTC+07:00"
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Optional environment details, `dawg doctor` output, workarounds, or other context.
