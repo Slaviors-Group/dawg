@@ -21,6 +21,7 @@ type EventPlayer struct {
 	ScriptPath      string
 	BrowsersDir     string
 	ChromiumPath    string
+	ColorScheme     string
 	Interactive     bool
 	ReplayTimeout   time.Duration
 	ReplayEventSink func(json.RawMessage) error
@@ -70,6 +71,9 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 		scriptPath,
 		"--rrweb-input", traceInput,
 		"--screenshot-output", screenshotOutput,
+	}
+	if player.ColorScheme == "dark" || player.ColorScheme == "light" {
+		arguments = append(arguments, "--color-scheme", player.ColorScheme)
 	}
 	if player.Interactive {
 		arguments = append(arguments, "--interactive")

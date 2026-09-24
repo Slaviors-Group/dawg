@@ -14,6 +14,7 @@
     } catch (_error) {
       text = String(value);
     }
+    text = text === undefined ? String(value) : text;
     return text.length > MAX_TEXT ? `${text.slice(0, MAX_TEXT)}…` : text;
   }
 
@@ -28,7 +29,7 @@
     if (!active || forwarding) return;
     forwarding = true;
     try {
-      window.dispatchEvent(new CustomEvent("dawg-diagnostic", { detail: { kind, payload } }));
+      window.postMessage({ type: "DAWG_PAGE_DIAGNOSTIC", kind, data: payload }, location.origin);
     } finally {
       forwarding = false;
     }
@@ -82,7 +83,10 @@
     pageUrl: location.href,
     stack: bounded(event.reason?.stack || "")
   }));
-  window.addEventListener("dawg-diagnostics-control", (event) => {
-    if (event.detail?.active) start(); else stop();
+  window.addEventListener("message", (event) => {
+    if (event.source !== window || event.origin !== location.origin) return;
+    if (event.data?.type === "DAWG_DIAGNOSTICS_CONTROL") {
+      if (event.data.active) start(); else stop();
+    }
   });
 })();

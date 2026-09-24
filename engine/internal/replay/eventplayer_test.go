@@ -45,14 +45,22 @@ process.stderr.write('replay diagnostic\n');`
 	}
 }
 
-func TestEventPlayerPassesInteractiveArgument(t *testing.T) {
+func TestEventPlayerPassesReplayArguments(t *testing.T) {
 	nodeBinary, err := exec.LookPath("node")
 	if err != nil {
 		t.Skip("node is required to execute replay scripts")
 	}
 
-	for _, interactive := range []bool{false, true} {
-		t.Run(map[bool]string{false: "noninteractive", true: "interactive"}[interactive], func(t *testing.T) {
+	for _, scenario := range []struct {
+		name        string
+		interactive bool
+		colorScheme string
+	}{
+		{name: "noninteractive"},
+		{name: "interactive", interactive: true},
+		{name: "dark-color-scheme", colorScheme: "dark"},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
 			sessionDirectory := t.TempDir()
 			argumentsPath := filepath.Join(sessionDirectory, "arguments.json")
 			scriptPath := filepath.Join(sessionDirectory, "capture-arguments.cjs")
@@ -64,7 +72,8 @@ func TestEventPlayerPassesInteractiveArgument(t *testing.T) {
 			player := EventPlayer{
 				NodeBinary:  nodeBinary,
 				ScriptPath:  scriptPath,
-				Interactive: interactive,
+				Interactive: scenario.interactive,
+				ColorScheme: scenario.colorScheme,
 			}
 			if _, err := player.Replay(context.Background(), sessionDirectory); err != nil {
 				t.Fatalf("replay: %v", err)
@@ -82,7 +91,10 @@ func TestEventPlayerPassesInteractiveArgument(t *testing.T) {
 				"--rrweb-input", filepath.Join(sessionDirectory, "traces", "rrweb.jsonl"),
 				"--screenshot-output", filepath.Join(sessionDirectory, "outcome", "screenshot.png"),
 			}
-			if interactive {
+			if scenario.colorScheme != "" {
+				want = append(want, "--color-scheme", scenario.colorScheme)
+			}
+			if scenario.interactive {
 				want = append(want, "--interactive")
 			}
 			if !reflect.DeepEqual(got, want) {

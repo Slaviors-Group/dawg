@@ -6,24 +6,27 @@
   let isRecording = false;
   const MAX_DIAGNOSTIC_BYTES = 32 * 1024;
 
-  function forwardDiagnostic(event) {
-    if (!isRecording || !event.detail || typeof event.detail !== "object") return;
-    const { kind, payload } = event.detail;
-    if ((kind !== "console" && kind !== "error") || !payload || typeof payload !== "object") return;
+  function forwardDiagnostic(payload) {
+    if (!isRecording || !payload || typeof payload !== "object") return;
+    const { kind, data } = payload;
+    if ((kind !== "console" && kind !== "error") || !data || typeof data !== "object") return;
     let serialized;
     try {
-      serialized = JSON.stringify(payload);
+      serialized = JSON.stringify(data);
     } catch (_error) {
       return;
     }
     if (serialized.length > MAX_DIAGNOSTIC_BYTES) return;
     chrome.runtime.sendMessage({
       type: kind === "console" ? "DAWG_DIAGNOSTIC_CONSOLE" : "DAWG_DIAGNOSTIC_ERROR",
-      payload
+      payload: data
     }).catch(() => {});
   }
 
-  window.addEventListener("dawg-diagnostic", forwardDiagnostic);
+  window.addEventListener("message", (event) => {
+    if (event.source !== window || event.origin !== location.origin) return;
+    if (event.data?.type === "DAWG_PAGE_DIAGNOSTIC") forwardDiagnostic(event.data);
+  });
 
   function buildSelector(element) {
     if (!element || element === document) return "";
@@ -65,7 +68,7 @@
   }
 
   function setDiagnosticsActive(active) {
-    window.dispatchEvent(new CustomEvent("dawg-diagnostics-control", { detail: { active } }));
+    window.postMessage({ type: "DAWG_DIAGNOSTICS_CONTROL", active }, location.origin);
   }
 
   function browserIdentity(userAgent, brands) {
@@ -133,6 +136,9 @@
         language: navigator.language || "",
         languages: Array.from(navigator.languages || []),
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || ""
+      },
+      appearance: {
+        colorScheme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
       },
       hardware: {
         logicalProcessors: navigator.hardwareConcurrency || null,

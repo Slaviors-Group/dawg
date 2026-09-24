@@ -135,6 +135,7 @@ function interactiveScript(recordedViewport) {
         let speedIndex = speeds.indexOf(1);
         let playing = false;
         let scrubbing = false;
+        let activeViewport = { ...metadata.recordedViewport };
 
         const replayState = (type = "state", reason = "update") => ({
             type,
@@ -199,13 +200,23 @@ function interactiveScript(recordedViewport) {
         const restart = () => seek(0);
         const resizeStage = () => {
             const scale = Math.max(0.01, Math.min(
-                viewportHost.clientWidth / metadata.recordedViewport.width,
-                viewportHost.clientHeight / metadata.recordedViewport.height,
+                viewportHost.clientWidth / activeViewport.width,
+                viewportHost.clientHeight / activeViewport.height,
             ));
             stage.style.transform = \`scale(\${scale})\`;
         };
+        const updateRecordedViewport = dimension => {
+            const width = Math.round(Number(dimension?.width));
+            const height = Math.round(Number(dimension?.height));
+            if (!Number.isFinite(width) || !Number.isFinite(height) || width < 1 || height < 1) return;
+            activeViewport = { width, height };
+            stage.style.width = \`\${width}px\`;
+            stage.style.height = \`\${height}px\`;
+            resizeStage();
+        };
 
         timeline.max = String(replayDuration);
+        replayer.on(rrweb.ReplayerEvents.Resize, updateRecordedViewport);
         replayer.on(rrweb.ReplayerEvents.Start, () => {
             playing = true;
             updateControls(replayer.getCurrentTime());
@@ -374,6 +385,9 @@ async function main() {
     const browser = await chromium.launch(launchOptions);
     try {
         const contextOptions = { ignoreHTTPSErrors: true };
+        if (options["color-scheme"] === "dark" || options["color-scheme"] === "light") {
+            contextOptions.colorScheme = options["color-scheme"];
+        }
         if (interactive) {
             // A null viewport follows the Chromium window size. The fixed replay
             // stage below then scales into that available area on resize/maximize.
