@@ -166,7 +166,11 @@
       throw new Error("rrweb recorder is unavailable");
     }
 
-    stopRecord = rrweb.record({
+    // rrweb may emit its initial Meta and FullSnapshot events before record()
+    // returns, so the event callback must already consider this capture active.
+    isRecording = true;
+    try {
+      stopRecord = rrweb.record({
         // Mask values in rrweb snapshots. The separate action stream is
         // sanitized by the engine before packaging.
         maskAllInputs: true,
@@ -178,12 +182,16 @@
           }).catch(() => {});
         }
       });
-    if (typeof stopRecord !== "function") {
+      if (typeof stopRecord !== "function") {
+        stopRecord = null;
+        throw new Error("rrweb recorder did not start");
+      }
+    } catch (error) {
       stopRecord = null;
-      throw new Error("rrweb recorder did not start");
+      isRecording = false;
+      throw error;
     }
 
-    isRecording = true;
     setDiagnosticsActive(true);
     document.addEventListener("click", handleInteractionClick, true);
     document.addEventListener("input", handleInteractionInput, true);
