@@ -2,19 +2,19 @@
 
 DAWG records one browser tab, sanitizes the captured data, and packages the session as a portable OCI artifact. The recommended workflow uses the desktop app together with the DAWG Browser Extension.
 
-> **Current prerelease:** [`0.3.3-middlechild`](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-3) — desktop `0.3.3`; extension display version `0.3.1_middlechild`.
+> **Current prerelease:** [`0.3.5-middlechild`](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-5) — desktop `0.3.5`; extension display version `0.3.5_middlechild`.
 
 ## Quick Start: Desktop App
 
 ### 1. Install DAWG
 
-Download the latest release directly:
+Download the `middlechild-5` release directly:
 
-- [Windows x64 installer](https://github.com/Slaviors-Group/dawg/releases/latest/download/DAWG_0.3.3_x64-setup.exe)
-- [Linux x86_64 AppImage](https://github.com/Slaviors-Group/dawg/releases/latest/download/DAWG_0.3.3_amd64.AppImage)
+- [Windows x64 installer](https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_x64-setup.exe)
+- [Linux x86_64 AppImage](https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_amd64.AppImage)
 
 See [Installation](/docs/installation) for Linux AppImage launch steps and the
-[GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-3)
+[GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-5)
 for checksums and release notes.
 
 The packaged desktop app includes the engine, Node.js, mitmdump, Playwright, Chromium for replay, schemas, policies, and an installable copy of the extension. You do not need to install those runtimes separately.
@@ -96,7 +96,9 @@ The Replay Diagnostics workspace shows packaged console, network, and error
 evidence, including evidence states. After review confirmation, it can export a
 sanitized HAR or copy cURL for a selected request; copied cURL can mutate a live
 service. Choose **Run Replay** to open an interactive Chromium replay with
-play/pause, skip, speed, and timeline controls. **Stop Replay** cancels the
+play/pause, skip, speed, and timeline controls synchronized with the Desktop
+player. Console, error, and network evidence appears as replay reaches its
+recorded time; **All captured** keeps the full review available. **Stop Replay** cancels the
 in-flight replay and terminates the tracked engine/browser process tree. The
 standard CLI replay remains the noninteractive option that saves a final
 screenshot.

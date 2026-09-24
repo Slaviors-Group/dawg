@@ -84,6 +84,19 @@ func TestExtensionServerCapturesStreamedData(t *testing.T) {
 	}
 	_ = resp.Body.Close()
 
+	devicePayload, _ := json.Marshal(map[string]any{
+		"type": "DAWG_DEVICE_INFO",
+		"data": map[string]any{"formatVersion": "1", "userAgent": "test-agent", "viewport": map[string]any{"width": 1280, "height": 720}},
+	})
+	resp, err = http.Post(baseURL+"/api/v1/stream/event", "application/json", bytes.NewReader(devicePayload))
+	if err != nil {
+		t.Fatalf("failed to post device profile: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected device profile status 200, got %d", resp.StatusCode)
+	}
+	_ = resp.Body.Close()
+
 	// 4. Stop server
 	if err := server.Stop(); err != nil {
 		t.Fatalf("ExtensionServer.Stop failed: %v", err)
@@ -115,6 +128,10 @@ func TestExtensionServerCapturesStreamedData(t *testing.T) {
 		if !bytes.Contains(diagnosticsContent, []byte(expected)) {
 			t.Errorf("diagnostic stream omitted %s: %s", expected, diagnosticsContent)
 		}
+	}
+	deviceContent, err := os.ReadFile(filepath.Join(sessionDir, "diagnostics", "device.jsonl"))
+	if err != nil || !bytes.Contains(deviceContent, []byte(`"userAgent":"test-agent"`)) {
+		t.Fatalf("device profile was not captured: contents=%s err=%v", deviceContent, err)
 	}
 }
 

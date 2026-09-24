@@ -14,6 +14,8 @@ require gopkg.in/yaml.v3 v3.0.1
 
 require oras.land/oras-go/v2 v2.3.1
 
+require golang.org/x/sys v0.26.0
+
 require (
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/agnivade/levenshtein v1.2.0 // indirect
@@ -45,7 +47,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.28.0 // indirect
 	go.opentelemetry.io/otel/trace v1.28.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
+
 	golang.org/x/text v0.19.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect

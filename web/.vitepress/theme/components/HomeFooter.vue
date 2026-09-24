@@ -27,6 +27,7 @@
             <p class="dh-foot-head">Project</p>
             <a href="https://github.com/Slaviors-Group/dawg" target="_blank" rel="noopener noreferrer">GitHub</a>
             <a href="https://github.com/Slaviors-Group/dawg/releases" target="_blank" rel="noopener noreferrer">Releases</a>
+            <a href="https://github.com/sponsors/Slaviors-Group" target="_blank" rel="noopener noreferrer">Sponsor DAWG</a>
             <a href="/docs/contributing">Contributing</a>
           </div>
           <div class="dh-foot-col">
@@ -37,17 +38,15 @@
         </div>
 
         <div class="dh-foot-social">
-          <!-- Phospor icons for social links -->
-          <a href="https://github.com/Slaviors-Group/dawg" target="_blank" aria-label="GitHub"><i class="ph ph-github-logo"></i></a>
-          <!-- Social links disabled until the project URLs are available.
-          <a href="#" aria-label="Discord"><i class="ph ph-discord-logo"></i></a>
-          <a href="#" aria-label="X / Twitter"><i class="ph ph-x-logo"></i></a>
-          -->
+
+          <a href="https://github.com/Slaviors-Group/dawg" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><i class="ph ph-github-logo"></i></a>
+          <a href="https://github.com/sponsors/Slaviors-Group" target="_blank" rel="noopener noreferrer" aria-label="Sponsor DAWG"><i class="ph ph-heart"></i></a>
+
         </div>
       </div>
     </div>
 
-    <!-- Huge bottom DAWG text with gradient and mask -->
+
     <div class="dh-foot-huge-wrap">
       <div class="dh-huge-glow"></div>
       <div class="dh-huge-text">DAWG</div>

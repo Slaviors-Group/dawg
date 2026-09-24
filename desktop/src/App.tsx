@@ -4,6 +4,7 @@ import {
   GearSix,
   GitDiff,
   GithubLogo,
+  Heart,
   Record,
   ShieldCheck,
   SquaresFour,
@@ -33,6 +34,7 @@ type Tab = "dashboard" | "capture" | "replay" | "diff" | "policy";
 
 const CHROME_WEB_STORE_EXTENSION_URL =
   "https://chromewebstore.google.com/detail/peiigoeakholhhbbbbfkeojomekmmokj?utm_source=item-share-cb";
+const GITHUB_SPONSORS_URL = "https://github.com/sponsors/Slaviors-Group";
 
 const NAV_ITEMS: {
   id: Tab;
@@ -72,6 +74,14 @@ function ShellContent() {
       .catch((error) => addLogLine(`[WARN] Could not open the launch artifact: ${String(error)}`));
   }, [addLogLine, importArtifact]);
 
+  const handleSponsor = async () => {
+    try {
+      await openUrl(GITHUB_SPONSORS_URL);
+    } catch (error) {
+      addLogLine(`[ERROR] Could not open the DAWG Sponsors page: ${String(error)}`);
+    }
+  };
+
   const handleInstallWebExtension = async () => {
     try {
       await openUrl(CHROME_WEB_STORE_EXTENSION_URL);
@@ -82,9 +92,9 @@ function ShellContent() {
 
   return (
     <div className="flex h-screen bg-canvas overflow-hidden">
-      {/* ─── Sidebar ─── */}
-      <aside className="w-[260px] shrink-0 flex flex-col bg-surface border-r border-border py-4 px-4 gap-6 z-20">
-        {/* App Logo / Top header */}
+
+      <aside className="w-65 shrink-0 flex flex-col bg-surface border-r border-border py-4 px-4 gap-6 z-20">
+
         <div className="flex items-center gap-3 p-2 mb-2">
           <img src="/paw-dawg.svg" alt="DAWG Logo" className="w-10 h-10 shrink-0" />
           <div>
@@ -95,7 +105,7 @@ function ShellContent() {
           </div>
         </div>
 
-        {/* Navigation */}
+
         <nav className="flex flex-col gap-1 flex-1" aria-label="Main navigation">
           {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
             <NavItem
@@ -158,12 +168,12 @@ function ShellContent() {
           </div>
         </nav>
 
-        {/* Repository link */}
-        <div className="relative p-5 rounded-2xl overflow-hidden shadow-card shrink-0">
-          {/* Gradient Background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-brand-600 to-brand-400" />
 
-          {/* Dot Pattern Overlay */}
+        <div className="relative p-5 rounded-2xl overflow-hidden shadow-card shrink-0">
+
+          <div className="absolute inset-0 bg-linear-to-br from-brand-600 to-brand-400" />
+
+
           <div
             className="absolute inset-0 opacity-30"
             style={{
@@ -172,7 +182,7 @@ function ShellContent() {
             }}
           />
 
-          {/* Glass glare effect */}
+
           <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white opacity-20 rounded-full blur-2xl mix-blend-overlay" />
 
           <div className="relative z-10 flex flex-col items-start gap-3">
@@ -191,15 +201,23 @@ function ShellContent() {
             >
               Open GitHub
             </a>
+            <button
+              type="button"
+              onClick={() => void handleSponsor()}
+              className="flex w-full items-center justify-center gap-2 rounded-full border border-white/50 px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/15"
+            >
+              <Heart size={14} weight="fill" />
+              Sponsor DAWG
+            </button>
           </div>
         </div>
       </aside>
 
-      {/* ─── Main content ─── */}
+
       <main className="flex-1 relative min-w-0 overflow-y-auto bg-grid-pattern z-10">
-        {/* Glow Orbs in background */}
-        <div className="glow-orb top-[-100px] left-[-100px]" />
-        <div className="glow-orb-cyan right-[-50px] top-[150px]" />
+
+        <div className="glow-orb -top-25 -left-25" />
+        <div className="glow-orb-cyan -right-12.5 top-37.5" />
 
         <div className="relative px-10 pt-10 min-h-full flex flex-col">
           <AnimatePresence mode="wait">
@@ -225,12 +243,12 @@ function ShellContent() {
               {activeTab === "policy" && <PolicyConfig />}
             </motion.div>
           </AnimatePresence>
-          {/* Explicit spacer to force scroll padding at the bottom */}
+
           <div className="h-10 shrink-0 w-full" />
         </div>
       </main>
 
-      {/* Modals */}
+
       <DoctorModal open={showDoctor} onClose={() => setShowDoctor(false)} />
       <SettingsPanel open={showSettings} onClose={() => setShowSettings(false)} />
     </div>

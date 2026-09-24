@@ -1,6 +1,6 @@
 # CLI Reference
 
-This reference describes the DAWG `0.3.3-middlechild` command-line interface.
+This reference describes the DAWG `0.3.5-middlechild` command-line interface.
 
 ## Usage
 
@@ -274,7 +274,7 @@ The report checks:
 - `replay-browser.cjs`
 - the browser extension manifest
 - the default Rego policy
-- the current `0.3.3-middlechild` manifest schema
+- the current `0.3.5-middlechild` manifest schema
 
 The report status is `ready` or `degraded`. A degraded component is recorded in the report; degradation alone does not currently make the command return an execution error.
 
@@ -313,7 +313,7 @@ Captured artifacts are stored under `artifacts/<timestamped-title>`.
 `dawg init` generates a configuration with the current schema version and absolute state paths:
 
 ```yaml
-schemaVersion: "0.3.3-middlechild"
+schemaVersion: "0.3.5-middlechild"
 capture:
   outputDir: "<absolute-state-directory>/captures"
   browser: "chromium"

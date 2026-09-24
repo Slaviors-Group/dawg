@@ -4,6 +4,33 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 
 ## Middlechild family — `0.3.x`
 
+### [0.3.5-middlechild](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-5) - 2026-09-24
+
+**Desktop:** `0.3.5` · **Extension display version:** `0.3.5_middlechild`
+
+### Added
+
+- Desktop replay controls now stay synchronized with the authoritative rrweb player in Chromium through a versioned bidirectional protocol.
+- Console, error, and network evidence appears at its literal replay time, including request, first-byte, and completion stages, with an **All captured** fallback.
+- Artifacts retain a sanitized browser device profile covering available browser/OS hints, viewport, screen, locale, timezone, hardware capacity, connection hints, page URL, and user agent; Replay exposes it in a dedicated Device tab.
+- Prominent tag-specific Windows and Linux downloads are available from the homepage.
+- GitHub Sponsors links are available in the website navigation/footer and Desktop open-source card.
+
+### Fixed
+
+- MV3 worker restarts preserve the private capture token and wait for state restoration before forwarding rrweb events.
+- Capture startup now fails when rrweb is unavailable instead of publishing an empty recording.
+- Packaging rejects replay traces without events, valid timestamps, or a FullSnapshot.
+- The Desktop Timeline tab reads the packaged diagnostic timeline instead of looking for unavailable manifest summary fields.
+
+### Changed
+
+- The extension capture panel is status-only; captures stop from Desktop or CLI so pending events drain before packaging.
+- Browser-restricted MAC, hostname, and reliable IP values are represented as unavailable; capture does not call an external discovery service.
+- New artifacts use the explicit `v0.3.5-middlechild` schema while previous supported schemas remain readable.
+
+---
+
 ### [0.3.3-middlechild](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-3) - 2026-09-23
 
 **Desktop:** `0.3.3` · **Extension display version:** `0.3.1_middlechild`
@@ -38,7 +65,7 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 
 ---
 
-### [0.3.1-middlechild](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild)
+### [0.3.1-middlechild](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild) - 2026-09-21
 
 **Desktop:** `0.3.1` · **Extension display version:** `0.3.1_middlechild`
 

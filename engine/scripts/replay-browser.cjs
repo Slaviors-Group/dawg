@@ -2,6 +2,14 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
 
+const REPLAY_PROTOCOL = "dawg.replay.v1";
+let replaySequence = 0;
+
+function emitReplayEvent(event) {
+    replaySequence += 1;
+    process.stdout.write(`${JSON.stringify({ protocol: REPLAY_PROTOCOL, sequence: replaySequence, ...event })}\n`);
+}
+
 function parseArguments(argumentsList) {
     const values = {};
     for (let index = 0; index < argumentsList.length; index += 1) {
@@ -127,6 +135,25 @@ function interactiveScript(recordedViewport) {
         let speedIndex = speeds.indexOf(1);
         let playing = false;
         let scrubbing = false;
+        let activeViewport = { ...metadata.recordedViewport };
+
+        const replayState = (type = "state", reason = "update") => ({
+            type,
+            reason,
+            currentTimeMs: Math.max(0, Math.min(replayDuration, replayer.getCurrentTime())),
+            durationMs: replayDuration,
+            firstTimestamp: metadata.firstTimestamp,
+            lastTimestamp: metadata.lastTimestamp,
+            playing,
+            speed: speeds[speedIndex],
+        });
+        const reportState = (type = "state", reason = "update") => {
+            const state = replayState(type, reason);
+            if (typeof window.__dawgReportReplayState === "function") {
+                void window.__dawgReportReplayState(state);
+            }
+            return state;
+        };
 
         const formatTime = milliseconds => {
             const totalSeconds = Math.floor(Math.max(0, milliseconds) / 1000);
@@ -146,7 +173,10 @@ function interactiveScript(recordedViewport) {
             playPause.setAttribute("aria-label", playing ? "Pause replay" : "Play replay");
             speed.textContent = \`\${speeds[speedIndex]}x\`;
         };
-        const play = () => replayer.play(clamp(replayer.getCurrentTime()));
+        const play = () => {
+            if (replayer.getCurrentTime() >= replayDuration) replayer.pause(0);
+            replayer.play(clamp(replayer.getCurrentTime()));
+        };
         const pause = () => replayer.pause();
         const seek = timeOffset => {
             const target = clamp(timeOffset);
@@ -154,37 +184,59 @@ function interactiveScript(recordedViewport) {
             replayer.pause(target);
             if (shouldPlay) replayer.play(target);
             updateControls(target);
+            reportState("state", "seek");
             return target;
         };
+        const setSpeed = value => {
+            const index = speeds.indexOf(Number(value));
+            if (index < 0) throw new Error("unsupported replay speed");
+            speedIndex = index;
+            replayer.setConfig({ speed: speeds[speedIndex] });
+            updateControls(replayer.getCurrentTime());
+            reportState("state", "speed");
+            return speeds[speedIndex];
+        };
+        const getState = () => replayState("state", "requested");
         const restart = () => seek(0);
         const resizeStage = () => {
             const scale = Math.max(0.01, Math.min(
-                viewportHost.clientWidth / metadata.recordedViewport.width,
-                viewportHost.clientHeight / metadata.recordedViewport.height,
+                viewportHost.clientWidth / activeViewport.width,
+                viewportHost.clientHeight / activeViewport.height,
             ));
             stage.style.transform = \`scale(\${scale})\`;
         };
+        const updateRecordedViewport = dimension => {
+            const width = Math.round(Number(dimension?.width));
+            const height = Math.round(Number(dimension?.height));
+            if (!Number.isFinite(width) || !Number.isFinite(height) || width < 1 || height < 1) return;
+            activeViewport = { width, height };
+            stage.style.width = \`\${width}px\`;
+            stage.style.height = \`\${height}px\`;
+            resizeStage();
+        };
 
         timeline.max = String(replayDuration);
+        replayer.on(rrweb.ReplayerEvents.Resize, updateRecordedViewport);
         replayer.on(rrweb.ReplayerEvents.Start, () => {
             playing = true;
             updateControls(replayer.getCurrentTime());
+            reportState("state", "play");
         });
         replayer.on(rrweb.ReplayerEvents.Pause, () => {
             playing = false;
             updateControls(replayer.getCurrentTime());
+            reportState("state", "pause");
         });
         replayer.on(rrweb.ReplayerEvents.Finish, () => {
             playing = false;
             updateControls(replayDuration);
+            reportState("finished", "finish");
         });
         playPause.addEventListener("click", () => playing ? pause() : play());
         rewind.addEventListener("click", () => seek(replayer.getCurrentTime() - 10000));
         forward.addEventListener("click", () => seek(replayer.getCurrentTime() + 10000));
         speed.addEventListener("click", () => {
-            speedIndex = (speedIndex + 1) % speeds.length;
-            replayer.setConfig({ speed: speeds[speedIndex] });
-            updateControls(replayer.getCurrentTime());
+            setSpeed(speeds[(speedIndex + 1) % speeds.length]);
         });
         timeline.addEventListener("pointerdown", () => { scrubbing = true; });
         timeline.addEventListener("input", () => updateControls(Number(timeline.value)));
@@ -195,7 +247,10 @@ function interactiveScript(recordedViewport) {
         timeline.addEventListener("pointerup", () => { scrubbing = false; });
         new ResizeObserver(resizeStage).observe(viewportHost);
         resizeStage();
-        window.setInterval(() => updateControls(replayer.getCurrentTime()), 100);
+        window.setInterval(() => {
+            updateControls(replayer.getCurrentTime());
+            if (playing) reportState("state", "tick");
+        }, 100);
 
         replayer.pause(0);
         updateControls(0);
@@ -205,7 +260,7 @@ function interactiveScript(recordedViewport) {
         iframe.name = "dawg-replay-frame";
         iframe.title = "DAWG replayed page";
         iframe.dataset.dawgReplay = "true";
-        window.__DAWG_REPLAY__ = { events, replayer, iframe, play, pause, seek, restart, metadata };
+        window.__DAWG_REPLAY__ = { events, replayer, iframe, play, pause, seek, setSpeed, getState, restart, metadata };
     } catch (error) {
         window.__DAWG_REPLAY_ERROR__ = error && (error.stack || error.message) || String(error);
         console.error(error);
@@ -221,24 +276,33 @@ function installInteractiveControlChannel(page) {
         let command;
         try {
             command = JSON.parse(line);
-        } catch (_) {
-            process.stderr.write("Ignored malformed replay control message.\n");
-            return;
-        }
-        if (!command || command.type !== "seek" || !Number.isFinite(command.offsetMs)) {
-            process.stderr.write("Ignored unsupported replay control message.\n");
+            if (!command || typeof command.type !== "string") throw new Error("missing command type");
+            if (command.protocol && command.protocol !== REPLAY_PROTOCOL) throw new Error("unsupported replay protocol");
+            if (command.type === "seek" && !Number.isFinite(command.offsetMs)) throw new Error("seek requires a finite offsetMs");
+            if (command.type === "setSpeed" && ![0.5, 1, 1.5, 2, 4].includes(command.speed)) throw new Error("unsupported replay speed");
+            if (!["play", "pause", "seek", "setSpeed", "getState"].includes(command.type)) throw new Error("unsupported replay command");
+        } catch (error) {
+            emitReplayEvent({ type: "error", commandId: command?.id || null, message: error.message || String(error) });
             return;
         }
         try {
-            const offsetMs = await page.evaluate(offset => {
-                if (!window.__DAWG_REPLAY__ || typeof window.__DAWG_REPLAY__.seek !== "function") {
-                    throw new Error("replay controls are not ready");
+            const state = await page.evaluate(replayCommand => {
+                const controller = window.__DAWG_REPLAY__;
+                if (!controller) throw new Error("replay controls are not ready");
+                switch (replayCommand.type) {
+                    case "play": controller.play(); break;
+                    case "pause": controller.pause(); break;
+                    case "seek": controller.seek(replayCommand.offsetMs); break;
+                    case "setSpeed": controller.setSpeed(replayCommand.speed); break;
+                    case "getState": break;
+                    default: throw new Error("unsupported replay command");
                 }
-                return window.__DAWG_REPLAY__.seek(offset);
-            }, command.offsetMs);
-            process.stderr.write(`Replay seeked to ${Math.round(offsetMs)}ms.\n`);
+                return controller.getState();
+            }, command);
+            emitReplayEvent({ type: "ack", commandId: command.id || null, command: command.type });
+            emitReplayEvent({ ...state, type: "state", reason: "command" });
         } catch (error) {
-            if (!closed) process.stderr.write(`Replay seek failed: ${error.message || error}\n`);
+            if (!closed) emitReplayEvent({ type: "error", commandId: command.id || null, message: error.message || String(error) });
         }
     };
     process.stdin.setEncoding("utf8");
@@ -321,6 +385,9 @@ async function main() {
     const browser = await chromium.launch(launchOptions);
     try {
         const contextOptions = { ignoreHTTPSErrors: true };
+        if (options["color-scheme"] === "dark" || options["color-scheme"] === "light") {
+            contextOptions.colorScheme = options["color-scheme"];
+        }
         if (interactive) {
             // A null viewport follows the Chromium window size. The fixed replay
             // stage below then scales into that available area on resize/maximize.
@@ -345,6 +412,7 @@ async function main() {
         let evaluation;
 
         if (interactive) {
+            await page.exposeFunction("__dawgReportReplayState", event => emitReplayEvent(event));
             const resources = new Map([
                 ["/", { contentType: "text/html", body: interactiveDocument() }],
                 ["/index.html", { contentType: "text/html", body: interactiveDocument() }],
@@ -365,10 +433,11 @@ async function main() {
             await page.waitForFunction(() => window.__DAWG_REPLAY__ || window.__DAWG_REPLAY_ERROR__);
             evaluation = await page.evaluate(() => ({
                 duration: window.__DAWG_REPLAY__
-                    ? window.__DAWG_REPLAY__.metadata.lastTimestamp - window.__DAWG_REPLAY__.metadata.firstTimestamp
+                    ? window.__DAWG_REPLAY__.metadata.totalTime
                     : 0,
                 replayerError: window.__DAWG_REPLAY_ERROR__ || null,
                 iframeCount: document.querySelectorAll("iframe").length,
+                replayState: window.__DAWG_REPLAY__ ? window.__DAWG_REPLAY__.getState() : null,
             }));
         } else {
             await page.route("http://dawg-replay.local/events.json", route => {
@@ -408,11 +477,13 @@ async function main() {
 
         if (interactive) {
             installInteractiveControlChannel(page);
+            emitReplayEvent({ ...evaluation.replayState, type: "ready", reason: "ready" });
             process.stderr.write(`Interactive replay ready at http://dawg-replay.local/ with recorded viewport ${recordedViewport.width}x${recordedViewport.height}. Close the replay window when finished.\n`);
             await Promise.race([
                 new Promise(resolve => browser.once("disconnected", resolve)),
                 new Promise(resolve => page.once("close", resolve)),
             ]);
+            emitReplayEvent({ type: "closed" });
             return;
         }
 

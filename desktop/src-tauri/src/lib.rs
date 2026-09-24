@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
-use std::io::Write;
+use std::io::{BufRead, BufReader, Read, Write};
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{ChildStdin, Command, Stdio};
 use std::sync::Mutex;
-use tauri::{AppHandle, Manager};
+use std::thread;
+use tauri::{AppHandle, Emitter, Manager};
 
 /// Windows flag for starting engine processes without a console window.
 #[cfg(windows)]
@@ -35,6 +36,10 @@ struct ProcessRegistry {
 }
 
 impl ProcessRegistry {
+    fn replay_running(&self) -> bool {
+        self.replay_pid.lock().unwrap().is_some()
+    }
+
     fn start_replay(&self, pid: u32, stdin: ChildStdin) {
         *self.replay_pid.lock().unwrap() = Some(pid);
         *self.replay_stdin.lock().unwrap() = Some(stdin);
@@ -67,17 +72,16 @@ impl ProcessRegistry {
         }
     }
 
-    fn seek_replay(&self, offset_ms: u64) -> Result<(), String> {
+    fn control_replay(&self, command: serde_json::Value) -> Result<(), String> {
         let mut stdin = self.replay_stdin.lock().unwrap();
         let Some(stdin) = stdin.as_mut() else {
             return Err("No interactive replay is running.".to_string());
         };
-        let command = serde_json::json!({ "type": "seek", "offsetMs": offset_ms });
         writeln!(stdin, "{}", command)
-            .map_err(|error| format!("Failed to send replay seek: {}", error))?;
+            .map_err(|error| format!("Failed to send replay control: {}", error))?;
         stdin
             .flush()
-            .map_err(|error| format!("Failed to flush replay seek: {}", error))
+            .map_err(|error| format!("Failed to flush replay control: {}", error))
     }
 
     fn set_capture_daemon(&self, pid: u32) {
@@ -608,6 +612,18 @@ async fn export_artifact(
     .await
 }
 
+const REPLAY_EVENT_PREFIX: &str = "DAWG_REPLAY_EVENT\t";
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ReplayControl {
+    id: String,
+    #[serde(rename = "type")]
+    kind: String,
+    offset_ms: Option<u64>,
+    speed: Option<f64>,
+}
+
 #[tauri::command]
 async fn run_replay(
     app: AppHandle,
@@ -616,6 +632,9 @@ async fn run_replay(
 ) -> Result<CommandOutput, String> {
     // Desktop replays are intentionally interactive; direct CLI `dawg run`
     // remains the finite screenshot-producing workflow.
+    if registry.replay_running() {
+        return Err("An interactive replay is already running.".to_string());
+    }
     let mut cmd = build_engine_command(&app, "run", &["--interactive".to_string(), artifact]);
     cmd.stdin(Stdio::piped());
     cmd.stdout(Stdio::piped());
@@ -630,13 +649,59 @@ async fn run_replay(
         .take()
         .ok_or_else(|| "Failed to open interactive replay control channel.".to_string())?;
     registry.start_replay(pid, stdin);
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| "Failed to open replay result channel.".to_string())?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| "Failed to open replay event channel.".to_string())?;
+    let event_app = app.clone();
 
-    // Wait off the async executor thread: Child::wait_with_output blocks the
-    // calling thread until the process exits (or is killed by cancel_replay),
-    // which can take up to the engine's internal replay timeout.
-    let wait_result = tauri::async_runtime::spawn_blocking(move || child.wait_with_output())
-        .await
-        .map_err(|e| format!("Replay wait task panicked: {}", e))?;
+    // Drain stdout and stderr concurrently. Replay state is streamed on stderr
+    // while stdout remains the engine's final machine-readable result.
+    let wait_result = tauri::async_runtime::spawn_blocking(move || {
+        let stdout_reader = thread::spawn(move || {
+            let mut contents = String::new();
+            let result = BufReader::new(stdout).read_to_string(&mut contents);
+            (contents, result)
+        });
+        let stderr_reader = thread::spawn(move || {
+            let mut diagnostics = Vec::new();
+            for line in BufReader::new(stderr).lines() {
+                let line = line?;
+                if let Some(payload) = line.strip_prefix(REPLAY_EVENT_PREFIX) {
+                    match serde_json::from_str::<serde_json::Value>(payload) {
+                        Ok(event) => {
+                            let _ = event_app.emit("dawg://replay-event", event);
+                        }
+                        Err(error) => diagnostics.push(format!(
+                            "Invalid replay event from engine: {} ({})",
+                            payload, error
+                        )),
+                    }
+                } else {
+                    diagnostics.push(line);
+                }
+            }
+            Ok::<String, std::io::Error>(diagnostics.join("\n"))
+        });
+        let status = child.wait();
+        let (stdout, stdout_result) = stdout_reader
+            .join()
+            .map_err(|_| "Replay stdout reader panicked".to_string())?;
+        stdout_result.map_err(|error| format!("Failed to read replay result: {}", error))?;
+        let stderr = stderr_reader
+            .join()
+            .map_err(|_| "Replay stderr reader panicked".to_string())?
+            .map_err(|error| format!("Failed to read replay events: {}", error))?;
+        status
+            .map(|status| (status, stdout, stderr))
+            .map_err(|error| format!("Failed to wait for replay: {}", error))
+    })
+    .await
+    .map_err(|e| format!("Replay wait task panicked: {}", e))?;
 
     let was_cancelled = registry.finish_replay();
     if was_cancelled {
@@ -644,18 +709,16 @@ async fn run_replay(
     }
 
     match wait_result {
-        Ok(output) => {
-            let stdout_str = String::from_utf8_lossy(&output.stdout);
-            if output.status.success() {
-                let parsed: serde_json::Value = serde_json::from_str(&stdout_str)
-                    .unwrap_or_else(|_| serde_json::json!({ "raw": stdout_str.trim() }));
+        Ok((status, stdout, stderr)) => {
+            if status.success() {
+                let parsed: serde_json::Value = serde_json::from_str(&stdout)
+                    .unwrap_or_else(|_| serde_json::json!({ "raw": stdout.trim() }));
                 Ok(CommandOutput {
                     status: "success".to_string(),
                     payload: parsed,
                 })
             } else {
-                let stderr_str = String::from_utf8_lossy(&output.stderr);
-                Err(format!("Engine command failed: {}", stderr_str.trim()))
+                Err(format!("Engine command failed: {}", stderr.trim()))
             }
         }
         Err(err) => Err(format!("Failed to execute engine: {}", err)),
@@ -682,11 +745,49 @@ async fn cancel_replay(registry: tauri::State<'_, ProcessRegistry>) -> Result<bo
 }
 
 #[tauri::command]
+async fn control_replay(
+    registry: tauri::State<'_, ProcessRegistry>,
+    command: ReplayControl,
+) -> Result<(), String> {
+    if command.id.trim().is_empty() {
+        return Err("Replay controls require a command ID.".to_string());
+    }
+    match command.kind.as_str() {
+        "play" | "pause" | "getState" => {}
+        "seek" if command.offset_ms.is_some() => {}
+        "setSpeed"
+            if command
+                .speed
+                .is_some_and(|speed| matches!(speed, 0.5 | 1.0 | 1.5 | 2.0 | 4.0)) => {}
+        "seek" => return Err("Replay seek requires offsetMs.".to_string()),
+        "setSpeed" => return Err("Unsupported replay speed.".to_string()),
+        _ => return Err("Unsupported replay control command.".to_string()),
+    }
+    let mut payload = serde_json::json!({
+        "protocol": "dawg.replay.v1",
+        "id": command.id,
+        "type": command.kind,
+    });
+    if let Some(offset_ms) = command.offset_ms {
+        payload["offsetMs"] = serde_json::json!(offset_ms);
+    }
+    if let Some(speed) = command.speed {
+        payload["speed"] = serde_json::json!(speed);
+    }
+    registry.control_replay(payload)
+}
+
+#[tauri::command]
 async fn seek_replay(
     registry: tauri::State<'_, ProcessRegistry>,
     offset_ms: u64,
 ) -> Result<(), String> {
-    registry.seek_replay(offset_ms)
+    registry.control_replay(serde_json::json!({
+        "protocol": "dawg.replay.v1",
+        "id": format!("diagnostic-seek-{}", offset_ms),
+        "type": "seek",
+        "offsetMs": offset_ms,
+    }))
 }
 
 #[tauri::command]
@@ -725,6 +826,7 @@ pub fn run() {
             startup_artifact,
             run_replay,
             cancel_replay,
+            control_replay,
             seek_replay,
             verify_result
         ])

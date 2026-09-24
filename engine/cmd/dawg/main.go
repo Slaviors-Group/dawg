@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.3.3-middlechild"
+const version = "0.3.5-middlechild"
 
 func main() {
 	rootCommand := newRootCommand()
