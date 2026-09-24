@@ -26,6 +26,7 @@ const categories: Array<{ id: DiagnosticCategory; label: string; description: st
     description: "Remove network records and their retained bodies.",
   },
   { id: "errors", label: "Errors", description: "Remove retained error records." },
+  { id: "device", label: "Device", description: "Remove the captured browser device profile." },
   {
     id: "bodies",
     label: "All bodies",

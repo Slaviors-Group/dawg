@@ -3,7 +3,7 @@
 DAWG Desktop is the Tauri v2 interface for the Go engine. It uses Rust, React 19,
 Vite 7, Tailwind CSS 4, Framer Motion, and Phosphor icons.
 
-> Application package: `0.3.1-middlechild` · Tauri/Cargo package: `0.3.1`
+> Application package: `0.3.5-middlechild` · Tauri/Cargo package: `0.3.5`
 >
 > Bundled Node.js: `22.14.0` · Bundled mitmproxy: `12.2.3`
 >
@@ -29,15 +29,17 @@ import/export, replay controls, logs, and runtime diagnostics.
   review confirmation before artifact export.
 - **Replay and evidence review:** Dashboard **Replay** opens Replay with the
   selected artifact but does not start it. The Replay workspace reads packaged
-  console, network, error, and body evidence; filters evidence states; exports
+  console, network, error, device, and body evidence; filters evidence states; exports
   sanitized HAR; copies reviewed cURL for a selected request; and can create a
   reviewed OCI copy with selected categories or individual retained bodies
   removed. Export, cURL copy, and evidence removal require explicit review.
-  When a diagnostic timestamp falls in the recorded rrweb range, the workspace
-  can seek a live interactive replay to that approximate offset; it reports no
-  correlation rather than inventing one. **Run Replay** invokes
-  `dawg run --interactive <artifact>` and exposes play/pause, skip, speed,
-  timeline, and **Stop Replay** controls.
+  The Chromium and Desktop players share one authoritative rrweb clock, so
+  play/pause, skip, speed, and timeline changes remain synchronized in both
+  interfaces. Console, error, and staged network evidence appears at its literal
+  replay offset, while the Device tab shows sanitized browser, OS, viewport,
+  screen, locale, hardware-capacity, and connection metadata. An **All captured** view for uncorrelated records. **Run
+  Replay** invokes `dawg run --interactive <artifact>` and **Stop Replay**
+  terminates the active process tree.
 - **Process cleanup:** tracks replay and capture-daemon PIDs. Windows cancellation
   uses `taskkill /T /F`; application exit attempts to terminate tracked work.
 - **Doctor:** displays `dawg doctor --output json` component status.
@@ -60,8 +62,8 @@ engine implementation.
 | Staged runtime | `src-tauri/resources/` | Engine and replay/capture dependencies assembled by bundle scripts |
 | Packaging | `build-bundle.ps1`, `build-bundle.sh` | Runtime downloads/staging, doctor check, Tauri build |
 
-Engine output is buffered until each command completes; the current UI does not
-stream subprocess stdout/stderr live. Capture progress shown before stop/package
+Most engine command output is buffered until completion. Interactive replay state
+is streamed through a versioned event channel so Chromium and Desktop remain synchronized. Capture progress shown before stop/package
 completion is a UI estimate rather than engine-reported progress.
 
 ## 🔁 Runtime Flow
@@ -84,9 +86,10 @@ completion is a UI estimate rather than engine-reported progress.
    the PID.
 3. The engine unpacks the OCI layers and launches the replay script with the
    staged Node.js/Playwright/Chromium runtime.
-4. Chromium keeps the fixed recorded viewport open with in-page play/pause,
-   skip, speed, and timeline controls until it is closed or stopped.
-5. **Stop Replay** terminates the tracked process tree. Application exit performs
+4. Chromium reports authoritative playback state through the engine and Tauri;
+   Desktop and in-page play/pause, skip, speed, and timeline controls stay synchronized.
+5. Diagnostic console, error, and network evidence follows the reported replay time.
+6. **Stop Replay** terminates the tracked process tree. Application exit performs
    the same cleanup for tracked replay and capture processes.
 
 On Windows, replay runs in native compatibility mode: Docker Compose sandboxing

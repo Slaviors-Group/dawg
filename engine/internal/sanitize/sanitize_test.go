@@ -1,6 +1,7 @@
 package sanitize
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -53,6 +54,32 @@ func TestSanitizeFilesRedactsHeadersAndJSONBodies(t *testing.T) {
 	}
 	if body["name"] == "Ada" {
 		t.Fatalf("name was not replaced: %q", body["name"])
+	}
+}
+
+func TestSanitizeFilesProcessesDeviceProfile(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "diagnostics", "device.jsonl")
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	contents := []byte(`{"browser":{"name":"Chrome"},"operatingSystem":{"name":"Windows"},"device":{"model":"OptiPlex"},"ownerEmail":"person@example.test"}` + "\n")
+	if err := os.WriteFile(path, contents, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	report, err := SanitizeFiles(directory, "policy.rego", "1.2.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(result, []byte("person@example.test")) || report.FieldsRedacted == 0 {
+		t.Fatalf("device profile was not sanitized: %s", result)
+	}
+	if !bytes.Contains(result, []byte(`"name":"Chrome"`)) || !bytes.Contains(result, []byte(`"name":"Windows"`)) {
+		t.Fatalf("device descriptors were incorrectly redacted: %s", result)
 	}
 }
 

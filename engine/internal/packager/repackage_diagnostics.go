@@ -71,6 +71,7 @@ func RepackageDiagnostics(request DiagnosticRemovalRequest) (dawgtypes.PackagedA
 		"console": "diagnostics/console.jsonl",
 		"network": "diagnostics/network.jsonl",
 		"errors":  "diagnostics/errors.jsonl",
+		"device":  "diagnostics/device.jsonl",
 	} {
 		if categories[category] {
 			if err := os.Remove(filepath.Join(staging, filepath.FromSlash(relative))); err != nil && !os.IsNotExist(err) {
@@ -131,7 +132,7 @@ func RepackageDiagnostics(request DiagnosticRemovalRequest) (dawgtypes.PackagedA
 func validatedDiagnosticCategories(categories []string) (map[string]bool, error) {
 	result := map[string]bool{}
 	for _, category := range categories {
-		if category != "console" && category != "network" && category != "errors" && category != "bodies" {
+		if category != "console" && category != "network" && category != "errors" && category != "device" && category != "bodies" {
 			return nil, fmt.Errorf("packager: unknown diagnostic category %q", category)
 		}
 		if result[category] {

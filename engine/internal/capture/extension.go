@@ -54,6 +54,7 @@ const (
 	streamDiagnosticConsole
 	streamDiagnosticNetwork
 	streamDiagnosticErrors
+	streamDiagnosticDevice
 )
 
 func (client *webSocketClient) writeFrame(opcode byte, payload []byte) error {
@@ -125,12 +126,14 @@ type ExtensionServer struct {
 	diagnosticConsoleBuf   *bufio.Writer
 	diagnosticNetworkBuf   *bufio.Writer
 	diagnosticErrorsBuf    *bufio.Writer
+	diagnosticDeviceBuf    *bufio.Writer
 	rrwebFile              *os.File
 	actionsFile            *os.File
 	httpFile               *os.File
 	diagnosticConsoleFile  *os.File
 	diagnosticNetworkFile  *os.File
 	diagnosticErrorsFile   *os.File
+	diagnosticDeviceFile   *os.File
 	actualAddr             string
 	active                 atomic.Int32
 	diagnosticSequence     atomic.Int64
@@ -244,9 +247,16 @@ func (s *ExtensionServer) Start(ctx context.Context, directory string) error {
 		s.mu.Unlock()
 		return fmt.Errorf("capture: open diagnostics errors stream: %w", err)
 	}
+	s.diagnosticDeviceFile, err = os.OpenFile(filepath.Join(directory, "diagnostics", "device.jsonl"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	if err != nil {
+		_ = s.closeOutputsLocked()
+		s.mu.Unlock()
+		return fmt.Errorf("capture: open diagnostics device stream: %w", err)
+	}
 	s.diagnosticConsoleBuf = bufio.NewWriter(s.diagnosticConsoleFile)
 	s.diagnosticNetworkBuf = bufio.NewWriter(s.diagnosticNetworkFile)
 	s.diagnosticErrorsBuf = bufio.NewWriter(s.diagnosticErrorsFile)
+	s.diagnosticDeviceBuf = bufio.NewWriter(s.diagnosticDeviceFile)
 	s.diagnosticSequence.Store(0)
 	s.diagnosticConsoleCount.Store(0)
 	s.diagnosticNetworkCount.Store(0)
@@ -452,6 +462,7 @@ func (s *ExtensionServer) closeOutputsLocked() error {
 		{s.diagnosticConsoleBuf, s.diagnosticConsoleFile},
 		{s.diagnosticNetworkBuf, s.diagnosticNetworkFile},
 		{s.diagnosticErrorsBuf, s.diagnosticErrorsFile},
+		{s.diagnosticDeviceBuf, s.diagnosticDeviceFile},
 	} {
 		if pair.buf != nil {
 			closeErr = errors.Join(closeErr, pair.buf.Flush())
@@ -467,12 +478,14 @@ func (s *ExtensionServer) closeOutputsLocked() error {
 	s.diagnosticConsoleBuf = nil
 	s.diagnosticNetworkBuf = nil
 	s.diagnosticErrorsBuf = nil
+	s.diagnosticDeviceBuf = nil
 	s.rrwebFile = nil
 	s.actionsFile = nil
 	s.httpFile = nil
 	s.diagnosticConsoleFile = nil
 	s.diagnosticNetworkFile = nil
 	s.diagnosticErrorsFile = nil
+	s.diagnosticDeviceFile = nil
 	return closeErr
 }
 
@@ -493,6 +506,8 @@ func (s *ExtensionServer) appendJSONL(target streamTarget, data []byte) error {
 		buf = s.diagnosticNetworkBuf
 	case streamDiagnosticErrors:
 		buf = s.diagnosticErrorsBuf
+	case streamDiagnosticDevice:
+		buf = s.diagnosticDeviceBuf
 	default:
 		return fmt.Errorf("capture: unknown extension stream")
 	}
@@ -778,6 +793,14 @@ func (s *ExtensionServer) processEventPayload(rawPayload []byte, client *webSock
 			return nil
 		}
 		return s.appendDiagnostic(streamDiagnosticErrors, envelope.Data, envelope.Timestamp)
+	case "DAWG_DEVICE_INFO":
+		if !s.validSessionEnvelope(envelope, client) {
+			return nil
+		}
+		if len(envelope.Data) > 64<<10 || !json.Valid(envelope.Data) {
+			return fmt.Errorf("capture: invalid or oversized device profile")
+		}
+		return s.appendJSONL(streamDiagnosticDevice, envelope.Data)
 	case "DAWG_SESSION_START":
 		if !s.validSessionEnvelope(envelope, client) {
 			return nil

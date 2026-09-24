@@ -1,4 +1,6 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const { after, test } = require("node:test");
 
 class ChromeEvent {
@@ -146,6 +148,7 @@ test("daemon starts and stops one target tab with an acknowledged drain", async 
   assert.equal(globalThis.__DAWG_EXTENSION_TEST__.publicState().isRecording, true);
   assert.equal(globalThis.__DAWG_EXTENSION_TEST__.publicState().recordingTabId, 7);
   assert.equal(socket.sent.find((item) => item.type === "DAWG_SESSION_START").sessionToken, "session-test");
+  assert.equal(stored.dawg_recording_state.sessionToken, "session-test");
   assert.ok(tabMessages.some(({ tabId, message }) => tabId === 7 && message.type === "START_RECORDING"));
   assert.ok(
     scriptExecutions.some(
@@ -171,7 +174,19 @@ test("daemon starts and stops one target tab with an acknowledged drain", async 
     { tab: { id: 7 } },
     () => {}
   );
-  assert.equal(socket.sent.filter((item) => item.type === "DAWG_RRWEB_EVENT").length, 1);
+  await waitFor(
+    () => socket.sent.filter((item) => item.type === "DAWG_RRWEB_EVENT").length === 1,
+    "extension did not deliver the active tab rrweb event"
+  );
+  runtimeListener(
+    { type: "DAWG_DEVICE_INFO", payload: { formatVersion: "1", userAgent: "test-agent" } },
+    { tab: { id: 7 } },
+    () => {}
+  );
+  await waitFor(
+    () => socket.sent.some((item) => item.type === "DAWG_DEVICE_INFO" && item.data.userAgent === "test-agent"),
+    "extension did not deliver the device profile"
+  );
 
   socket.receive({ type: "DAWG_COMMAND_STOP", data: null });
   await waitFor(() => socket.sent.some((item) => item.type === "DAWG_SESSION_STOP"), "extension did not send the ordered stop marker");
@@ -179,6 +194,12 @@ test("daemon starts and stops one target tab with an acknowledged drain", async 
   assert.ok(tabMessages.some(({ tabId, message }) => tabId === 7 && message.type === "STOP_RECORDING"));
 });
 
+
+test("capture panel is status-only", () => {
+  const panel = fs.readFileSync(path.join(__dirname, "..", "content", "popup-panel.js"), "utf8");
+  assert.doesNotMatch(panel, /Stop Recording|CMD_STOP_CAPTURE|btnStop/);
+  assert.match(panel, /Stop it from the DAWG desktop app/);
+});
 
 test("toolbar action injects and toggles the in-page capture panel", async () => {
   await actionClicked.listeners[0]({ id: 7 });

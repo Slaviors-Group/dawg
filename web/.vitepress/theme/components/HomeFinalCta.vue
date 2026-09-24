@@ -11,7 +11,10 @@ const { isRevealed, sectionRef } = useScrollReveal()
         <div class="dh-final-content">
           <h2 class="dh-final-title">Capture Once.<br/>Investigate With Context.</h2>
           <p class="dh-final-desc">Install the desktop bundle and extension, capture the failing session, then replay or share the validated artifact.</p>
-          <a class="dh-cta dh-cta-lg dh-cta-dark" href="/docs/installation">Get Started &rarr;</a>
+          <div class="dh-final-actions">
+            <a class="dh-cta dh-cta-lg dh-cta-dark" href="https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_x64-setup.exe">Download for Windows &rarr;</a>
+            <a class="dh-final-link" href="/docs/installation">Linux and other options</a>
+          </div>
         </div>
         <div class="dh-final-graphic">
           <div class="dh-graphic-circles">
@@ -92,6 +95,10 @@ const { isRevealed, sectionRef } = useScrollReveal()
   filter: blur(8px);
   transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s, filter 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s, background var(--duration-fast), box-shadow var(--duration-fast);
 }
+
+.dh-final-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.dh-final-link { color: var(--color-text-secondary); font-size: 14px; font-weight: 600; text-decoration: none; }
+.dh-final-link:hover { color: var(--color-text-primary); }
 
 /* ── Revealed States ── */
 .dh-revealed .dh-final-title,

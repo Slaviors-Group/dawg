@@ -6,7 +6,7 @@ the local capture daemon.
 
 > Manifest: `3` · Minimum Chrome/Chromium: `116`
 >
-> Install version: `0.3.1` · Display version: `0.3.1_middlechild`
+> Install version: `0.3.5` · Display version: `0.3.5_middlechild`
 
 Playwright and bundled Chromium are replay dependencies. Capture runs in the
 user's installed Chrome or Chromium browser.
@@ -63,8 +63,8 @@ A normal session proceeds as follows:
    starts the recorder, and sends `DAWG_SESSION_START` with the active Safe or
    Enhanced Diagnostics profile. If CDP attachment for Enhanced fails, it records
    a degradation and continues in Safe mode.
-5. It delivers `DAWG_RRWEB_EVENT`, `DAWG_ACTION_EVENT`, and `DAWG_HTTP_EVENT`
-   envelopes. A `DAWG_KEEPALIVE` is sent every 20 seconds while connected.
+5. It delivers rrweb, action, HTTP, diagnostic, and one bounded `DAWG_DEVICE_INFO`
+   envelope. A `DAWG_KEEPALIVE` is sent every 20 seconds while connected.
 6. On stop, the extension stops rrweb, waits for pending deliveries, sends
    `DAWG_SESSION_STOP`, and waits up to 3.5 seconds for
    `DAWG_SESSION_STOP_ACK`.
@@ -87,6 +87,17 @@ connection.
 
 - Click timestamp and a basic element selector
 - Input timestamp, selector, field name, input type, and entered value
+
+### Browser device profile
+
+At capture start, the extension records browser and OS client hints when Chrome
+provides them, viewport and screen dimensions, pixel ratio, locale, timezone,
+logical processor count, approximate device memory, connection hints, page URL,
+and user agent. The profile is sanitized with the other diagnostic records.
+
+Browser security does not expose MAC addresses, hostnames, or reliable IP
+addresses. DAWG marks these fields unavailable and does not contact an external
+IP-discovery service.
 
 ### Diagnostic evidence profiles
 
@@ -129,9 +140,9 @@ valid DOM/SVG nodes.
 
 - If capture remains waiting, confirm the extension is enabled and reloaded, the
   target uses `http://` or `https://`, and loopback port `8082` is not blocked.
-- The popup reports current state and can stop an active recording. Capture must
-  be started by the desktop app or CLI so the extension receives a daemon-issued
-  session token.
+- The popup reports current state. Start and stop capture from the desktop app or
+  CLI so the extension receives a daemon-issued session token and drains pending
+  events before packaging.
 - Closing the selected tab sends a session error and stops extension recording.
 - A service-worker restart restores session-scoped capture state; the content
   script wakes the worker while a normal page remains open.
@@ -148,8 +159,8 @@ npm run check:versions
 ```
 
 Chrome requires a numeric install version. The synchronizer converts
-`0.3.1_middlechild` to `version: "0.3.1"` and
-`version_name: "0.3.1_middlechild"`.
+`0.3.5_middlechild` to `version: "0.3.5"` and
+`version_name: "0.3.5_middlechild"`.
 
 ## ✅ Validation
 
@@ -158,7 +169,7 @@ From the repository root:
 ```powershell
 node --check extension/background/service_worker.js
 node --check extension/content/recorder.js
-node --check extension/popup/popup.js
+node --check extension/content/popup-panel.js
 node --test extension/tests/service_worker.test.cjs
 ```
 

@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-
 	"time"
 
 	"github.com/Slaviors-Group/dawg/engine/internal/dawgenv"
@@ -137,6 +136,19 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string, interactive bo
 		BrowsersDir:  dawgenv.ResolveBrowsersDir(),
 		ChromiumPath: dawgenv.ResolveChromiumExecutable(),
 		Interactive:  interactive,
+	}
+	if evidence, err := packager.ReadDiagnostics(layoutDir); err == nil {
+		if appearance, ok := evidence.Device["appearance"].(map[string]any); ok {
+			if colorScheme, ok := appearance["colorScheme"].(string); ok {
+				player.ColorScheme = colorScheme
+			}
+		}
+	}
+	if interactive {
+		player.ReplayEventSink = func(event json.RawMessage) error {
+			_, err := fmt.Fprintf(os.Stderr, "DAWG_REPLAY_EVENT\t%s\n", event)
+			return err
+		}
 	}
 
 	outcome, replayErr := player.Replay(ctx, tmpDir)

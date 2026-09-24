@@ -7,21 +7,21 @@ session as an OCI Image Layout, and replays its rrweb DOM trace in Chromium. The
 repository contains a Go CLI, a Tauri desktop application, and a Chromium
 Manifest V3 extension.
 
-> **Current prerelease:** [`0.3.3-middlechild`](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-3)
+> **Current prerelease:** [`0.3.5-middlechild`](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-5)
 >
-> Application and artifact schema: `0.3.3-middlechild` · Desktop: `0.3.3` · Extension: `0.3.1_middlechild`
+> Application and artifact schema: `0.3.5-middlechild` · Desktop: `0.3.5` · Extension: `0.3.5_middlechild`
 
 ## 📦 Install the Current Release
 
-DAWG [`0.3.3-middlechild`](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-3) is the current application and artifact-schema release.
+DAWG [`0.3.5-middlechild`](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-5) is the current application and artifact-schema release.
 
-- [Download DAWG for Windows (x64 installer)](https://github.com/Slaviors-Group/dawg/releases/latest/download/DAWG_0.3.3_x64-setup.exe)
-- [Download DAWG for Linux (x86_64 AppImage)](https://github.com/Slaviors-Group/dawg/releases/latest/download/DAWG_0.3.3_amd64.AppImage)
+- [Download DAWG for Windows (x64 installer)](https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_x64-setup.exe)
+- [Download DAWG for Linux (x86_64 AppImage)](https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_amd64.AppImage)
 
-These links download the matching asset from the latest GitHub release directly.
+These links download the matching asset from the `middlechild-5` GitHub release directly.
 After downloading the Linux AppImage, make it executable with
-`chmod +x DAWG_0.3.3_amd64.AppImage` and run it with
-`./DAWG_0.3.3_amd64.AppImage`. Visit the
+`chmod +x DAWG_0.3.5_amd64.AppImage` and run it with
+`./DAWG_0.3.5_amd64.AppImage`. Visit the
 [GitHub releases page](https://github.com/Slaviors-Group/dawg/releases) for
 checksums, release notes, and older assets.
 
@@ -29,10 +29,10 @@ checksums, release notes, and older assets.
 
 - **Extension-driven capture:** the desktop app or CLI selects one `http://` or
   `https://` tab. The extension records rrweb events, click/input actions, and
-  frontend request/response metadata.
+  frontend request/response metadata and a sanitized browser device profile.
 - **Sanitization before packaging:** heuristic secret/PII rules and an OPA policy
   process supported JSONL streams before an artifact is published.
-- **Diagnostic evidence:** **Safe** capture records bounded console/error and network metadata without CDP body retrieval. **Enhanced Diagnostics** is an explicit, consented CDP opt-in that adds CDP console, exception, and network evidence; it can retain eligible text or structured response bodies within capture limits. Retained diagnostic evidence is sanitized before packaging, and CDP degradation or safe fallback is recorded.
+- **Diagnostic evidence:** **Safe** capture records bounded console/error, network, and browser device metadata without CDP body retrieval. **Enhanced Diagnostics** is an explicit, consented CDP opt-in that adds CDP console, exception, and network evidence; it can retain eligible text or structured response bodies within capture limits. Retained diagnostic evidence is sanitized before packaging, and CDP degradation or safe fallback is recorded.
 - **OCI artifacts:** sessions are stored as digest-addressed OCI Image Layouts
   under `~/.dawg/artifacts/` by default.
 - **Portable `.dawg` archives:** validated artifacts can be exported as ZIP-based
@@ -40,8 +40,10 @@ checksums, release notes, and older assets.
 - **Persistent catalog:** `~/.dawg/artifact-catalog.json` tracks captured,
   imported, and previously uncataloged local artifacts.
 - **Browser replay and review:** Desktop launches interactive Playwright Chromium
-  with play/pause, skip, speed, and timeline controls. Its Replay workspace
-  reviews packaged diagnostic evidence and can export sanitized HAR or copy a
+  with play/pause, skip, speed, and timeline controls synchronized with the
+  Desktop player. Console and network evidence follows literal replay time and
+  remains available for full-capture review. Its Replay workspace reviews
+  packaged diagnostic evidence and can export sanitized HAR or copy a
   reviewed cURL request. Standard CLI replay writes a final screenshot and exits.
 - **Desktop process control:** an active replay can be cancelled. On Windows,
   cancellation and application shutdown terminate the tracked engine process
@@ -64,6 +66,11 @@ checksums, release notes, and older assets.
   entered value, and request metadata can contain headers and request bodies,
   until the engine sanitizes the capture at stop time. Review an artifact before
   sharing it; sanitization reduces exposure but is not a confidentiality proof.
+- Device evidence includes browser/OS hints, viewport, screen, locale, timezone,
+  approximate browser-exposed hardware capacity, connection hints, page URL, and
+  user agent. Browser APIs do not expose MAC addresses, hostnames, or reliable IP
+  addresses; DAWG records those fields as unavailable and does not call an external
+  IP-discovery service.
 - The extension requests `<all_urls>` access and captures only the tab selected
   for the active token-bearing session.
 - Imported `.dawg` archives are extracted into staging and checked for traversal,
@@ -233,9 +240,9 @@ Node.js, and mitmproxy versions.
 
 ```json
 {
-  "appVersion": "0.3.3-middlechild",
-  "desktopVersion": "0.3.3",
-  "extensionVersion": "0.3.1_middlechild",
+  "appVersion": "0.3.5-middlechild",
+  "desktopVersion": "0.3.5",
+  "extensionVersion": "0.3.5_middlechild",
   "runtime": {
     "mitmproxy": "12.2.3",
     "node": "22.14.0"
@@ -251,8 +258,8 @@ npm run check:versions
 ```
 
 The synchronizer normalizes labels for npm, Cargo, Tauri, the schema, and Chrome.
-Chrome receives numeric `version: "0.3.1"` plus display label
-`version_name: "0.3.1_middlechild"`. Dependency versions remain managed by package
+Chrome receives numeric `version: "0.3.5"` plus display label
+`version_name: "0.3.5_middlechild"`. Dependency versions remain managed by package
 manifests and lockfiles.
 
 ## ✅ Validation

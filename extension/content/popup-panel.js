@@ -97,23 +97,7 @@
         line-height: 1.5;
       }
       .info-box p[style] { color: hsl(348 80% 40%) !important; }
-      .actions { display: flex; gap: 8px; margin-top: 2px; }
-      .btn {
-        width: 100%;
-        padding: 10px 12px;
-        border: 1px solid transparent;
-        border-radius: 8px;
-        color: #fff;
-        cursor: pointer;
-        font: inherit;
-        font-size: 13px;
-        font-weight: 700;
-        transition: background-color 120ms ease, transform 120ms ease;
-      }
-      .btn:active { transform: translateY(1px); }
-      .btn-danger { background: hsl(348 80% 40%); }
-      .btn-danger:hover { background: hsl(348 80% 35%); }
-      .hidden { display: none !important; }
+
     </style>
     <div class="card">
       <div class="header">
@@ -127,30 +111,24 @@
         <div class="info-box" id="infoBox">
           <p>Start a capture from the DAWG desktop app.</p>
         </div>
-        <div class="actions">
-          <button id="btnStop" class="btn btn-danger hidden">Stop Recording</button>
-        </div>
+
       </div>
     </div>
   `;
 
-  // (document.body || document.documentElement).appendChild(host);
 
   const statusBadge = root.getElementById("statusBadge");
   const infoBox = root.getElementById("infoBox");
-  const btnStop = root.getElementById("btnStop");
 
   function updateUI(state) {
     if (state && state.isRecording) {
       statusBadge.textContent = "Recording";
       statusBadge.className = "badge status-recording";
-      btnStop.classList.remove("hidden");
       infoBox.innerHTML =
-        '<p style="color:#f87171;">Recording the desktop-selected browser tab.</p>';
+        '<p style="color:#f87171;">Recording the desktop-selected browser tab. Stop it from the DAWG desktop app.</p>';
     } else {
       statusBadge.textContent = "Idle";
       statusBadge.className = "badge status-idle";
-      btnStop.classList.add("hidden");
       infoBox.innerHTML = "<p>Start a capture from the DAWG desktop app.</p>";
     }
   }
@@ -220,11 +198,6 @@
     if (host.isConnected) host.remove();
   }
 
-  btnStop.addEventListener("click", () => {
-    chrome.runtime.sendMessage({ type: "CMD_STOP_CAPTURE" }, (response) => {
-      if (!chrome.runtime.lastError) updateUI(response);
-    });
-  });
 
   chrome.runtime.onMessage.addListener((message) => {
     if (!message || message.type !== "DAWG_TOGGLE_PANEL") return;
