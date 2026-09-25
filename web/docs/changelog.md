@@ -1,12 +1,14 @@
 # Changelog
 
-Notable changes to DAWG are grouped by release family and listed in descending release order. Released versions link to their corresponding GitHub releases.
+Notable changes to DAWG are grouped by release family and listed in descending release order. Released versions link to their corresponding GitHub releases. Download links appear only for assets currently published on that release.
 
 ## Middlechild family — `0.3.x`
 
 ### [0.3.5-middlechild](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-5) - 2026-09-24
 
 **Desktop:** `0.3.5` · **Extension display version:** `0.3.5_middlechild`
+
+**Downloads:** [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_x64-setup.exe) · [Linux AppImage](https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_amd64.AppImage)
 
 ### Added
 
@@ -35,6 +37,8 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 
 **Desktop:** `0.3.3` · **Extension display version:** `0.3.1_middlechild`
 
+**Downloads:** [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/middlechild-3/DAWG_0.3.3_x64-setup.exe)
+
 ### Added
 
 - Exported `.dawg` artifacts now register as **DAWG Artifact** documents in desktop bundles, using the DAWG paw application icon.
@@ -49,6 +53,8 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 ### [0.3.2-middlechild](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-2) - 2026-09-23
 
 **Desktop:** `0.3.2` · **Extension display version:** `0.3.1_middlechild`
+
+**Downloads:** [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/middlechild-2/DAWG_0.3.2_x64-setup.exe) · [Linux AppImage](https://github.com/Slaviors-Group/dawg/releases/download/middlechild-2/DAWG_0.3.2_amd64.AppImage)
 
 ### Fixed
 
@@ -68,6 +74,8 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 ### [0.3.1-middlechild](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild) - 2026-09-21
 
 **Desktop:** `0.3.1` · **Extension display version:** `0.3.1_middlechild`
+
+**Downloads:** [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/middlechild/DAWG_0.3.1_x64-setup.exe) · [Linux AppImage](https://github.com/Slaviors-Group/dawg/releases/download/middlechild/DAWG_0.3.1_amd64.AppImage)
 
 ### Added
 
@@ -110,6 +118,8 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 
 **Tag:** `naughty-4`
 
+**Downloads:** [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/naughty-4/DAWG_0.2.7_x64-setup.exe) · [Linux AppImage](https://github.com/Slaviors-Group/dawg/releases/download/naughty-4/DAWG_0.2.7_amd64.AppImage)
+
 ### Added
 
 - Replay debugging through Chromium DevTools with named replay resources and a `window.__DAWG_REPLAY__` handle for the reconstructed rrweb document
@@ -126,9 +136,11 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 
 ---
 
-### [0.2.5-naughty](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3)
+### [0.2.5-naughty](https://github.com/Slaviors-Group/dawg/releases/tag/naughty-3) - 2026-09-19
 
 **Tag:** `naughty-3`
+
+**Downloads:** [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/naughty-3/DAWG_0.2.5_x64-setup.exe) · [Linux AppImage](https://github.com/Slaviors-Group/dawg/releases/download/naughty-3/DAWG_0.2.5_amd64.AppImage)
 
 ### Added
 
@@ -148,6 +160,8 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 
 **Tag:** `naughty-2` · **Release:** Naughty 2, Naughty Boy
 
+**Downloads:** [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/naughty-2/DAWG_0.2.3_x64-setup.exe)
+
 ### Added
 
 - Portable `.dawg` artifact import and export through the engine, native desktop dialogs, and desktop drag-and-drop
@@ -165,6 +179,8 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 ### [0.2.0-naughty](https://github.com/Slaviors-Group/dawg/releases/tag/naughty) - 2026-09-11
 
 **Tag:** `naughty` · **Release:** Naughty Boy is Here, Finally
+
+**Downloads:** [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/naughty/DAWG_0.2.0_x64-setup.exe)
 
 ### Added
 
@@ -186,6 +202,8 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 
 **Tag:** `v0.1.3` · **Release:** v0.1.3-1/alpha
 
+**Downloads:** [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/v0.1.3/DAWG_0.1.3_x64-setup.exe)
+
 ### Added
 
 - Base Jenkins configuration for automated build and bundle validation
@@ -202,6 +220,8 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 
 **Tag:** `alpha-3` · **Release:** v0.1.2-1/alpha
 
+**Downloads:** [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/alpha-3/DAWG_0.1.2_x64-setup.exe)
+
 ### Changed
 
 - Revamped the desktop UI and standardized control paths
@@ -216,6 +236,8 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 
 **Tag:** `alpha-2` · **Release:** v0.1.1-1/alpha
 
+**Downloads:** [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/alpha-2/DAWG_0.1.1_x64-setup.exe)
+
 ### Changed
 
 - Improved dynamic path integration and engine commands on Windows
@@ -226,6 +248,8 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 ### [0.1.0-alpha](https://github.com/Slaviors-Group/dawg/releases/tag/alpha) - 2026-09-04
 
 **Tag:** `alpha` · **Release:** 0.1.0-1/alpha
+
+**Downloads:** [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/alpha/DAWG_0.1.0_x64-setup.exe) · [Windows MSI](https://github.com/Slaviors-Group/dawg/releases/download/alpha/DAWG_0.1.0_x64_en-US.msi)
 
 ### Added
 

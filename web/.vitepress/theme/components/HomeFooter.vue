@@ -26,6 +26,7 @@
           <div class="dh-foot-col">
             <p class="dh-foot-head">Project</p>
             <a href="https://github.com/Slaviors-Group/dawg" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a href="https://github.com/Slaviors-Group/dawg/issues/new/choose" target="_blank" rel="noopener noreferrer">Report a bug</a>
             <a href="https://github.com/Slaviors-Group/dawg/releases" target="_blank" rel="noopener noreferrer">Releases</a>
             <a href="https://github.com/sponsors/Slaviors-Group" target="_blank" rel="noopener noreferrer">Sponsor DAWG</a>
             <a href="/docs/contributing">Contributing</a>
@@ -34,6 +35,7 @@
             <p class="dh-foot-head">Legal</p>
             <a href="/docs/privacy-policy">Privacy Policy</a>
             <a href="/docs/terms-of-service">Terms of Service</a>
+            <a href="https://github.com/Slaviors-Group/dawg/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">License (GPL-3.0)</a>
           </div>
         </div>
 
@@ -44,8 +46,8 @@
 
         </div>
       </div>
+      <p class="dh-foot-copyright">© 2026 Slaviors Group. All rights reserved.</p>
     </div>
-
 
     <div class="dh-foot-huge-wrap">
       <div class="dh-huge-glow"></div>
@@ -112,6 +114,14 @@
 }
 .dh-foot-social a:hover {
   color: var(--color-text-primary);
+}
+
+.dh-foot-copyright {
+  margin: 0;
+  padding: 20px 0 40px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-tertiary);
+  font-size: 13px;
 }
 
 @media (max-width: 860px) {
