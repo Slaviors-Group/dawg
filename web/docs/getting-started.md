@@ -1,3 +1,7 @@
+---
+description: "Capture, sanitize, inspect, export, import, and replay your first portable DAWG bug-reproduction artifact."
+---
+
 # Getting Started
 
 DAWG records one browser tab, sanitizes the captured data, and packages the session as a portable OCI artifact. The recommended workflow uses the desktop app together with the DAWG Browser Extension.

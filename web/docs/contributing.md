@@ -1,3 +1,7 @@
+---
+description: "DAWG repository setup, architecture, coding standards, validation commands, release workflow, and feedback policy."
+---
+
 # Contributing
 
 DAWG's code is public, but public code does not mean public code contributions are currently accepted. Do **not** submit pull requests. This guide documents the repository layout, development setup, validation commands, and version management for people working with the source.
@@ -179,6 +183,7 @@ From `web/`:
 ```bash
 npm ci
 npm run docs:build
+npm run docs:check-seo
 ```
 
 ### Bundle and Native Smoke Testing

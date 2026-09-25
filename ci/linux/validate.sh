@@ -48,5 +48,6 @@ echo "==> Documentation validation"
 cd "${REPO_ROOT}/web"
 npm ci --no-audit --no-fund
 npm run docs:build
+npm run docs:check-seo
 
 echo "All validation checks passed."

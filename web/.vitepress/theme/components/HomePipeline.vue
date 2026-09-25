@@ -10,14 +10,18 @@ const features = [
     title: 'Capture from the browser you already use',
     desc: 'The desktop app and Chromium extension record rrweb events, user actions, and frontend request metadata from the tab where the bug occurs.',
     placeholderType: 'window',
-    image: '/assets/images/capture-browser.png'
+    image: '/assets/images/capture-browser.png',
+    imageWidth: 1907,
+    imageHeight: 967
   },
   {
     size: 'large',
     title: 'Sanitize before packaging',
     desc: 'Built-in heuristics replace common PII and secrets, then an OPA policy gates the sanitized capture before DAWG creates the artifact.',
     placeholderType: 'code',
-    image: '/assets/images/sanitize-before-packaging.png'
+    image: '/assets/images/sanitize-before-packaging.png',
+    imageWidth: 1536,
+    imageHeight: 1024
   },
   // Three small features for the bottom row
   {
@@ -25,21 +29,27 @@ const features = [
     title: 'Replay with recorded context',
     desc: 'Render the captured rrweb timeline in Chromium and inspect replay diagnostics without needing the original application.',
     placeholderType: 'chart',
-    image: '/assets/images/replay-recorded-context.png'
+    image: '/assets/images/replay-recorded-context.png',
+    imageWidth: 1536,
+    imageHeight: 1024
   },
   {
     size: 'small',
     title: 'Persistent Artifact Catalog',
     desc: 'Keep captured, imported, and discovered legacy artifacts available across desktop restarts.',
     placeholderType: 'network',
-    image: '/assets/images/persistent-artifact-catalog.png'
+    image: '/assets/images/persistent-artifact-catalog.png',
+    imageWidth: 1536,
+    imageHeight: 1024
   },
   {
     size: 'small',
     title: 'Portable .dawg Archives',
     desc: 'Export validated OCI layouts as .dawg files, import them safely, or exchange artifacts through an OCI registry.',
     placeholderType: 'devices',
-    image: '/assets/images/portable-dawg-archives.png'
+    image: '/assets/images/portable-dawg-archives.png',
+    imageWidth: 1536,
+    imageHeight: 1024
   }
 ]
 </script>
@@ -48,7 +58,10 @@ const features = [
   <section class="dh-section" :class="{ 'dh-revealed': isRevealed }" ref="sectionRef">
     <div class="dh-inner">
       <div class="dh-section-head">
-        <h2 class="dh-h2">Powerful features to simplify your<br/>bug reproducing experience</h2>
+        <h2 class="dh-h2">
+          Powerful features to simplify your
+          <span class="dh-heading-line">bug-reproduction experience</span>
+        </h2>
       </div>
 
       <div class="dh-bento-grid">
@@ -69,7 +82,15 @@ const features = [
                  <div class="dh-mock-dot"></div>
                </div>
                <div class="dh-mock-body" :class="{ 'dh-mock-body--img': p.image }">
-                 <img v-if="p.image" :src="p.image" :alt="p.title" />
+                 <img
+                   v-if="p.image"
+                   :src="p.image"
+                   :alt="p.title"
+                   :width="p.imageWidth"
+                   :height="p.imageHeight"
+                   loading="lazy"
+                   decoding="async"
+                 />
                </div>
              </div>
           </div>
@@ -92,6 +113,7 @@ const features = [
 .dh-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 10; }
 
 .dh-section-head { text-align: center; margin-bottom: 64px; }
+.dh-heading-line { display: block; }
 /* Matches "Title" sizing request */
 .dh-h2 { 
   font-size: clamp(36px, 5vw, 64px); font-weight: 400; 

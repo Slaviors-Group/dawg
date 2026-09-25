@@ -5,12 +5,12 @@
       <div class="dh-foot-top">
         <div class="dh-foot-brand">
           <a class="dh-brand" href="/">
-            <img src="/paw-dawg.svg" alt="DAWG" />
+            <img src="/paw-dawg.svg" alt="" width="28" height="28" decoding="async" />
             <span>DAWG</span>
           </a>
         </div>
         
-        <div class="dh-foot-links">
+        <nav class="dh-foot-links" aria-label="Footer navigation">
           <div class="dh-foot-col">
             <p class="dh-foot-head">Product</p>
             <a href="/docs/getting-started">Getting Started</a>
@@ -37,13 +37,19 @@
             <a href="/docs/terms-of-service">Terms of Service</a>
             <a href="https://github.com/Slaviors-Group/dawg/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">License (GPL-3.0)</a>
           </div>
-        </div>
+        </nav>
 
         <div class="dh-foot-social">
-
-          <a href="https://github.com/Slaviors-Group/dawg" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><i class="ph ph-github-logo"></i></a>
-          <a href="https://github.com/sponsors/Slaviors-Group" target="_blank" rel="noopener noreferrer" aria-label="Sponsor DAWG"><i class="ph ph-heart"></i></a>
-
+          <a href="https://github.com/Slaviors-Group/dawg" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M12 .7a11.5 11.5 0 0 0-3.64 22.4c.58.1.79-.25.79-.56v-2.24c-3.24.7-3.92-1.38-3.92-1.38-.53-1.35-1.3-1.71-1.3-1.71-1.06-.73.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.79 2.73 1.27 3.4.97.1-.76.41-1.27.74-1.56-2.58-.29-5.3-1.29-5.3-5.69 0-1.26.45-2.29 1.2-3.09-.12-.29-.52-1.47.11-3.05 0 0 .98-.31 3.16 1.18a10.98 10.98 0 0 1 5.75 0c2.19-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.76.11 3.05.75.8 1.2 1.83 1.2 3.09 0 4.42-2.72 5.39-5.31 5.68.42.36.79 1.07.79 2.16v3.21c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .7Z"/>
+            </svg>
+          </a>
+          <a href="https://github.com/sponsors/Slaviors-Group" target="_blank" rel="noopener noreferrer" aria-label="Sponsor DAWG">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="m12 21.35-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09A6 6 0 0 1 16.5 3C19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35Z"/>
+            </svg>
+          </a>
         </div>
       </div>
       <p class="dh-foot-copyright">© 2026 Slaviors Group. All rights reserved.</p>
@@ -109,8 +115,12 @@
 }
 .dh-foot-social a {
   color: var(--color-text-secondary);
-  font-size: 20px;
   transition: color var(--duration-fast);
+}
+.dh-foot-social svg {
+  display: block;
+  width: 20px;
+  height: 20px;
 }
 .dh-foot-social a:hover {
   color: var(--color-text-primary);

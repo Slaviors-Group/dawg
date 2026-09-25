@@ -1,3 +1,7 @@
+---
+description: "Explore DAWG's extension capture, sanitization, OCI packaging, artifact storage, Chromium replay, and verification pipeline."
+---
+
 # Architecture
 
 DAWG `0.3.5-middlechild` captures a browser session through an extension, sanitizes supported JSONL streams and retained diagnostic bodies, packages them as an OCI Image Layout, and renders the recording for replay and verification.

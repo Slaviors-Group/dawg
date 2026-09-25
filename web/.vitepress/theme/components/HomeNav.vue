@@ -13,7 +13,7 @@ const navLinks = [
   <header class="dh-nav">
     <div class="dh-nav-inner">
       <a class="dh-brand" href="/">
-        <img src="/paw-dawg.svg" alt="DAWG" />
+        <img src="/paw-dawg.svg" alt="" width="24" height="24" decoding="async" />
         <span>DAWG</span>
       </a>
       <nav class="dh-nav-links">

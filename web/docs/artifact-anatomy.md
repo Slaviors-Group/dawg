@@ -1,3 +1,7 @@
+---
+description: "Understand DAWG OCI layouts, evidence layers, portable .dawg archives, integrity validation, and reviewed artifacts."
+---
+
 # Artifact Anatomy
 
 A DAWG artifact is a portable, validated record of a browser reproduction. It

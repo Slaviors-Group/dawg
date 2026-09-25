@@ -27,8 +27,8 @@ function tiltStyle() {
     <section class="dh-hero">
       <div class="dh-inner">
         <h1 class="dh-display">
-          Capture every glitch.<br />
-          <span class="dh-accent">Replay it anywhere.</span>
+          <span class="dh-heading-line">Capture every glitch.</span>
+          <span class="dh-accent dh-heading-line">Replay it anywhere.</span>
         </h1>
 
         <p class="dh-sub">
@@ -48,7 +48,11 @@ function tiltStyle() {
         <div class="dh-preview-frame" :style="tiltStyle()">
           <img
             src="/assets/images/desktop-preview.png"
-            alt="DAWG Desktop Preview"
+            alt="DAWG desktop dashboard showing captured bug-reproduction artifacts"
+            width="1917"
+            height="1047"
+            fetchpriority="high"
+            decoding="async"
             class="dh-preview-img"
           />
         </div>
@@ -104,6 +108,7 @@ function tiltStyle() {
   opacity: 0;
   animation: textReveal 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+.dh-heading-line { display: block; }
 .dh-accent { color: var(--color-brand); }
 .dh-sub { 
   font-size: 18px; line-height: 1.6; color: var(--color-text-secondary); max-width: 640px; margin: 0 auto; font-weight: 400; 

@@ -1,3 +1,7 @@
+---
+description: "Install DAWG on Windows or Linux, add the Chromium extension, or configure the engine and desktop app from source."
+---
+
 # Installation
 
 DAWG is available as a self-contained desktop application or as source for engine, desktop, and extension development. The desktop application is the recommended way to use the complete workflow.

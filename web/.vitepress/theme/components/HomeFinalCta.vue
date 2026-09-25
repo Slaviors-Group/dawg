@@ -9,7 +9,10 @@ const { isRevealed, sectionRef } = useScrollReveal()
     <div class="dh-inner">
       <div class="dh-final-box">
         <div class="dh-final-content">
-          <h2 class="dh-final-title">Capture Once.<br/>Investigate With Context.</h2>
+          <h2 class="dh-final-title">
+            Capture Once.
+            <span class="dh-heading-line">Investigate With Context.</span>
+          </h2>
           <p class="dh-final-desc">Install the desktop bundle and extension, capture the failing session, then replay or share the validated artifact.</p>
           <div class="dh-final-actions">
             <a class="dh-cta dh-cta-lg dh-cta-dark" href="https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_x64-setup.exe">Download for Windows &rarr;</a>
@@ -22,7 +25,7 @@ const { isRevealed, sectionRef } = useScrollReveal()
             <div class="dh-circle dh-c1"></div>
             <div class="dh-circle dh-c2"></div>
             <div class="dh-circle dh-c3"></div>
-            <img src="/paw-dawg.svg" alt="DAWG" class="dh-graphic-logo" />
+            <img src="/paw-dawg.svg" alt="" width="80" height="80" decoding="async" class="dh-graphic-logo" />
           </div>
         </div>
       </div>
@@ -58,6 +61,7 @@ const { isRevealed, sectionRef } = useScrollReveal()
 }
 
 /* ── Scroll Reveal Initial States ── */
+.dh-heading-line { display: block; }
 .dh-final-title {
   font-size: clamp(42px, 5vw, 64px);
   font-weight: 400;

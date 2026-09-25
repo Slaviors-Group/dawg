@@ -1,3 +1,7 @@
+---
+description: "DAWG release history, direct Windows and Linux downloads, compatibility notes, additions, changes, and fixes."
+---
+
 # Changelog
 
 Notable changes to DAWG are grouped by release family and listed in descending release order. Released versions link to their corresponding GitHub releases. Download links appear only for assets currently published on that release.

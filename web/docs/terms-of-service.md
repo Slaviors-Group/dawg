@@ -1,3 +1,7 @@
+---
+description: "Terms for authorized DAWG use, captured-data responsibilities, artifact sharing, open-source licensing, warranty, and liability."
+---
+
 # Terms of Service
 
 **Last Updated**: September 12, 2026
