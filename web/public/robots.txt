@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://dawg.slaviors.id/sitemap.xml

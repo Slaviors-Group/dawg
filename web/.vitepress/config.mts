@@ -1,11 +1,54 @@
-import { defineConfig } from "vitepress";
+import { defineConfig, type HeadConfig } from "vitepress";
 import tailwindcss from "@tailwindcss/vite";
+
+const siteUrl = "https://dawg.slaviors.id";
+const socialImage = `${siteUrl}/og-image.png`;
+const defaultDescription =
+  "Capture, sanitize, package, share, and replay browser bug reproductions as portable OCI-based .dawg artifacts.";
+
+const softwareApplicationSchema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${siteUrl}/#website`,
+      name: "DAWG",
+      alternateName: "Digs Any Web-app Glitch",
+      url: `${siteUrl}/`,
+      description: defaultDescription,
+      inLanguage: "en-US",
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": `${siteUrl}/#software`,
+      name: "DAWG",
+      alternateName: "Digs Any Web-app Glitch",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Windows 10, Windows 11, Linux",
+      softwareVersion: "0.3.5-middlechild",
+      url: `${siteUrl}/`,
+      downloadUrl: [
+        "https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_x64-setup.exe",
+        "https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_amd64.AppImage",
+      ],
+      image: socialImage,
+      license: "https://github.com/Slaviors-Group/dawg/blob/main/LICENSE",
+      codeRepository: "https://github.com/Slaviors-Group/dawg",
+      description: defaultDescription,
+    },
+  ],
+};
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "DAWG - Digs Any Web-app Glitch",
-  description:
-    "A Portable, Versioned Bug-Reproduction Artifact Platform for Deterministic Full-Stack Web Application Debugging",
+  lang: "en-US",
+  title: "DAWG",
+  titleTemplate: ":title | DAWG",
+  description: defaultDescription,
+  cleanUrls: true,
+  sitemap: {
+    hostname: siteUrl,
+  },
 
   // Keep the site light-only until the custom dark theme is ready.
   // This also disables VitePress's system-theme detection and appearance switch.
@@ -29,8 +72,74 @@ export default defineConfig({
       },
     ],
     ["link", { rel: "icon", type: "image/svg+xml", href: "/paw-dawg.svg" }],
-    ["script", { src: "https://unpkg.com/@phosphor-icons/web" }],
+    ["meta", { name: "theme-color", content: "#6B21D9" }],
+    ["meta", { name: "color-scheme", content: "light" }],
   ],
+
+  transformHead({ pageData }) {
+    if (pageData.relativePath === "404.md") {
+      return [["meta", { name: "robots", content: "noindex, nofollow" }]];
+    }
+
+    const route =
+      pageData.relativePath === "index.md"
+        ? "/"
+        : `/${pageData.relativePath.replace(/\.md$/, "").replace(/\/index$/, "")}`;
+    const canonicalUrl = new URL(route, `${siteUrl}/`).href;
+    const pageTitle = pageData.title || "DAWG";
+    const pageDescription = pageData.description || defaultDescription;
+    const isHome = pageData.relativePath === "index.md";
+    const socialTitle = isHome ? pageTitle : `${pageTitle} | DAWG`;
+
+    const head: HeadConfig[] = [
+      ["link", { rel: "canonical", href: canonicalUrl }],
+      [
+        "meta",
+        {
+          name: "robots",
+          content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
+        },
+      ],
+      ["meta", { property: "og:type", content: isHome ? "website" : "article" }],
+      ["meta", { property: "og:site_name", content: "DAWG" }],
+      ["meta", { property: "og:locale", content: "en_US" }],
+      ["meta", { property: "og:title", content: socialTitle }],
+      ["meta", { property: "og:description", content: pageDescription }],
+      ["meta", { property: "og:url", content: canonicalUrl }],
+      ["meta", { property: "og:image", content: socialImage }],
+      ["meta", { property: "og:image:type", content: "image/png" }],
+      ["meta", { property: "og:image:width", content: "1200" }],
+      ["meta", { property: "og:image:height", content: "630" }],
+      [
+        "meta",
+        {
+          property: "og:image:alt",
+          content: "DAWG developer tool for capturing and replaying web application bugs",
+        },
+      ],
+      ["meta", { name: "twitter:card", content: "summary_large_image" }],
+      ["meta", { name: "twitter:title", content: socialTitle }],
+      ["meta", { name: "twitter:description", content: pageDescription }],
+      ["meta", { name: "twitter:image", content: socialImage }],
+      [
+        "meta",
+        {
+          name: "twitter:image:alt",
+          content: "DAWG developer tool for capturing and replaying web application bugs",
+        },
+      ],
+    ];
+
+    if (isHome) {
+      head.push([
+        "script",
+        { type: "application/ld+json" },
+        JSON.stringify(softwareApplicationSchema),
+      ]);
+    }
+
+    return head;
+  },
 
   vite: {
     plugins: [tailwindcss()],

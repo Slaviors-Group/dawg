@@ -1,3 +1,7 @@
+---
+description: "DAWG CLI commands and flags for capture, diagnostics, artifacts, replay, verification, registries, and runtime checks."
+---
+
 # CLI Reference
 
 This reference describes the DAWG `0.3.5-middlechild` command-line interface.

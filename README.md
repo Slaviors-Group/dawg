@@ -7,6 +7,8 @@ session as an OCI Image Layout, and replays its rrweb DOM trace in Chromium. The
 repository contains a Go CLI, a Tauri desktop application, and a Chromium
 Manifest V3 extension.
 
+**Website and documentation:** [dawg.slaviors.id](https://dawg.slaviors.id/)
+
 > **Current prerelease:** [`0.3.5-middlechild`](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-5)
 >
 > Application and artifact schema: `0.3.5-middlechild` · Desktop: `0.3.5` · Extension: `0.3.5_middlechild`

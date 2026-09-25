@@ -1,3 +1,7 @@
+---
+description: "How DAWG handles local captures, sanitization, artifact storage, browser diagnostics, device metadata, and third-party resources."
+---
+
 # Privacy Policy
 
 **Effective Date:** September 13, 2026

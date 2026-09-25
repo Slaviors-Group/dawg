@@ -46,7 +46,10 @@ const logLines = [
   <section class="dh-section" :class="{ 'dh-revealed': isRevealed }" ref="sectionRef">
     <div class="dh-inner">
       <div class="dh-head">
-        <h2 class="dh-h2">Ship with tooling that does<br/>what you expect.</h2>
+        <h2 class="dh-h2">
+          Ship with tooling that does
+          <span class="dh-heading-line">what you expect.</span>
+        </h2>
         <p class="dh-sub">One engine powers the DAWG desktop app and browser extension, with readable logs and live status at every step of capture, packaging, and replay.</p>
       </div>
 
@@ -126,6 +129,7 @@ const logLines = [
 }
 
 /* Matches "Title" sizing request */
+.dh-heading-line { display: block; }
 .dh-h2 { 
   font-size: clamp(36px, 5vw, 64px); font-weight: 400; 
   line-height: 1.1; letter-spacing: -0.03em; margin: 0 0 24px; 

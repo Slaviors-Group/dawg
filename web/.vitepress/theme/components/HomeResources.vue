@@ -8,7 +8,10 @@ const { isRevealed, sectionRef } = useScrollReveal()
   <section class="dh-section" :class="{ 'dh-revealed': isRevealed }" ref="sectionRef">
     <div class="dh-inner">
       <div class="dh-head">
-        <h2 class="dh-h2">Everything You Need.<br/>Nothing You Don’t.</h2>
+        <h2 class="dh-h2">
+          Everything You Need.
+          <span class="dh-heading-line">Nothing You Don’t.</span>
+        </h2>
         <p class="dh-sub">Comprehensive tools designed with simplicity and security in mind.</p>
       </div>
 
@@ -81,6 +84,7 @@ const { isRevealed, sectionRef } = useScrollReveal()
 .dh-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 10; }
 
 .dh-head { text-align: center; margin-bottom: 64px; }
+.dh-heading-line { display: block; }
 /* Matches "Title" sizing request */
 .dh-h2 { 
   font-size: clamp(36px, 5vw, 64px); font-weight: 400; 
