@@ -23,6 +23,19 @@ chmod +x DAWG_0.3.5_amd64.AppImage
 See [all releases](https://github.com/Slaviors-Group/dawg/releases) for
 checksums, release notes, older prereleases, and other assets.
 
+## Compatibility and Requirements
+
+| Platform or feature | Supported install | Minimum requirement |
+|---|---|---|
+| Windows desktop app | x64 NSIS installer | Windows 10 or Windows 11, 64-bit |
+| Linux desktop app | x86_64 AppImage | A 64-bit Linux distribution capable of running AppImage bundles |
+| Browser capture | DAWG Browser Extension | Chrome or Chromium 116 or newer |
+
+The current x86_64 AppImage has been tested on Fedora 44 and Arch Linux/CachyOS.
+Other 64-bit Linux distributions may work but are not yet verified. If the
+AppImage does not launch, build DAWG from source with
+`desktop/build-bundle.sh`.
+
 ## Desktop Application
 
 ### Windows

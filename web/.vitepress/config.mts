@@ -53,6 +53,7 @@ export default defineConfig({
         text: "Architecture",
         items: [
           { text: "Overview", link: "/docs/architecture" },
+          { text: "Artifact Anatomy", link: "/docs/artifact-anatomy" },
           { text: "Sanitizer Policy", link: "/docs/sanitizer-policy" },
         ],
       },
@@ -87,9 +88,13 @@ export default defineConfig({
         },
         {
           text: "Guide",
+          items: [{ text: "CLI Reference", link: "/docs/cli-reference" }],
+        },
+        {
+          text: "Architecture",
           items: [
-            { text: "CLI Reference", link: "/docs/cli-reference" },
-            { text: "Architecture", link: "/docs/architecture" },
+            { text: "Overview", link: "/docs/architecture" },
+            { text: "Artifact Anatomy", link: "/docs/artifact-anatomy" },
             { text: "Sanitizer Policy", link: "/docs/sanitizer-policy" },
           ],
         },
@@ -105,6 +110,10 @@ export default defineConfig({
           items: [
             { text: "Privacy Policy", link: "/docs/privacy-policy" },
             { text: "Terms of Service", link: "/docs/terms-of-service" },
+            {
+              text: "License (GPL-3.0)",
+              link: "https://github.com/Slaviors-Group/dawg/blob/main/LICENSE",
+            },
           ],
         },
       ],

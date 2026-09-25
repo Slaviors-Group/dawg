@@ -13,6 +13,7 @@ const { isRevealed, sectionRef } = useScrollReveal()
           <p class="dh-final-desc">Install the desktop bundle and extension, capture the failing session, then replay or share the validated artifact.</p>
           <div class="dh-final-actions">
             <a class="dh-cta dh-cta-lg dh-cta-dark" href="https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_x64-setup.exe">Download for Windows &rarr;</a>
+            <a class="dh-cta dh-cta-outline" href="https://github.com/Slaviors-Group/dawg/issues/new/choose" target="_blank" rel="noopener noreferrer">Report a bug</a>
             <a class="dh-final-link" href="/docs/installation">Linux and other options</a>
           </div>
         </div>
@@ -123,6 +124,15 @@ const { isRevealed, sectionRef } = useScrollReveal()
 }
 :global(:root.dark) .dh-cta-dark { background: #ffffff; color: #000000; }
 :global(:root.dark) .dh-cta-dark:hover { background: #f0f0f0; }
+
+.dh-cta-outline {
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+.dh-cta-outline:hover {
+  background: var(--color-surface-hover);
+  transform: translateY(-2px);
+}
 
 /* Abstract Graphic on the right */
 .dh-final-graphic {

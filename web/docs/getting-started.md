@@ -87,7 +87,7 @@ The dashboard refreshes after a successful capture. Under **Recent Artifacts**, 
 
 DAWG stores validated OCI artifact directories under `~/.dawg/artifacts/` and keeps their captured, imported, or legacy origin in `~/.dawg/artifact-catalog.json`. Untitled captures receive a hostname-based title, and artifact directories use readable timestamped names with numeric suffixes for collisions.
 
-A `.dawg` file is a ZIP-based transport archive. Import validates its paths, links, size limits, compression ratio, OCI descriptors, digests, and DAWG manifest before publishing it to the artifact store.
+A `.dawg` file is a ZIP-based transport archive. Import validates its paths, links, size limits, compression ratio, OCI descriptors, digests, and DAWG manifest before publishing it to the artifact store. See [Artifact Anatomy](/docs/artifact-anatomy) for the OCI layout, evidence layers, integrity checks, and reviewed-artifact behavior.
 
 ### 6. Replay
 
@@ -170,5 +170,6 @@ where the host platform supports those operations.
 
 - [Installation](/docs/installation) — Release installation, source setup, and bundle requirements
 - [Architecture](/docs/architecture) — How capture, sanitization, packaging, and replay fit together
+- [Artifact Anatomy](/docs/artifact-anatomy) — OCI layout, evidence layers, and artifact integrity
 - [Sanitizer Policy](/docs/sanitizer-policy) — Review the data-handling policy before sharing artifacts
 - [Contributing](/docs/contributing) — Development, validation, and versioning commands
