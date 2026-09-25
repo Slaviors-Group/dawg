@@ -155,12 +155,23 @@ const deviceProfileRows = (profile: Evidence) => {
   };
   const join = (...values: unknown[]) => values.map(textValue).filter(Boolean).join(" ");
   const dimensions = (value: Evidence) =>
-    value.width && value.height ? `${textValue(value.width)} × ${textValue(value.height)}` : "Unavailable";
+    value.width && value.height 
+      ? `${textValue(value.width)} × ${textValue(value.height)}` 
+      : "Unavailable";
 
   return [
-    { label: "Browser", value: join(browser.name, browser.fullVersion || browser.version) || "Unknown" },
-    { label: "Operating system", value: join(operatingSystem.name, operatingSystem.version) || "Unknown" },
-    { label: "Architecture", value: join(operatingSystem.architecture, operatingSystem.bitness) || "Unavailable" },
+    { 
+      label: "Browser", 
+      value: join(browser.name, browser.fullVersion || browser.version) || "Unknown" 
+    },
+    { 
+      label: "Operating system", 
+      value: join(operatingSystem.name, operatingSystem.version) || "Unknown" 
+    },
+    { 
+      label: "Architecture", 
+      value: join(operatingSystem.architecture, operatingSystem.bitness) || "Unavailable" 
+    },
     { label: "Device", value: join(device.model, device.type) || "Unavailable" },
     { label: "Manufacturer", value: unavailable(device.manufacturer) },
     { label: "Hostname", value: unavailable(device.hostname) },
@@ -175,8 +186,12 @@ const deviceProfileRows = (profile: Evidence) => {
       label: "Hardware",
       value:
         [
-          hardware.logicalProcessors ? `${textValue(hardware.logicalProcessors)} logical processors` : "",
-          hardware.deviceMemoryGiB ? `${textValue(hardware.deviceMemoryGiB)} GiB reported memory` : "",
+          hardware.logicalProcessors 
+            ? `${textValue(hardware.logicalProcessors)} logical processors` 
+            : "",
+          hardware.deviceMemoryGiB 
+            ? `${textValue(hardware.deviceMemoryGiB)} GiB reported memory` 
+            : "",
         ]
           .filter(Boolean)
           .join(" · ") || "Unavailable",
@@ -200,7 +215,9 @@ const deviceProfileRows = (profile: Evidence) => {
     { label: "Page URL", value: textValue(page.url) || "Unavailable" },
     {
       label: "Captured at",
-      value: profile.capturedAt ? new Date(String(profile.capturedAt)).toLocaleString() : "Unavailable",
+      value: profile.capturedAt 
+        ? new Date(String(profile.capturedAt)).toLocaleString() 
+        : "Unavailable",
     },
     { label: "User agent", value: textValue(profile.userAgent) || "Unavailable" },
   ];
@@ -234,7 +251,8 @@ const tabEmptyCopy: Record<WorkspaceTab, { title: string; description: string }>
   },
   device: {
     title: "No device profile recorded",
-    description: "This artifact predates browser device capture or the profile was removed during review.",
+    description: 
+      "This artifact predates browser device capture or the profile was removed during review.",
   },
   artifact: {
     title: "No artifact evidence recorded",
@@ -440,7 +458,12 @@ export function ReplayDiagnosticInspector({
           {activeTab === "device" && diagnosticEvidence?.device ? (
             <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
               {deviceProfileRows(diagnosticEvidence.device).map((row) => (
-                <div key={row.label} className={row.label === "User agent" || row.label === "Page URL" ? "sm:col-span-2" : ""}>
+                <div 
+                  key={row.label} 
+                  className={
+                    row.label === "User agent" || row.label === "Page URL" ? "sm:col-span-2" : ""
+                  }
+                >
                   <p className="text-xs font-semibold text-text-tertiary">{row.label}</p>
                   <p className="mt-1 wrap-break-word text-sm text-text-primary">{row.value}</p>
                 </div>
@@ -462,7 +485,9 @@ export function ReplayDiagnosticInspector({
                     onClick={() => setEvidenceMode("replay")}
                     className={[
                       "rounded-md px-3 py-1.5 text-xs font-medium",
-                      evidenceMode === "replay" ? "bg-brand-500 text-white" : "bg-canvas-subtle text-text-secondary",
+                      evidenceMode === "replay" 
+                        ? "bg-brand-500 text-white" 
+                        : "bg-canvas-subtle text-text-secondary",
                     ].join(" ")}
                   >
                     Replay time ({visibleAtReplayTime.length})
@@ -472,7 +497,9 @@ export function ReplayDiagnosticInspector({
                     onClick={() => setEvidenceMode("all")}
                     className={[
                       "rounded-md px-3 py-1.5 text-xs font-medium",
-                      evidenceMode === "all" ? "bg-brand-500 text-white" : "bg-canvas-subtle text-text-secondary",
+                      evidenceMode === "all" 
+                        ? "bg-brand-500 text-white" 
+                        : "bg-canvas-subtle text-text-secondary",
                     ].join(" ")}
                   >
                     All captured ({evidence.length})

@@ -341,7 +341,9 @@ export class EngineBridge {
     if (!command.id.trim()) throw new Error("Replay controls require a command ID.");
     if (
       command.type === "seek" &&
-      (typeof command.offsetMs !== "number" || !Number.isFinite(command.offsetMs) || command.offsetMs < 0)
+      (typeof command.offsetMs !== "number" || 
+        !Number.isFinite(command.offsetMs) || 
+        command.offsetMs < 0)
     ) {
       throw new Error("Replay seek offset must be a non-negative number.");
     }

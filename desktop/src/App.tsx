@@ -92,9 +92,7 @@ function ShellContent() {
 
   return (
     <div className="flex h-screen bg-canvas overflow-hidden">
-
       <aside className="w-65 shrink-0 flex flex-col bg-surface border-r border-border py-4 px-4 gap-6 z-20">
-
         <div className="flex items-center gap-3 p-2 mb-2">
           <img src="/paw-dawg.svg" alt="DAWG Logo" className="w-10 h-10 shrink-0" />
           <div>
@@ -104,7 +102,6 @@ function ShellContent() {
             <span className="text-xs text-text-tertiary font-medium">Digs Any Web-app Glitch</span>
           </div>
         </div>
-
 
         <nav className="flex flex-col gap-1 flex-1" aria-label="Main navigation">
           {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
@@ -168,12 +165,8 @@ function ShellContent() {
           </div>
         </nav>
 
-
         <div className="relative p-5 rounded-2xl overflow-hidden shadow-card shrink-0">
-
           <div className="absolute inset-0 bg-linear-to-br from-brand-600 to-brand-400" />
-
-
           <div
             className="absolute inset-0 opacity-30"
             style={{
@@ -182,9 +175,7 @@ function ShellContent() {
             }}
           />
 
-
           <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white opacity-20 rounded-full blur-2xl mix-blend-overlay" />
-
           <div className="relative z-10 flex flex-col items-start gap-3">
             <div className="flex items-center gap-2">
               <GithubLogo size={18} weight="fill" className="text-white" />
@@ -213,12 +204,9 @@ function ShellContent() {
         </div>
       </aside>
 
-
       <main className="flex-1 relative min-w-0 overflow-y-auto bg-grid-pattern z-10">
-
         <div className="glow-orb -top-25 -left-25" />
         <div className="glow-orb-cyan -right-12.5 top-37.5" />
-
         <div className="relative px-10 pt-10 min-h-full flex flex-col">
           <AnimatePresence mode="wait">
             <motion.div
@@ -247,7 +235,6 @@ function ShellContent() {
           <div className="h-10 shrink-0 w-full" />
         </div>
       </main>
-
 
       <DoctorModal open={showDoctor} onClose={() => setShowDoctor(false)} />
       <SettingsPanel open={showSettings} onClose={() => setShowSettings(false)} />
