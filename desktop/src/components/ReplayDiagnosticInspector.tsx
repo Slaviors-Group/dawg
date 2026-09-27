@@ -155,22 +155,22 @@ const deviceProfileRows = (profile: Evidence) => {
   };
   const join = (...values: unknown[]) => values.map(textValue).filter(Boolean).join(" ");
   const dimensions = (value: Evidence) =>
-    value.width && value.height 
-      ? `${textValue(value.width)} × ${textValue(value.height)}` 
+    value.width && value.height
+      ? `${textValue(value.width)} × ${textValue(value.height)}`
       : "Unavailable";
 
   return [
-    { 
-      label: "Browser", 
-      value: join(browser.name, browser.fullVersion || browser.version) || "Unknown" 
+    {
+      label: "Browser",
+      value: join(browser.name, browser.fullVersion || browser.version) || "Unknown"
     },
-    { 
-      label: "Operating system", 
-      value: join(operatingSystem.name, operatingSystem.version) || "Unknown" 
+    {
+      label: "Operating system",
+      value: join(operatingSystem.name, operatingSystem.version) || "Unknown"
     },
-    { 
-      label: "Architecture", 
-      value: join(operatingSystem.architecture, operatingSystem.bitness) || "Unavailable" 
+    {
+      label: "Architecture",
+      value: join(operatingSystem.architecture, operatingSystem.bitness) || "Unavailable"
     },
     { label: "Device", value: join(device.model, device.type) || "Unavailable" },
     { label: "Manufacturer", value: unavailable(device.manufacturer) },
@@ -186,11 +186,11 @@ const deviceProfileRows = (profile: Evidence) => {
       label: "Hardware",
       value:
         [
-          hardware.logicalProcessors 
-            ? `${textValue(hardware.logicalProcessors)} logical processors` 
+          hardware.logicalProcessors
+            ? `${textValue(hardware.logicalProcessors)} logical processors`
             : "",
-          hardware.deviceMemoryGiB 
-            ? `${textValue(hardware.deviceMemoryGiB)} GiB reported memory` 
+          hardware.deviceMemoryGiB
+            ? `${textValue(hardware.deviceMemoryGiB)} GiB reported memory`
             : "",
         ]
           .filter(Boolean)
@@ -215,8 +215,8 @@ const deviceProfileRows = (profile: Evidence) => {
     { label: "Page URL", value: textValue(page.url) || "Unavailable" },
     {
       label: "Captured at",
-      value: profile.capturedAt 
-        ? new Date(String(profile.capturedAt)).toLocaleString() 
+      value: profile.capturedAt
+        ? new Date(String(profile.capturedAt)).toLocaleString()
         : "Unavailable",
     },
     { label: "User agent", value: textValue(profile.userAgent) || "Unavailable" },
@@ -251,7 +251,7 @@ const tabEmptyCopy: Record<WorkspaceTab, { title: string; description: string }>
   },
   device: {
     title: "No device profile recorded",
-    description: 
+    description:
       "This artifact predates browser device capture or the profile was removed during review.",
   },
   artifact: {
@@ -308,7 +308,11 @@ export function ReplayDiagnosticInspector({
   }, [activeTab, activeTabDefinition.keys, diagnostics, diagnosticEvidence, manifest]);
 
   const visibleAtReplayTime = useMemo(() => {
-    if (!replayActive || evidenceMode === "all" || !["console", "network", "errors"].includes(activeTab)) {
+    if (
+      !replayActive ||
+      evidenceMode === "all" ||
+      !["console", "network", "errors"].includes(activeTab)
+    ) {
       return evidence;
     }
     return evidence.filter((entry) => {
@@ -458,8 +462,8 @@ export function ReplayDiagnosticInspector({
           {activeTab === "device" && diagnosticEvidence?.device ? (
             <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
               {deviceProfileRows(diagnosticEvidence.device).map((row) => (
-                <div 
-                  key={row.label} 
+                <div
+                  key={row.label}
                   className={
                     row.label === "User agent" || row.label === "Page URL" ? "sm:col-span-2" : ""
                   }
@@ -485,8 +489,8 @@ export function ReplayDiagnosticInspector({
                     onClick={() => setEvidenceMode("replay")}
                     className={[
                       "rounded-md px-3 py-1.5 text-xs font-medium",
-                      evidenceMode === "replay" 
-                        ? "bg-brand-500 text-white" 
+                      evidenceMode === "replay"
+                        ? "bg-brand-500 text-white"
                         : "bg-canvas-subtle text-text-secondary",
                     ].join(" ")}
                   >

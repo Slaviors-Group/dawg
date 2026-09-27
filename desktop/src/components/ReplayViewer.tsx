@@ -87,7 +87,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
     let disposed = false;
     let unlisten: (() => void) | undefined;
     void listen<ReplayEvent>("dawg://replay-event", ({ payload }) => {
-      if (payload.protocol !== "dawg.replay.v1" || payload.sequence <= replaySequence.current) 
+      if (payload.protocol !== "dawg.replay.v1" || payload.sequence <= replaySequence.current)
         return;
       replaySequence.current = payload.sequence;
       if (payload.type === "error") {
@@ -104,7 +104,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
         setIsReplaying(true);
         setReplayReady(true);
         setReplayPlaying(payload.type === "finished" ? false : Boolean(payload.playing));
-        if (Number.isFinite(payload.currentTimeMs)) 
+        if (Number.isFinite(payload.currentTimeMs))
           setReplayCurrentTime(payload.currentTimeMs ?? 0);
         if (Number.isFinite(payload.durationMs)) setReplayDuration(payload.durationMs ?? 0);
         if (payload.speed && REPLAY_SPEEDS.includes(payload.speed)) setReplaySpeed(payload.speed);
@@ -472,17 +472,17 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
             title="Replay Player"
             subtitle="Synchronized with the controls in replay Chromium"
           />
-          <Badge 
-            variant={replayReady ? (replayPlaying ? "success" : "info") : "default"} 
-            size="sm" 
+          <Badge
+            variant={replayReady ? (replayPlaying ? "success" : "info") : "default"}
+            size="sm"
             dot={replayReady}
           >
-            {replayReady 
-              ? (replayPlaying 
-                ? "Playing" 
-                : "Paused") 
-              : isReplaying 
-                ? "Starting" 
+            {replayReady
+              ? (replayPlaying
+                ? "Playing"
+                : "Paused")
+              : isReplaying
+                ? "Starting"
                 : "Idle"}
           </Badge>
         </CardHeader>
@@ -549,7 +549,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
               className="min-w-0 flex-1 accent-brand-500"
             />
             <output className="shrink-0 text-xs font-mono text-text-secondary">
-              {formatReplayTime(seekPreview ?? replayCurrentTime)} / 
+              {formatReplayTime(seekPreview ?? replayCurrentTime)} /
               {formatReplayTime(replayDuration)}
             </output>
           </div>
