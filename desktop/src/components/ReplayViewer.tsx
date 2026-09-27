@@ -478,9 +478,9 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
             dot={replayReady}
           >
             {replayReady
-              ? (replayPlaying
+              ? replayPlaying
                 ? "Playing"
-                : "Paused")
+                : "Paused"
               : isReplaying
                 ? "Starting"
                 : "Idle"}

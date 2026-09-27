@@ -162,15 +162,15 @@ const deviceProfileRows = (profile: Evidence) => {
   return [
     {
       label: "Browser",
-      value: join(browser.name, browser.fullVersion || browser.version) || "Unknown"
+      value: join(browser.name, browser.fullVersion || browser.version) || "Unknown",
     },
     {
       label: "Operating system",
-      value: join(operatingSystem.name, operatingSystem.version) || "Unknown"
+      value: join(operatingSystem.name, operatingSystem.version) || "Unknown",
     },
     {
       label: "Architecture",
-      value: join(operatingSystem.architecture, operatingSystem.bitness) || "Unavailable"
+      value: join(operatingSystem.architecture, operatingSystem.bitness) || "Unavailable",
     },
     { label: "Device", value: join(device.model, device.type) || "Unavailable" },
     { label: "Manufacturer", value: unavailable(device.manufacturer) },
@@ -501,8 +501,8 @@ export function ReplayDiagnosticInspector({
                     onClick={() => setEvidenceMode("all")}
                     className={[
                       "rounded-md px-3 py-1.5 text-xs font-medium",
-                      evidenceMode === "all" 
-                        ? "bg-brand-500 text-white" 
+                      evidenceMode === "all"
+                        ? "bg-brand-500 text-white"
                         : "bg-canvas-subtle text-text-secondary",
                     ].join(" ")}
                   >
