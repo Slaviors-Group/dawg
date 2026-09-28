@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.3.5-middlechild"
+const version = "0.4.1-omega"
 
 func main() {
 	rootCommand := newRootCommand()
@@ -79,6 +79,7 @@ func newRootCommand() *cobra.Command {
 	command.AddCommand(newInspectCommand())
 	command.AddCommand(newDiagnosticsCommand())
 	command.AddCommand(newArtifactsCommand())
+	command.AddCommand(newEditorCommand())
 	command.AddCommand(newRunCommand())
 	command.AddCommand(newVerifyCommand())
 	command.AddCommand(newDoctorCommand())

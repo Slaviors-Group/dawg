@@ -5,7 +5,7 @@ from collections import defaultdict
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit
 
-from mitmproxy import http
+from mitmproxy import http  # pyright: ignore[reportMissingImports]
 
 
 class DawgCapture:

@@ -11,6 +11,21 @@ export interface ComponentStatus {
   error?: string;
 }
 
+export type CompatibilityStatus = "compatible" | "mismatch" | "unknown";
+
+export interface CompatibilityReport {
+  status: CompatibilityStatus;
+  expectedApplicationVersion: string;
+  expectedDesktopVersion: string;
+  expectedExtensionVersion: string;
+  detectedEngineVersion?: string;
+  currentSchemaVersion?: string;
+  detectedExtensionVersion?: string;
+  engine: CompatibilityStatus;
+  schema: CompatibilityStatus;
+  extension: CompatibilityStatus;
+}
+
 export interface DoctorReport {
   status: "ready" | "degraded";
   enginePath: string;
@@ -18,6 +33,7 @@ export interface DoctorReport {
   isBundled: boolean;
   components: ComponentStatus[];
   generatedAt: string;
+  compatibility: CompatibilityReport;
 }
 
 export interface EngineStatusInfo {
@@ -57,6 +73,15 @@ export interface StopCaptureResult {
   artifactPath?: string;
 }
 
+export type ArtifactOrigin = "captured" | "imported" | "pulled" | "legacy";
+
+export interface ArtifactDiagnosticsSummary {
+  total?: number;
+  console?: number;
+  network?: number;
+  errors?: number;
+}
+
 export interface ArtifactItem {
   id: string;
   path: string;
@@ -64,9 +89,20 @@ export interface ArtifactItem {
   createdAt: string;
   title: string;
   schemaVersion: string;
-  origin: "captured" | "imported" | "pulled" | "legacy";
-  status: "valid";
+  origin: ArtifactOrigin;
+  status: "valid" | "invalid";
   components: string[];
+  instanceId?: string;
+  addedAt?: string;
+  flagged?: boolean;
+  flagCount?: number;
+  flagTitles?: string[];
+  revision?: number;
+  reviewRootId?: string;
+  rootArtifactId?: string;
+  supersedesArtifactId?: string;
+  diagnosticsSummary?: ArtifactDiagnosticsSummary;
+  tags?: string[];
 }
 
 export interface InspectOptions {
@@ -120,6 +156,79 @@ export interface PackagedArtifact {
 
 export interface RunReplayOptions {
   artifact: string;
+}
+
+export interface DeleteArtifactResult {
+  status: "deleted";
+  instanceId?: string;
+  path?: string;
+}
+
+export interface ReviewFlag {
+  id: string;
+  startOffsetMs: number;
+  endOffsetMs?: number;
+  title: string;
+  note?: string;
+  category: "bug" | "error" | "network" | "console" | "action" | "note";
+  severity: "info" | "warning" | "error";
+}
+
+export interface PublishArtifactReviewOptions {
+  artifact: string;
+  reviewFile: string;
+}
+
+export type EditorControlType =
+  | "getState"
+  | "play"
+  | "pause"
+  | "seek"
+  | "setSpeed"
+  | "addFlag"
+  | "updateFlag"
+  | "deleteFlag"
+  | "saveDraft"
+  | "discardDraft"
+  | "saveArtifact"
+  | "close";
+
+export interface EditorControl {
+  id: string;
+  type: EditorControlType;
+  offsetMs?: number;
+  speed?: ReplaySpeed;
+  flag?: ReviewFlag;
+  flagId?: string;
+  flags?: ReviewFlag[];
+  artifactTitle?: string;
+}
+
+export interface EditorEvent {
+  protocol: "dawg.editor.v1";
+  sequence: number;
+  type: "ready" | "state" | "draftChanged" | "draftSaved" | "artifactSaved" | "validationError" | "error" | "closed";
+  message?: string;
+  currentTimeMs?: number;
+  durationMs?: number;
+  playing?: boolean;
+  speed?: ReplaySpeed;
+  artifactId?: string;
+  artifactPath?: string;
+  artifactTitle?: string;
+  instanceId?: string;
+}
+
+export interface RunEditorOptions {
+  artifact: string;
+}
+
+export interface RunEditorResult {
+  status: "started" | "completed" | "failed";
+  artifactId?: string;
+  artifactPath?: string;
+  instanceId?: string;
+  [key: string]: unknown;
 }
 
 export type ReplaySpeed = 0.5 | 1 | 1.5 | 2 | 4;
@@ -200,6 +309,18 @@ export interface CommandOutput<T = unknown> {
 }
 
 export class EngineBridge {
+  private async invokePayload<T>(command: string, args?: Record<string, unknown>): Promise<T> {
+    try {
+      const response = await invoke<CommandOutput<T>>(command, args);
+      if (response.status !== "success") {
+        throw new Error(`Engine returned ${response.status}.`);
+      }
+      return response.payload;
+    } catch (error) {
+      throw new Error(`${command} failed: ${String(error)}`);
+    }
+  }
+
   async checkInstalled(): Promise<EngineStatusInfo> {
     return invoke<EngineStatusInfo>("check_engine_installed");
   }
@@ -235,13 +356,16 @@ export class EngineBridge {
   }
 
   async listArtifacts(): Promise<ArtifactItem[]> {
-    try {
-      const res = await invoke<CommandOutput<ArtifactItem[]>>("list_artifacts");
-      return res.payload;
-    } catch (err) {
-      console.warn("Tauri engine IPC fallback:", err);
-      throw new Error(`Engine listArtifacts failed: ${String(err)}`);
-    }
+    const artifacts = await this.invokePayload<Array<ArtifactItem & { acquisitionOrigin?: ArtifactOrigin }>>(
+      "list_artifacts",
+    );
+    return artifacts.map((artifact) => ({
+      ...artifact,
+      origin: artifact.origin ?? artifact.acquisitionOrigin ?? "legacy",
+      status: artifact.status ?? "valid",
+      components: artifact.components ?? [],
+      flagged: artifact.flagged ?? (artifact.flagCount ?? 0) > 0,
+    }));
   }
 
   async importArtifact(archive: string): Promise<ArtifactItem> {
@@ -252,6 +376,14 @@ export class EngineBridge {
       console.warn("Tauri engine IPC fallback:", err);
       throw new Error(`Engine importArtifact failed: ${String(err)}`);
     }
+  }
+
+  async deleteArtifact(artifact: string): Promise<DeleteArtifactResult> {
+    return this.invokePayload<DeleteArtifactResult>("delete_artifact", { artifact });
+  }
+
+  async publishArtifactReview(options: PublishArtifactReviewOptions): Promise<ArtifactItem> {
+    return this.invokePayload<ArtifactItem>("review_artifact", { ...options });
   }
 
   async exportArtifact(
@@ -359,17 +491,47 @@ export class EngineBridge {
     await this.controlReplay({ id: `seek-${Date.now()}`, type: "seek", offsetMs });
   }
 
-  async verifyResult(options: VerifyOptions): Promise<VerifyResult> {
-    try {
-      const res = await invoke<CommandOutput<VerifyResult>>("verify_result", {
-        artifact: options.artifact,
-        against: options.against,
-      });
-      return res.payload;
-    } catch (err) {
-      console.warn("Tauri engine IPC fallback:", err);
-      throw new Error(`Engine verifyResult failed: ${String(err)}`);
+  async launchEditor(options: RunEditorOptions): Promise<RunEditorResult> {
+    return this.invokePayload<RunEditorResult>("launch_editor", { ...options });
+  }
+
+  async cancelEditor(): Promise<boolean> {
+    return invoke<boolean>("cancel_editor").catch((error) => {
+      throw new Error(`cancel_editor failed: ${String(error)}`);
+    });
+  }
+
+  async controlEditor(command: EditorControl): Promise<void> {
+    if (!command.id.trim()) throw new Error("Editor controls require a command ID.");
+    if (
+      command.type === "seek" &&
+      (typeof command.offsetMs !== "number" || !Number.isFinite(command.offsetMs) || command.offsetMs < 0)
+    ) {
+      throw new Error("Editor seek offset must be a non-negative number.");
     }
+    if ((command.type === "addFlag" || command.type === "updateFlag") && !command.flag) {
+      throw new Error(`${command.type} requires a review flag.`);
+    }
+    if ((command.type === "saveDraft" || command.type === "saveArtifact") && !command.flags) {
+      throw new Error(`${command.type} requires review flags.`);
+    }
+    if (command.type === "deleteFlag" && !command.flagId?.trim()) {
+      throw new Error("deleteFlag requires a review flag ID.");
+    }
+    try {
+      await invoke("control_editor", {
+        command: {
+          ...command,
+          offsetMs: command.offsetMs === undefined ? undefined : Math.round(command.offsetMs),
+        },
+      });
+    } catch (error) {
+      throw new Error(`control_editor failed: ${String(error)}`);
+    }
+  }
+
+  async verifyResult(options: VerifyOptions): Promise<VerifyResult> {
+    return this.invokePayload<VerifyResult>("verify_result", { ...options });
   }
 }
 

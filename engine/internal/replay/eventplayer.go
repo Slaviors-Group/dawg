@@ -22,6 +22,7 @@ type EventPlayer struct {
 	BrowsersDir     string
 	ChromiumPath    string
 	ColorScheme     string
+	ReviewFile      string
 	Interactive     bool
 	ReplayTimeout   time.Duration
 	ReplayEventSink func(json.RawMessage) error
@@ -74,6 +75,9 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 	}
 	if player.ColorScheme == "dark" || player.ColorScheme == "light" {
 		arguments = append(arguments, "--color-scheme", player.ColorScheme)
+	}
+	if player.ReviewFile != "" {
+		arguments = append(arguments, "--review-file", player.ReviewFile)
 	}
 	if player.Interactive {
 		arguments = append(arguments, "--interactive")

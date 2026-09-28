@@ -25,11 +25,11 @@ const softwareApplicationSchema = {
       alternateName: "Digs Any Web-app Glitch",
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Windows 10, Windows 11, Linux",
-      softwareVersion: "0.3.5-middlechild",
+      softwareVersion: "0.4.1-omega",
       url: `${siteUrl}/`,
       downloadUrl: [
-        "https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_x64-setup.exe",
-        "https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_amd64.AppImage",
+        "https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_x64-setup.exe",
+        "https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_amd64.AppImage",
       ],
       image: socialImage,
       license: "https://github.com/Slaviors-Group/dawg/blob/main/LICENSE",
@@ -168,11 +168,11 @@ export default defineConfig({
       },
       { text: "Changelog", link: "/docs/changelog" },
       {
-        text: "v0.3.5-middlechild",
+        text: "v0.4.1-omega",
         items: [
           {
             text: "Current release",
-            link: "https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-5",
+            link: "https://github.com/Slaviors-Group/dawg/releases/tag/omega",
           },
           {
             text: "Releases",

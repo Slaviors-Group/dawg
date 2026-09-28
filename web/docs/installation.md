@@ -8,20 +8,22 @@ DAWG is available as a self-contained desktop application or as source for engin
 
 ## Current Release
 
-The current prerelease is [`0.3.5-middlechild`](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-5). It includes desktop version
-`0.3.5` and extension display version `0.3.5_middlechild`.
+DAWG [`0.4.1-omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega)
+is the current release. It includes application and artifact schema
+`0.4.1-omega`, Desktop `0.4.1`, and the unchanged extension display version
+`0.3.5_middlechild`.
 
-Download the installer for your platform directly from the `middlechild-5` GitHub release:
+Download the installer for your platform directly from the `omega` GitHub release:
 
-- [Download DAWG for Windows (x64 installer)](https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_x64-setup.exe)
-- [Download DAWG for Linux (x86_64 AppImage)](https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_amd64.AppImage)
+- [Download DAWG for Windows (x64 installer)](https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_x64-setup.exe)
+- [Download DAWG for Linux (x86_64 AppImage)](https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_amd64.AppImage)
 
 The Windows link downloads the NSIS installer. The Linux link downloads the
 AppImage. After downloading the AppImage, make it executable and start it:
 
 ```bash
-chmod +x DAWG_0.3.5_amd64.AppImage
-./DAWG_0.3.5_amd64.AppImage
+chmod +x DAWG_0.4.1_amd64.AppImage
+./DAWG_0.4.1_amd64.AppImage
 ```
 
 See [all releases](https://github.com/Slaviors-Group/dawg/releases) for
@@ -34,6 +36,11 @@ checksums, release notes, older prereleases, and other assets.
 | Windows desktop app | x64 NSIS installer | Windows 10 or Windows 11, 64-bit |
 | Linux desktop app | x86_64 AppImage | A 64-bit Linux distribution capable of running AppImage bundles |
 | Browser capture | DAWG Browser Extension | Chrome or Chromium 116 or newer |
+| Omega flagged artifacts | DAWG Engine/application `0.4.1-omega` | Required to read or publish the Omega review schema |
+
+New Omega artifacts use schema `0.4.1-omega`; supported older artifacts remain
+readable for inspection, import/export, and replay. The unchanged extension does
+not need an update for review flags.
 
 The current x86_64 AppImage has been tested on Fedora 44 and Arch Linux/CachyOS.
 Other 64-bit Linux distributions may work but are not yet verified. If the
@@ -52,8 +59,8 @@ AppImage does not launch, build DAWG from source with
 ### Linux
 
 1. Select **Download DAWG for Linux** above.
-2. Make the downloaded AppImage executable: `chmod +x DAWG_0.3.5_amd64.AppImage`.
-3. Launch it: `./DAWG_0.3.5_amd64.AppImage`.
+2. Make the downloaded AppImage executable: `chmod +x DAWG_0.4.1_amd64.AppImage`.
+3. Launch it: `./DAWG_0.4.1_amd64.AppImage`.
 4. Open the runtime diagnostics and confirm the engine reports **Ready**.
 5. Install the browser extension before starting a capture.
 

@@ -1,9 +1,11 @@
 import {
   ArrowCounterClockwise,
+  Archive,
   Browser,
   GearSix,
   GitDiff,
   GithubLogo,
+  PencilSimple,
   Heart,
   Record,
   ShieldCheck,
@@ -15,8 +17,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
 import { CaptureControls } from "./components/CaptureControls";
+import { ArtifactsPage } from "./components/ArtifactsPage";
 import { Dashboard } from "./components/Dashboard";
 import { DiffReport } from "./components/DiffReport";
+import { EditorPage } from "./components/EditorPage";
 import { PolicyConfig } from "./components/PolicyConfig";
 import { ReplayViewer } from "./components/ReplayViewer";
 import { NavItem } from "./components/ui/NavItem";
@@ -30,7 +34,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { DoctorModal } from "./components/DoctorModal";
 import "./App.css";
 
-type Tab = "dashboard" | "capture" | "replay" | "diff" | "policy";
+type Tab = "dashboard" | "capture" | "artifacts" | "replay" | "editor" | "diff" | "policy";
 
 const CHROME_WEB_STORE_EXTENSION_URL =
   "https://chromewebstore.google.com/detail/peiigoeakholhhbbbbfkeojomekmmokj?utm_source=item-share-cb";
@@ -43,14 +47,17 @@ const NAV_ITEMS: {
 }[] = [
   { id: "dashboard", label: "Dashboard", icon: SquaresFour },
   { id: "capture", label: "Capture", icon: Record },
+  { id: "artifacts", label: "Artifacts", icon: Archive },
   { id: "replay", label: "Replay", icon: ArrowCounterClockwise },
+  { id: "editor", label: "Editor", icon: PencilSimple },
   { id: "diff", label: "Diff & Verify", icon: GitDiff },
   { id: "policy", label: "Sanitizer Policy", icon: ShieldCheck },
 ];
 
 function ShellContent() {
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
-  const [replayArtifactPath, setReplayArtifactPath] = useState<string | undefined>();
+  const [replayArtifactIdentity, setReplayArtifactIdentity] = useState<string | undefined>();
+  const [editorArtifactIdentity, setEditorArtifactIdentity] = useState<string | undefined>();
   const [showDoctor, setShowDoctor] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const startupArtifactHandled = useRef(false);
@@ -73,6 +80,18 @@ function ShellContent() {
       })
       .catch((error) => addLogLine(`[WARN] Could not open the launch artifact: ${String(error)}`));
   }, [addLogLine, importArtifact]);
+
+  const artifactIdentity = (artifact: ArtifactItem) => artifact.instanceId || artifact.path;
+
+  const handleReplayArtifact = (artifact: ArtifactItem) => {
+    setReplayArtifactIdentity(artifactIdentity(artifact));
+    setActiveTab("replay");
+  };
+
+  const handleEditArtifact = (artifact: ArtifactItem) => {
+    setEditorArtifactIdentity(artifactIdentity(artifact));
+    setActiveTab("editor");
+  };
 
   const handleSponsor = async () => {
     try {
@@ -219,14 +238,25 @@ function ShellContent() {
             >
               {activeTab === "dashboard" && (
                 <Dashboard
-                  onReplayArtifact={(artifact: ArtifactItem) => {
-                    setReplayArtifactPath(artifact.path);
+                  onReplayArtifact={handleReplayArtifact}
+                  onEditArtifact={handleEditArtifact}
+                  onViewArtifacts={() => setActiveTab("artifacts")}
+                />
+              )}
+              {activeTab === "capture" && <CaptureControls />}
+              {activeTab === "artifacts" && (
+                <ArtifactsPage onReplayArtifact={handleReplayArtifact} onEditArtifact={handleEditArtifact} />
+              )}
+              {activeTab === "replay" && <ReplayViewer selectedArtifactIdentity={replayArtifactIdentity} />}
+              {activeTab === "editor" && (
+                <EditorPage
+                  selectedArtifactIdentity={editorArtifactIdentity}
+                  onReplayArtifact={(identity) => {
+                    setReplayArtifactIdentity(identity);
                     setActiveTab("replay");
                   }}
                 />
               )}
-              {activeTab === "capture" && <CaptureControls />}
-              {activeTab === "replay" && <ReplayViewer selectedArtifactPath={replayArtifactPath} />}
               {activeTab === "diff" && <DiffReport />}
               {activeTab === "policy" && <PolicyConfig />}
             </motion.div>

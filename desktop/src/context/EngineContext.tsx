@@ -23,6 +23,7 @@ interface EngineContextType {
   refreshArtifacts: () => Promise<void>;
   importArtifact: (archive: string) => Promise<void>;
   exportArtifact: (artifact: ArtifactItem, output: string) => Promise<void>;
+  deleteArtifact: (artifact: ArtifactItem) => Promise<void>;
   inspectedArtifact: ArtifactItem | null;
   openInspectModal: (artifact: ArtifactItem) => void;
   closeInspectModal: () => void;
@@ -100,6 +101,20 @@ export function EngineProvider({ children }: { children: ReactNode }) {
       }
     },
     [addLogLine],
+  );
+
+  const deleteArtifact = useCallback(
+    async (artifact: ArtifactItem) => {
+      try {
+        await engine.deleteArtifact(artifact.path);
+        addLogLine(`Deleted local artifact instance ${artifact.instanceId ?? artifact.path}.`);
+        await refreshArtifacts();
+      } catch (err) {
+        addLogLine(`[ERROR] Delete artifact failed: ${String(err)}`);
+        throw err;
+      }
+    },
+    [addLogLine, refreshArtifacts],
   );
 
   const openInspectModal = (artifact: ArtifactItem) => {
@@ -180,6 +195,7 @@ export function EngineProvider({ children }: { children: ReactNode }) {
         refreshArtifacts,
         importArtifact,
         exportArtifact,
+        deleteArtifact,
         inspectedArtifact,
         openInspectModal,
         closeInspectModal,

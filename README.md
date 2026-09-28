@@ -9,21 +9,21 @@ Manifest V3 extension.
 
 **Website and documentation:** [dawg.slaviors.id](https://dawg.slaviors.id/)
 
-> **Current prerelease:** [`0.3.5-middlechild`](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-5)
+> **Current release:** [`0.4.1-omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega)
 >
-> Application and artifact schema: `0.3.5-middlechild` · Desktop: `0.3.5` · Extension: `0.3.5_middlechild`
+> Application and artifact schema: `0.4.1-omega` · Desktop: `0.4.1` · Extension: `0.3.5_middlechild` (unchanged)
 
 ## 📦 Install the Current Release
 
-DAWG [`0.3.5-middlechild`](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-5) is the current application and artifact-schema release.
+DAWG [`0.4.1-omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega) is the current application and artifact-schema release.
 
-- [Download DAWG for Windows (x64 installer)](https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_x64-setup.exe)
-- [Download DAWG for Linux (x86_64 AppImage)](https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_amd64.AppImage)
+- [Download DAWG for Windows (x64 installer)](https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_x64-setup.exe)
+- [Download DAWG for Linux (x86_64 AppImage)](https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_amd64.AppImage)
 
-These links download the matching asset from the `middlechild-5` GitHub release directly.
+These links download the matching asset from the `omega` GitHub release directly.
 After downloading the Linux AppImage, make it executable with
-`chmod +x DAWG_0.3.5_amd64.AppImage` and run it with
-`./DAWG_0.3.5_amd64.AppImage`. Visit the
+`chmod +x DAWG_0.4.1_amd64.AppImage` and run it with
+`./DAWG_0.4.1_amd64.AppImage`. Visit the
 [GitHub releases page](https://github.com/Slaviors-Group/dawg/releases) for
 checksums, release notes, and older assets.
 
@@ -39,14 +39,25 @@ checksums, release notes, and older assets.
   under `~/.dawg/artifacts/` by default.
 - **Portable `.dawg` archives:** validated artifacts can be exported as ZIP-based
   `.dawg` files and imported into another DAWG installation.
-- **Persistent catalog:** `~/.dawg/artifact-catalog.json` tracks captured,
-  imported, and previously uncataloged local artifacts.
+- **Dashboard summary:** the Dashboard highlights one most recently added local
+  artifact instance, shows its import/flag/revision state, and summarizes local
+  captures, flagged artifacts, diagnostics, and Doctor compatibility.
+- **Artifact catalog:** the **Artifacts** page searches and filters local
+  instances, groups review revisions by lineage, and supports inspection,
+  replay, editing, `.dawg` import/export, and confirmed local deletion. A local
+  instance can be deleted only from DAWG's managed artifact store.
+- **Chromium review editor:** add point or range flags with a title, optional
+  note, category, and severity. Save drafts locally and publish an immutable
+  flagged revision when the review is ready; the source artifact and its rrweb
+  and diagnostic evidence remain unchanged.
 - **Browser replay and review:** Desktop launches interactive Playwright Chromium
   with play/pause, skip, speed, and timeline controls synchronized with the
-  Desktop player. Console and network evidence follows literal replay time and
-  remains available for full-capture review. Its Replay workspace reviews
-  packaged diagnostic evidence and can export sanitized HAR or copy a
-  reviewed cURL request. Standard CLI replay writes a final screenshot and exits.
+  Desktop player. Flagged artifacts add clickable timeline markers, previous and
+  next flag navigation, selected-flag playback, and **Review flags only** mode.
+  Console and network evidence follows literal replay time and remains available
+  for full-capture review. Its Replay workspace reviews packaged diagnostic
+  evidence and can export sanitized HAR or copy a reviewed cURL request.
+  Standard CLI replay writes a final screenshot and exits.
 - **Desktop process control:** an active replay can be cancelled. On Windows,
   cancellation and application shutdown terminate the tracked engine process
   tree, including Node.js, Chromium, and mitmdump descendants.
@@ -110,12 +121,17 @@ dawg/
 5. Reproduce the issue, then select **Stop Capture**. The engine waits for the
    extension to drain events, sanitizes the session, packages it, and registers
    it in the local catalog.
-6. Select **Replay** on a Dashboard artifact to open Replay with that artifact
-   preselected, then choose **Run Replay** when ready. Use the interactive
-   Chromium controls to inspect the recording, or **Stop Replay** to terminate
-   it.
-7. Export or import an existing `.dawg` archive from the Dashboard or Replay
-   page; the Dashboard also accepts drag-and-drop imports.
+6. Use the Dashboard to review the latest artifact and catalog summary, or open
+   **Artifacts** to search, inspect, replay, edit, export, import, or safely
+   delete a local artifact instance. The Artifacts page also accepts drag-and-
+   drop `.dawg` imports.
+7. Select **Replay** to open Replay with the artifact preselected, then choose
+   **Run Replay** when ready. Flagged revisions expose timeline markers,
+   previous/next navigation, selected-flag playback, and **Review flags only**
+   mode in Chromium. Use **Stop Replay** to terminate it.
+8. Select **Edit** to open Chromium Editor. Add point or range flags, save a
+   local draft if needed, then save the artifact to publish a new immutable
+   flagged revision without modifying its source.
 
 Untitled captures receive a hostname-based title. Artifact directories use a
 readable timestamped name such as `20260912-143025-checkout-timeout`; collisions
@@ -140,6 +156,11 @@ dawg capture stop
 dawg artifacts list
 dawg artifacts export <artifact-directory> --output <file.dawg> [--force]
 dawg artifacts import <file.dawg>
+dawg artifacts delete <artifact-directory>
+dawg artifacts review <artifact-directory> --review-file review.json
+
+# Open Chromium Editor and publish review flags
+dawg editor <artifact-directory> --interactive
 
 # Inspect, replay, and verify an artifact
 dawg inspect <artifact-directory>
@@ -242,8 +263,8 @@ Node.js, and mitmproxy versions.
 
 ```json
 {
-  "appVersion": "0.3.5-middlechild",
-  "desktopVersion": "0.3.5",
+  "appVersion": "0.4.1-omega",
+  "desktopVersion": "0.4.1",
   "extensionVersion": "0.3.5_middlechild",
   "runtime": {
     "mitmproxy": "12.2.3",
@@ -260,8 +281,9 @@ npm run check:versions
 ```
 
 The synchronizer normalizes labels for npm, Cargo, Tauri, the schema, and Chrome.
-Chrome receives numeric `version: "0.3.5"` plus display label
-`version_name: "0.3.5_middlechild"`. Dependency versions remain managed by package
+Chrome continues to receive numeric `version: "0.3.5"` plus display label
+`version_name: "0.3.5_middlechild"`; Omega does not change the extension.
+Dependency versions remain managed by package
 manifests and lockfiles.
 
 ## ✅ Validation

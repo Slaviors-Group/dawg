@@ -3,13 +3,11 @@
 DAWG Desktop is the Tauri v2 interface for the Go engine. It uses Rust, React 19,
 Vite 7, Tailwind CSS 4, Framer Motion, and Phosphor icons.
 
-> Application package: `0.3.5-middlechild` · Tauri/Cargo package: `0.3.5`
+> Application package: `0.4.1-omega` · Tauri/Cargo package: `0.4.1`
 >
-> Bundled Node.js: `22.14.0` · Bundled mitmproxy: `12.2.3`
+> Extension display version: `0.3.5_middlechild` (unchanged) · Bundled Node.js: `22.14.0` · Bundled mitmproxy: `12.2.3`
 >
-> See [GitHub releases](https://github.com/Slaviors-Group/dawg/releases) for
-> published installers and assets. Linux targets are configured; build the
-> AppImage from source when it is not attached to a release.
+> Download the [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_x64-setup.exe) or [Linux AppImage](https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_amd64.AppImage) from the [Omega release](https://github.com/Slaviors-Group/dawg/releases/tag/omega).
 
 ## 🧭 Current Desktop Scope
 
@@ -22,24 +20,33 @@ import/export, replay controls, logs, and runtime diagnostics.
   consented **Enhanced Diagnostics** profile; tracks the detached capture daemon
   and waits for packaging when capture stops. Enhanced warns about additional
   troubleshooting evidence and requires confirmation.
-- **Artifact catalog:** loads validated artifacts from the engine at startup and
-  refreshes after capture or import.
-- **Import/export:** uses native `.dawg` file dialogs from both Dashboard and
-  Replay; the dashboard also accepts a dropped `.dawg` archive. Replay requires
-  review confirmation before artifact export.
+- **Dashboard:** presents one latest-added local artifact instance with its
+  import, flag, and revision state; summary cards cover local captures, flagged
+  artifacts, diagnostics, and Doctor compatibility.
+- **Artifacts:** loads validated local instances at startup and refreshes after
+  capture, import, and review publication. Search and filter by origin, review
+  state, text, and sort order; inspect, replay, edit, import/export, or confirm
+  deletion. Revision families are grouped by review root, while duplicate local
+  instances remain independently manageable. The page accepts dropped `.dawg`
+  archives.
+- **Chromium Editor:** adds, edits, moves, resizes, renames, or deletes point
+  and range review flags. **Save draft** stores a validated local draft for the
+  selected source artifact; **Save artifact** publishes a new immutable flagged
+  revision and clears that draft. The source artifact and captured evidence are
+  never changed.
 - **Replay and evidence review:** Dashboard **Replay** opens Replay with the
   selected artifact but does not start it. The Replay workspace reads packaged
-  console, network, error, device, and body evidence; filters evidence states; exports
-  sanitized HAR; copies reviewed cURL for a selected request; and can create a
-  reviewed OCI copy with selected categories or individual retained bodies
-  removed. Export, cURL copy, and evidence removal require explicit review.
-  The Chromium and Desktop players share one authoritative rrweb clock, so
-  play/pause, skip, speed, and timeline changes remain synchronized in both
-  interfaces. Console, error, and staged network evidence appears at its literal
-  replay offset, while the Device tab shows sanitized browser, OS, viewport,
-  screen, locale, hardware-capacity, and connection metadata. An **All captured** view for uncorrelated records. **Run
-  Replay** invokes `dawg run --interactive <artifact>` and **Stop Replay**
-  terminates the active process tree.
+  console, network, error, device, and body evidence; filters evidence states;
+  exports sanitized HAR; copies reviewed cURL for a selected request; and can
+  create a reviewed OCI copy with selected categories or individual retained
+  bodies removed. Export, cURL copy, and evidence removal require explicit
+  review. Chromium and Desktop share one authoritative rrweb clock. Flagged
+  replay adds timeline markers, click-to-seek, previous/next navigation,
+  selected-flag playback, and **Review flags only** mode. Console, error, and
+  staged network evidence appears at its literal replay offset, while the Device
+  tab shows sanitized browser, OS, viewport, screen, locale, hardware-capacity,
+  and connection metadata. **Run Replay** invokes `dawg run --interactive
+  <artifact>` and **Stop Replay** terminates the active process tree.
 - **Process cleanup:** tracks replay and capture-daemon PIDs. Windows cancellation
   uses `taskkill /T /F`; application exit attempts to terminate tracked work.
 - **Doctor:** displays `dawg doctor --output json` component status.
@@ -88,6 +95,8 @@ completion is a UI estimate rather than engine-reported progress.
    staged Node.js/Playwright/Chromium runtime.
 4. Chromium reports authoritative playback state through the engine and Tauri;
    Desktop and in-page play/pause, skip, speed, and timeline controls stay synchronized.
+   When the artifact carries review flags, Chromium also presents their markers,
+   navigation, selected-flag playback, and **Review flags only** mode.
 5. Diagnostic console, error, and network evidence follows the reported replay time.
 6. **Stop Replay** terminates the tracked process tree. Application exit performs
    the same cleanup for tracked replay and capture processes.
@@ -212,7 +221,8 @@ npm run check:versions
 ```
 
 The desktop npm package uses the labeled application version
-`0.3.1-middlechild`; Cargo and Tauri use numeric version `0.3.1`.
+`0.4.1-omega`; Cargo and Tauri use numeric version `0.4.1`. The extension
+remains numeric version `0.3.5` with display label `0.3.5_middlechild`.
 
 ## ✅ Validation
 
@@ -233,8 +243,9 @@ After staging a bundle, check its resources:
 ```
 
 A native smoke test should cover capture start/stop, catalog persistence,
-`.dawg` import/export, replay cancellation, and application exit during active
-capture or replay.
+`.dawg` import/export and confirmed deletion, Editor draft/save behavior and
+immutable review revisions, flagged replay navigation, replay cancellation, and
+application exit during active capture or replay.
 
 For engine commands, release downloads, and the complete project workflow, see
 the [repository README](../README.md).

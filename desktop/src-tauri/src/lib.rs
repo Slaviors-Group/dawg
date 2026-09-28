@@ -26,21 +26,45 @@ pub struct CommandOutput {
     pub payload: serde_json::Value,
 }
 
-/// Tracks replay and capture processes for cancellation and exit cleanup.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum InteractiveProcess {
+    Replay,
+    Editor,
+}
+
+/// Tracks interactive browser and capture processes for cancellation and exit cleanup.
 #[derive(Default)]
 struct ProcessRegistry {
+    active_interactive: Mutex<Option<InteractiveProcess>>,
+    active_artifact: Mutex<Option<String>>,
     replay_pid: Mutex<Option<u32>>,
     replay_stdin: Mutex<Option<ChildStdin>>,
     replay_cancelled: Mutex<bool>,
+    editor_pid: Mutex<Option<u32>>,
+    editor_stdin: Mutex<Option<ChildStdin>>,
+    editor_cancelled: Mutex<bool>,
     capture_daemon_pid: Mutex<Option<u32>>,
 }
 
 impl ProcessRegistry {
-    fn replay_running(&self) -> bool {
-        self.replay_pid.lock().unwrap().is_some()
+    fn reserve_interactive(&self, process: InteractiveProcess) -> Result<(), String> {
+        let mut active = self.active_interactive.lock().unwrap();
+        if active.is_some() {
+            return Err("An interactive Replay or Editor is already running.".to_string());
+        }
+        *active = Some(process);
+        Ok(())
     }
 
-    fn start_replay(&self, pid: u32, stdin: ChildStdin) {
+    fn release_interactive(&self, process: InteractiveProcess) {
+        let mut active = self.active_interactive.lock().unwrap();
+        if *active == Some(process) {
+            *active = None;
+        }
+    }
+
+    fn start_replay(&self, pid: u32, stdin: ChildStdin, artifact: String) {
+        *self.active_artifact.lock().unwrap() = Some(artifact);
         *self.replay_pid.lock().unwrap() = Some(pid);
         *self.replay_stdin.lock().unwrap() = Some(stdin);
         *self.replay_cancelled.lock().unwrap() = false;
@@ -49,11 +73,31 @@ impl ProcessRegistry {
     /// Clears the tracked replay PID and returns whether it had been
     /// cancelled by the user before this call.
     fn finish_replay(&self) -> bool {
+        *self.active_artifact.lock().unwrap() = None;
         *self.replay_pid.lock().unwrap() = None;
         *self.replay_stdin.lock().unwrap() = None;
         let mut cancelled = self.replay_cancelled.lock().unwrap();
         let was_cancelled = *cancelled;
         *cancelled = false;
+        self.release_interactive(InteractiveProcess::Replay);
+        was_cancelled
+    }
+
+    fn start_editor(&self, pid: u32, stdin: ChildStdin, artifact: String) {
+        *self.active_artifact.lock().unwrap() = Some(artifact);
+        *self.editor_pid.lock().unwrap() = Some(pid);
+        *self.editor_stdin.lock().unwrap() = Some(stdin);
+        *self.editor_cancelled.lock().unwrap() = false;
+    }
+
+    fn finish_editor(&self) -> bool {
+        *self.active_artifact.lock().unwrap() = None;
+        *self.editor_pid.lock().unwrap() = None;
+        *self.editor_stdin.lock().unwrap() = None;
+        let mut cancelled = self.editor_cancelled.lock().unwrap();
+        let was_cancelled = *cancelled;
+        *cancelled = false;
+        self.release_interactive(InteractiveProcess::Editor);
         was_cancelled
     }
 
@@ -73,15 +117,49 @@ impl ProcessRegistry {
     }
 
     fn control_replay(&self, command: serde_json::Value) -> Result<(), String> {
-        let mut stdin = self.replay_stdin.lock().unwrap();
+        self.write_interactive_command(&self.replay_stdin, command, "replay")
+    }
+
+    fn cancel_editor(&self) -> bool {
+        *self.editor_stdin.lock().unwrap() = None;
+        let pid = *self.editor_pid.lock().unwrap();
+        match pid {
+            Some(pid) => {
+                *self.editor_cancelled.lock().unwrap() = true;
+                kill_process_tree(pid);
+                true
+            }
+            None => false,
+        }
+    }
+
+    fn control_editor(&self, command: serde_json::Value) -> Result<(), String> {
+        self.write_interactive_command(&self.editor_stdin, command, "editor")
+    }
+
+    fn write_interactive_command(
+        &self,
+        stdin_lock: &Mutex<Option<ChildStdin>>,
+        command: serde_json::Value,
+        process_name: &str,
+    ) -> Result<(), String> {
+        let mut stdin = stdin_lock.lock().unwrap();
         let Some(stdin) = stdin.as_mut() else {
-            return Err("No interactive replay is running.".to_string());
+            return Err(format!("No interactive {} is running.", process_name));
         };
         writeln!(stdin, "{}", command)
-            .map_err(|error| format!("Failed to send replay control: {}", error))?;
+            .map_err(|error| format!("Failed to send {} control: {}", process_name, error))?;
         stdin
             .flush()
-            .map_err(|error| format!("Failed to flush replay control: {}", error))
+            .map_err(|error| format!("Failed to flush {} control: {}", process_name, error))
+    }
+
+    fn artifact_is_active(&self, artifact: &str) -> bool {
+        self.active_artifact
+            .lock()
+            .unwrap()
+            .as_deref()
+            .is_some_and(|active| active == artifact)
     }
 
     fn set_capture_daemon(&self, pid: u32) {
@@ -95,9 +173,15 @@ impl ProcessRegistry {
     /// Terminates all replay and capture processes tracked by this session.
     fn kill_all(&self) {
         *self.replay_stdin.lock().unwrap() = None;
+        *self.editor_stdin.lock().unwrap() = None;
         if let Some(pid) = self.replay_pid.lock().unwrap().take() {
             kill_process_tree(pid);
         }
+        if let Some(pid) = self.editor_pid.lock().unwrap().take() {
+            kill_process_tree(pid);
+        }
+        *self.active_interactive.lock().unwrap() = None;
+        *self.active_artifact.lock().unwrap() = None;
         if let Some(pid) = self.capture_daemon_pid.lock().unwrap().take() {
             kill_process_tree(pid);
         }
@@ -155,6 +239,112 @@ pub struct DoctorReport {
     pub components: Vec<ComponentStatus>,
     #[serde(rename = "generatedAt")]
     pub generated_at: String,
+    #[serde(default = "unknown_compatibility")]
+    pub compatibility: CompatibilityReport,
+}
+
+fn unknown_compatibility() -> CompatibilityReport {
+    CompatibilityReport {
+        status: "unknown".to_string(),
+        expected_application_version: String::new(),
+        expected_desktop_version: String::new(),
+        expected_extension_version: String::new(),
+        detected_engine_version: None,
+        current_schema_version: None,
+        detected_extension_version: None,
+        engine: "unknown".to_string(),
+        schema: "unknown".to_string(),
+        extension: "unknown".to_string(),
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompatibilityReport {
+    status: String,
+    expected_application_version: String,
+    expected_desktop_version: String,
+    expected_extension_version: String,
+    detected_engine_version: Option<String>,
+    current_schema_version: Option<String>,
+    detected_extension_version: Option<String>,
+    engine: String,
+    schema: String,
+    extension: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct VersionContract {
+    app_version: String,
+    desktop_version: String,
+    extension_version: String,
+}
+
+fn component_version(components: &[ComponentStatus], name: &str) -> Option<String> {
+    components
+        .iter()
+        .find(|component| component.name == name)
+        .and_then(|component| component.version.clone())
+}
+
+fn extension_display_version(components: &[ComponentStatus]) -> Option<String> {
+    let extension = components
+        .iter()
+        .find(|component| component.name == "browser-extension")?;
+    let path = extension.path.as_ref()?;
+    let contents = std::fs::read_to_string(path).ok()?;
+    serde_json::from_str::<serde_json::Value>(&contents)
+        .ok()?
+        .get("version_name")
+        .and_then(|value| value.as_str())
+        .map(str::to_owned)
+        .or_else(|| extension.version.clone())
+}
+
+fn compatibility_status(expected: &str, detected: Option<&str>) -> String {
+    match detected {
+        Some(value) if value == expected => "compatible".to_string(),
+        Some(_) => "mismatch".to_string(),
+        None => "unknown".to_string(),
+    }
+}
+
+fn apply_compatibility(mut report: DoctorReport) -> Result<DoctorReport, String> {
+    let contract: VersionContract = serde_json::from_str(include_str!("../../../version.json"))
+        .map_err(|error| format!("Invalid embedded version contract: {}", error))?;
+    let engine = component_version(&report.components, "dawg-engine");
+    let schema = component_version(&report.components, "schema:manifest");
+    let extension = extension_display_version(&report.components);
+    let engine_status = compatibility_status(&contract.app_version, engine.as_deref());
+    let schema_status = compatibility_status(&contract.app_version, schema.as_deref());
+    let extension_status = compatibility_status(&contract.extension_version, extension.as_deref());
+    let status = if engine_status == "mismatch"
+        || schema_status == "mismatch"
+        || extension_status == "mismatch"
+    {
+        "mismatch"
+    } else if engine_status == "compatible"
+        && schema_status == "compatible"
+        && extension_status == "compatible"
+    {
+        "compatible"
+    } else {
+        "unknown"
+    };
+    report.compatibility = CompatibilityReport {
+        status: status.to_string(),
+        expected_application_version: contract.app_version,
+        expected_desktop_version: contract.desktop_version,
+        expected_extension_version: contract.extension_version,
+        detected_engine_version: engine,
+        current_schema_version: schema,
+        detected_extension_version: extension,
+        engine: engine_status,
+        schema: schema_status,
+        extension: extension_status,
+    };
+    Ok(report)
 }
 
 /// Helper to determine the resource root given a resolved binary path.
@@ -412,13 +602,14 @@ async fn get_doctor_report(app: AppHandle) -> Result<DoctorReport, String> {
     let stdout_str = String::from_utf8_lossy(&output.stdout);
 
     if output.status.success() {
-        let report: DoctorReport = serde_json::from_str(&stdout_str).map_err(|e| {
+        let mut report: DoctorReport = serde_json::from_str(&stdout_str).map_err(|e| {
             format!(
                 "Failed to decode doctor report: {}. Output: {}",
                 e, stdout_str
             )
         })?;
-        Ok(report)
+        report.compatibility = unknown_compatibility();
+        apply_compatibility(report)
     } else {
         let stderr_str = String::from_utf8_lossy(&output.stderr);
         Err(format!("Doctor check failed: {}", stderr_str.trim()))
@@ -612,7 +803,44 @@ async fn export_artifact(
     .await
 }
 
+#[tauri::command]
+async fn delete_artifact(
+    app: AppHandle,
+    registry: tauri::State<'_, ProcessRegistry>,
+    artifact: String,
+) -> Result<CommandOutput, String> {
+    if registry.artifact_is_active(&artifact) {
+        return Err("Stop Replay or Editor before deleting its active artifact.".to_string());
+    }
+    execute_engine_cmd(
+        app,
+        "artifacts".to_string(),
+        vec!["delete".to_string(), artifact],
+    )
+    .await
+}
+
+#[tauri::command]
+async fn review_artifact(
+    app: AppHandle,
+    artifact: String,
+    review_file: String,
+) -> Result<CommandOutput, String> {
+    execute_engine_cmd(
+        app,
+        "artifacts".to_string(),
+        vec![
+            "review".to_string(),
+            artifact,
+            "--review-file".to_string(),
+            review_file,
+        ],
+    )
+    .await
+}
+
 const REPLAY_EVENT_PREFIX: &str = "DAWG_REPLAY_EVENT\t";
+const EDITOR_EVENT_PREFIX: &str = "DAWG_EDITOR_EVENT\t";
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -632,31 +860,49 @@ async fn run_replay(
 ) -> Result<CommandOutput, String> {
     // Desktop replays are intentionally interactive; direct CLI `dawg run`
     // remains the finite screenshot-producing workflow.
-    if registry.replay_running() {
-        return Err("An interactive replay is already running.".to_string());
-    }
-    let mut cmd = build_engine_command(&app, "run", &["--interactive".to_string(), artifact]);
+    registry.reserve_interactive(InteractiveProcess::Replay)?;
+    let mut cmd = build_engine_command(
+        &app,
+        "run",
+        &["--interactive".to_string(), artifact.clone()],
+    );
     cmd.stdin(Stdio::piped());
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());
 
-    let mut child = cmd
-        .spawn()
-        .map_err(|e| format!("Failed to start replay: {}", e))?;
+    let mut child = match cmd.spawn() {
+        Ok(child) => child,
+        Err(error) => {
+            registry.release_interactive(InteractiveProcess::Replay);
+            return Err(format!("Failed to start replay: {}", error));
+        }
+    };
     let pid = child.id();
-    let stdin = child
-        .stdin
-        .take()
-        .ok_or_else(|| "Failed to open interactive replay control channel.".to_string())?;
-    registry.start_replay(pid, stdin);
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| "Failed to open replay result channel.".to_string())?;
-    let stderr = child
-        .stderr
-        .take()
-        .ok_or_else(|| "Failed to open replay event channel.".to_string())?;
+    let stdin = match child.stdin.take() {
+        Some(stdin) => stdin,
+        None => {
+            kill_process_tree(pid);
+            registry.release_interactive(InteractiveProcess::Replay);
+            return Err("Failed to open interactive replay control channel.".to_string());
+        }
+    };
+    registry.start_replay(pid, stdin, artifact.clone());
+    let stdout = match child.stdout.take() {
+        Some(stdout) => stdout,
+        None => {
+            kill_process_tree(pid);
+            registry.finish_replay();
+            return Err("Failed to open replay result channel.".to_string());
+        }
+    };
+    let stderr = match child.stderr.take() {
+        Some(stderr) => stderr,
+        None => {
+            kill_process_tree(pid);
+            registry.finish_replay();
+            return Err("Failed to open replay event channel.".to_string());
+        }
+    };
     let event_app = app.clone();
 
     // Drain stdout and stderr concurrently. Replay state is streamed on stderr
@@ -790,6 +1036,220 @@ async fn seek_replay(
     }))
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct EditorControl {
+    id: String,
+    #[serde(rename = "type")]
+    kind: String,
+    offset_ms: Option<u64>,
+    speed: Option<f64>,
+    flag: Option<serde_json::Value>,
+    flag_id: Option<String>,
+    flags: Option<serde_json::Value>,
+    artifact_title: Option<String>,
+}
+
+#[tauri::command]
+async fn launch_editor(
+    app: AppHandle,
+    registry: tauri::State<'_, ProcessRegistry>,
+    artifact: String,
+) -> Result<CommandOutput, String> {
+    registry.reserve_interactive(InteractiveProcess::Editor)?;
+    let mut cmd = build_engine_command(
+        &app,
+        "editor",
+        &[artifact.clone(), "--interactive".to_string()],
+    );
+    cmd.stdin(Stdio::piped());
+    cmd.stdout(Stdio::piped());
+    cmd.stderr(Stdio::piped());
+
+    let mut child = match cmd.spawn() {
+        Ok(child) => child,
+        Err(error) => {
+            registry.release_interactive(InteractiveProcess::Editor);
+            return Err(format!("Failed to start editor: {}", error));
+        }
+    };
+    let pid = child.id();
+    let stdin = match child.stdin.take() {
+        Some(stdin) => stdin,
+        None => {
+            kill_process_tree(pid);
+            registry.release_interactive(InteractiveProcess::Editor);
+            return Err("Failed to open interactive editor control channel.".to_string());
+        }
+    };
+    registry.start_editor(pid, stdin, artifact.clone());
+    let stdout = match child.stdout.take() {
+        Some(stdout) => stdout,
+        None => {
+            kill_process_tree(pid);
+            registry.finish_editor();
+            return Err("Failed to open editor result channel.".to_string());
+        }
+    };
+    let stderr = match child.stderr.take() {
+        Some(stderr) => stderr,
+        None => {
+            kill_process_tree(pid);
+            registry.finish_editor();
+            return Err("Failed to open editor event channel.".to_string());
+        }
+    };
+    let event_app = app.clone();
+    let wait_result = tauri::async_runtime::spawn_blocking(move || {
+        let stdout_reader = thread::spawn(move || {
+            let mut contents = String::new();
+            let result = BufReader::new(stdout).read_to_string(&mut contents);
+            (contents, result)
+        });
+        let stderr_reader = thread::spawn(move || {
+            let mut diagnostics = Vec::new();
+            for line in BufReader::new(stderr).lines() {
+                let line = line?;
+                if let Some(payload) = line.strip_prefix(EDITOR_EVENT_PREFIX) {
+                    match serde_json::from_str::<serde_json::Value>(payload) {
+                        Ok(event) => {
+                            let event_type = event.get("type").and_then(|value| value.as_str());
+                            let command_id = event
+                                .get("sequence")
+                                .and_then(|value| value.as_u64())
+                                .map(|sequence| format!("publication-{}", sequence))
+                                .unwrap_or_else(|| "publication-result".to_string());
+                            let browser_command = match event_type {
+                                Some("artifactSaved") => Some(serde_json::json!({
+                                    "protocol": "dawg.editor.v1",
+                                    "id": command_id,
+                                    "type": "publicationConfirmed",
+                                    "artifactTitle": event.get("artifactTitle").and_then(|value| value.as_str()).unwrap_or(""),
+                                })),
+                                Some("validationError") if event.get("review").is_some() => {
+                                    Some(serde_json::json!({
+                                        "protocol": "dawg.editor.v1",
+                                        "id": command_id,
+                                        "type": "publicationFailed",
+                                        "message": event.get("message").and_then(|value| value.as_str()).unwrap_or("Unknown publication error"),
+                                    }))
+                                }
+                                _ => None,
+                            };
+                            let _ = event_app.emit("dawg://editor-event", event);
+                            if let Some(command) = browser_command {
+                                let _ = event_app.state::<ProcessRegistry>().control_editor(command);
+                            }
+                        }
+                        Err(error) => diagnostics.push(format!(
+                            "Invalid editor event from engine: {} ({})",
+                            payload, error
+                        )),
+                    }
+                } else {
+                    diagnostics.push(line);
+                }
+            }
+            Ok::<String, std::io::Error>(diagnostics.join("\n"))
+        });
+        let status = child.wait();
+        let (stdout, stdout_result) = stdout_reader
+            .join()
+            .map_err(|_| "Editor stdout reader panicked".to_string())?;
+        stdout_result.map_err(|error| format!("Failed to read editor result: {}", error))?;
+        let stderr = stderr_reader
+            .join()
+            .map_err(|_| "Editor stderr reader panicked".to_string())?
+            .map_err(|error| format!("Failed to read editor events: {}", error))?;
+        status
+            .map(|status| (status, stdout, stderr))
+            .map_err(|error| format!("Failed to wait for editor: {}", error))
+    })
+    .await
+    .map_err(|error| format!("Editor wait task panicked: {}", error))?;
+
+    let was_cancelled = registry.finish_editor();
+    if was_cancelled {
+        return Err("Editor cancelled by user.".to_string());
+    }
+    match wait_result {
+        Ok((status, stdout, _stderr)) if status.success() => {
+            let parsed: serde_json::Value = serde_json::from_str(&stdout)
+                .unwrap_or_else(|_| serde_json::json!({ "raw": stdout.trim() }));
+            Ok(CommandOutput {
+                status: "success".to_string(),
+                payload: parsed,
+            })
+        }
+        Ok((_, _, stderr)) => Err(format!("Engine editor command failed: {}", stderr.trim())),
+        Err(error) => Err(format!("Failed to execute editor: {}", error)),
+    }
+}
+
+#[tauri::command]
+async fn cancel_editor(registry: tauri::State<'_, ProcessRegistry>) -> Result<bool, String> {
+    Ok(registry.cancel_editor())
+}
+
+#[tauri::command]
+async fn control_editor(
+    registry: tauri::State<'_, ProcessRegistry>,
+    command: EditorControl,
+) -> Result<(), String> {
+    if command.id.trim().is_empty() {
+        return Err("Editor controls require a command ID.".to_string());
+    }
+    match command.kind.as_str() {
+        "play" | "pause" | "getState" | "discardDraft" | "close" => {}
+        "saveDraft" | "saveArtifact" if command.flags.is_some() => {}
+        "seek" if command.offset_ms.is_some() => {}
+        "setSpeed"
+            if command
+                .speed
+                .is_some_and(|speed| matches!(speed, 0.5 | 1.0 | 1.5 | 2.0 | 4.0)) => {}
+        "addFlag" | "updateFlag" if command.flag.is_some() => {}
+        "deleteFlag"
+            if command
+                .flag_id
+                .as_deref()
+                .is_some_and(|id| !id.trim().is_empty()) => {}
+        "seek" => return Err("Editor seek requires offsetMs.".to_string()),
+        "setSpeed" => return Err("Unsupported editor speed.".to_string()),
+        "addFlag" | "updateFlag" => {
+            return Err("Editor flag update requires flag data.".to_string());
+        }
+        "saveDraft" | "saveArtifact" => {
+            return Err("Editor save requires review flags.".to_string());
+        }
+        "deleteFlag" => return Err("Editor delete requires flagId.".to_string()),
+        _ => return Err("Unsupported editor control command.".to_string()),
+    }
+    let mut payload = serde_json::json!({
+        "protocol": "dawg.editor.v1",
+        "id": command.id,
+        "type": command.kind,
+    });
+    if let Some(offset_ms) = command.offset_ms {
+        payload["offsetMs"] = serde_json::json!(offset_ms);
+    }
+    if let Some(speed) = command.speed {
+        payload["speed"] = serde_json::json!(speed);
+    }
+    if let Some(flag) = command.flag {
+        payload["flag"] = flag;
+    }
+    if let Some(flag_id) = command.flag_id {
+        payload["flagId"] = serde_json::json!(flag_id);
+    }
+    if let Some(flags) = command.flags {
+        payload["flags"] = flags;
+    }
+    if let Some(artifact_title) = command.artifact_title {
+        payload["artifactTitle"] = serde_json::json!(artifact_title);
+    }
+    registry.control_editor(payload)
+}
+
 #[tauri::command]
 async fn verify_result(
     app: AppHandle,
@@ -823,11 +1283,16 @@ pub fn run() {
             list_artifacts,
             import_artifact,
             export_artifact,
+            delete_artifact,
+            review_artifact,
             startup_artifact,
             run_replay,
             cancel_replay,
             control_replay,
             seek_replay,
+            launch_editor,
+            cancel_editor,
+            control_editor,
             verify_result
         ])
         .build(tauri::generate_context!())
