@@ -55,10 +55,12 @@ const formatReplayTime = (milliseconds: number) => {
 };
 
 interface ReplayViewerProps {
-  selectedArtifactPath?: string;
+  selectedArtifactIdentity?: string;
 }
 
-export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath }) => {
+const artifactIdentity = (artifact: { instanceId?: string; path: string }) => artifact.instanceId || artifact.path;
+
+export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIdentity }) => {
   const { artifacts, addLogLine, exportArtifact, importArtifact } = useEngine();
   const [selectedArtifact, setSelectedArtifact] = useState("");
   const [artifactSearch, setArtifactSearch] = useState("");
@@ -87,7 +89,8 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
     let disposed = false;
     let unlisten: (() => void) | undefined;
     void listen<ReplayEvent>("dawg://replay-event", ({ payload }) => {
-      if (payload.protocol !== "dawg.replay.v1" || payload.sequence <= replaySequence.current) return;
+      if (payload.protocol !== "dawg.replay.v1" || payload.sequence <= replaySequence.current)
+        return;
       replaySequence.current = payload.sequence;
       if (payload.type === "error") {
         addLogLine(`[ERROR] Replay control failed: ${payload.message ?? "unknown error"}`);
@@ -103,7 +106,8 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
         setIsReplaying(true);
         setReplayReady(true);
         setReplayPlaying(payload.type === "finished" ? false : Boolean(payload.playing));
-        if (Number.isFinite(payload.currentTimeMs)) setReplayCurrentTime(payload.currentTimeMs ?? 0);
+        if (Number.isFinite(payload.currentTimeMs))
+          setReplayCurrentTime(payload.currentTimeMs ?? 0);
         if (Number.isFinite(payload.durationMs)) setReplayDuration(payload.durationMs ?? 0);
         if (payload.speed && REPLAY_SPEEDS.includes(payload.speed)) setReplaySpeed(payload.speed);
       }
@@ -128,21 +132,21 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
 
   useEffect(() => {
     if (
-      selectedArtifactPath &&
-      artifacts.some((artifact) => artifact.path === selectedArtifactPath)
+      selectedArtifactIdentity &&
+      artifacts.some((artifact) => artifactIdentity(artifact) === selectedArtifactIdentity)
     ) {
-      setSelectedArtifact(selectedArtifactPath);
+      setSelectedArtifact(selectedArtifactIdentity);
     }
-  }, [artifacts, selectedArtifactPath]);
+  }, [artifacts, selectedArtifactIdentity]);
 
   const selectedArtifactItem = useMemo(
-    () => artifacts.find((artifact) => artifact.path === selectedArtifact),
+    () => artifacts.find((artifact) => artifactIdentity(artifact) === selectedArtifact),
     [artifacts, selectedArtifact],
   );
 
   useEffect(() => {
     let disposed = false;
-    if (!selectedArtifact) {
+    if (!selectedArtifactItem) {
       setManifest(null);
       setDiagnosticEvidence(null);
       setManifestError(null);
@@ -157,8 +161,8 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
     setManifestError(null);
     setIsLoadingManifest(true);
     void Promise.all([
-      engine.inspectArtifact({ path: selectedArtifact }),
-      engine.inspectDiagnostics(selectedArtifact),
+      engine.inspectArtifact({ path: selectedArtifactItem.path }),
+      engine.inspectDiagnostics(selectedArtifactItem.path),
     ])
       .then(([result, evidence]) => {
         if (disposed) return;
@@ -175,7 +179,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
     return () => {
       disposed = true;
     };
-  }, [selectedArtifact]);
+  }, [selectedArtifactItem]);
 
   const sandboxStatus = useMemo(() => {
     if (isWindows) {
@@ -305,7 +309,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
   };
 
   const handleRunReplay = async () => {
-    if (!selectedArtifact || isReplaying) return;
+    if (!selectedArtifactItem || isReplaying) return;
     replaySequence.current = 0;
     setReplayReady(false);
     setReplayPlaying(false);
@@ -314,9 +318,9 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
     setReplaySpeed(1);
     setSeekPreview(null);
     setIsReplaying(true);
-    addLogLine(`Triggering replay for artifact: ${selectedArtifact}`);
+    addLogLine(`Triggering replay for artifact: ${selectedArtifactItem.path}`);
     try {
-      const result = await engine.runReplay({ artifact: selectedArtifact });
+      const result = await engine.runReplay({ artifact: selectedArtifactItem.path });
       addLogLine(`Replay ${result.status} for ${result.artifactId}.`);
       const appLogs = result.outcomes?.appLogs?.trim();
       if (appLogs) {
@@ -404,7 +408,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
               }
               disabled={visibleArtifacts.length === 0}
               options={visibleArtifacts.map((art) => ({
-                value: art.path,
+                value: artifactIdentity(art),
                 label: `${art.title || art.id}${art.targetUrl ? ` — ${art.targetUrl}` : ""} (${new Date(art.createdAt).toLocaleString()})`,
               }))}
             />
@@ -453,7 +457,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
                   variant="primary"
                   className="w-full"
                   onClick={handleRunReplay}
-                  disabled={!selectedArtifact}
+                  disabled={!selectedArtifactItem}
                   iconLeft={<PlayCircle size={16} />}
                 >
                   Run Replay
@@ -470,8 +474,18 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
             title="Replay Player"
             subtitle="Synchronized with the controls in replay Chromium"
           />
-          <Badge variant={replayReady ? (replayPlaying ? "success" : "info") : "default"} size="sm" dot={replayReady}>
-            {replayReady ? (replayPlaying ? "Playing" : "Paused") : isReplaying ? "Starting" : "Idle"}
+          <Badge
+            variant={replayReady ? (replayPlaying ? "success" : "info") : "default"}
+            size="sm"
+            dot={replayReady}
+          >
+            {replayReady
+              ? replayPlaying
+                ? "Playing"
+                : "Paused"
+              : isReplaying
+                ? "Starting"
+                : "Idle"}
           </Badge>
         </CardHeader>
         <div className="flex flex-col gap-4">
@@ -537,7 +551,8 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactPath
               className="min-w-0 flex-1 accent-brand-500"
             />
             <output className="shrink-0 text-xs font-mono text-text-secondary">
-              {formatReplayTime(seekPreview ?? replayCurrentTime)} / {formatReplayTime(replayDuration)}
+              {formatReplayTime(seekPreview ?? replayCurrentTime)} /
+              {formatReplayTime(replayDuration)}
             </output>
           </div>
         </div>

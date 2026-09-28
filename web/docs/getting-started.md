@@ -6,20 +6,20 @@ description: "Capture, sanitize, inspect, export, import, and replay your first 
 
 DAWG records one browser tab, sanitizes the captured data, and packages the session as a portable OCI artifact. The recommended workflow uses the desktop app together with the DAWG Browser Extension.
 
-> **Current prerelease:** [`0.3.5-middlechild`](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-5) — desktop `0.3.5`; extension display version `0.3.5_middlechild`.
+> **Current release:** [`0.4.1-omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega) — desktop `0.4.1`; extension display version `0.3.5_middlechild` (unchanged).
 
 ## Quick Start: Desktop App
 
 ### 1. Install DAWG
 
-Download the `middlechild-5` release directly:
+Download the `omega` release directly:
 
-- [Windows x64 installer](https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_x64-setup.exe)
-- [Linux x86_64 AppImage](https://github.com/Slaviors-Group/dawg/releases/download/middlechild-5/DAWG_0.3.5_amd64.AppImage)
+- [Windows x64 installer](https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_x64-setup.exe)
+- [Linux x86_64 AppImage](https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_amd64.AppImage)
 
 See [Installation](/docs/installation) for Linux AppImage launch steps and the
-[GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/middlechild-5)
-for checksums and release notes.
+[GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/omega) for
+checksums and release notes.
 
 The packaged desktop app includes the engine, Node.js, mitmdump, Playwright, Chromium for replay, schemas, policies, and an installable copy of the extension. You do not need to install those runtimes separately.
 
@@ -82,18 +82,46 @@ artifact before sharing it.
 
 ### 5. Inspect and Manage Artifacts
 
-The dashboard refreshes after a successful capture. Under **Recent Artifacts**, you can:
+After capture, the **Dashboard** highlights the most recently added local
+artifact instance and its imported, flagged, or revision state. Its summaries
+cover local captures, flagged artifacts, diagnostic totals, and Doctor
+compatibility. Select **View all artifacts** to open **Artifacts**.
+
+The **Artifacts** page searches by title, ID, URL, path, or flag title; filters
+by origin and review state; sorts the catalog; and groups review revisions by
+lineage. For every local instance, you can:
 
 - select **Inspect** to read the manifest;
+- select **Replay** to preselect it in Replay;
+- select **Edit** to open the Chromium review editor;
 - select **Export** to create a portable `.dawg` archive;
-- select **Import** to choose an existing `.dawg` archive;
-- drop a `.dawg` archive onto the dashboard to import it.
+- select **Import** or drop a `.dawg` archive anywhere in the catalog to import it;
+- select **Delete** and confirm to remove that managed local instance only.
 
-DAWG stores validated OCI artifact directories under `~/.dawg/artifacts/` and keeps their captured, imported, or legacy origin in `~/.dawg/artifact-catalog.json`. Untitled captures receive a hostname-based title, and artifact directories use readable timestamped names with numeric suffixes for collisions.
+DAWG stores validated OCI artifact directories under `~/.dawg/artifacts/` and
+keeps their acquisition origin and instance identity in
+`~/.dawg/artifact-catalog.json`. Duplicate local copies of one digest can be
+managed separately. Untitled captures receive a hostname-based title, and
+artifact directories use readable timestamped names with numeric suffixes for
+collisions.
 
-A `.dawg` file is a ZIP-based transport archive. Import validates its paths, links, size limits, compression ratio, OCI descriptors, digests, and DAWG manifest before publishing it to the artifact store. See [Artifact Anatomy](/docs/artifact-anatomy) for the OCI layout, evidence layers, integrity checks, and reviewed-artifact behavior.
+A `.dawg` file is a ZIP-based transport archive. Import validates its paths,
+links, size limits, compression ratio, OCI descriptors, digests, and DAWG
+manifest before publishing it to the artifact store. See [Artifact Anatomy](/docs/artifact-anatomy) for the OCI layout, evidence layers, integrity checks, and reviewed-artifact behavior.
 
-### 6. Replay
+### 6. Add Review Flags
+
+Open **Editor** or select **Edit** for an artifact. The Chromium editor replays
+the rrweb timeline and lets you add point flags or time ranges. Each flag has a
+title, optional note, category, and severity; you can later edit, move, resize,
+rename, or delete it.
+
+**Save draft** stores validated flags locally for the selected source artifact,
+so you can close and reopen Editor before publication. **Save artifact** creates
+a new immutable flagged revision and clears the saved draft. The source artifact
+and its captured rrweb and diagnostic evidence are not modified.
+
+### 7. Replay
 
 Open **Replay Engine**, search or filter the catalog, and select an artifact.
 The Replay Diagnostics workspace shows packaged console, network, and error
@@ -101,11 +129,15 @@ evidence, including evidence states. After review confirmation, it can export a
 sanitized HAR or copy cURL for a selected request; copied cURL can mutate a live
 service. Choose **Run Replay** to open an interactive Chromium replay with
 play/pause, skip, speed, and timeline controls synchronized with the Desktop
-player. Console, error, and network evidence appears as replay reaches its
-recorded time; **All captured** keeps the full review available. **Stop Replay** cancels the
-in-flight replay and terminates the tracked engine/browser process tree. The
-standard CLI replay remains the noninteractive option that saves a final
-screenshot.
+player. Flagged revisions add a flag list and timeline markers: select a marker
+or flag to seek, use **Previous**/**Next** to navigate, choose **Play flag** to
+play the selected interval, or enable **Review flags only** to play review
+intervals in order. Point flags use a surrounding review window; range flags use
+their saved start and end offsets. Console, error, and network evidence appears
+as replay reaches its recorded time; **All captured** keeps the full review
+available. **Stop Replay** cancels the in-flight replay and terminates the
+tracked engine/browser process tree. The standard CLI replay remains the
+noninteractive option that saves a final screenshot.
 
 On Windows, browser replay runs in native compatibility mode and skips Docker Compose isolation and database restoration. Supported non-Windows environment replay uses rootless Docker.
 
@@ -132,11 +164,13 @@ dawg diagnostics export-har <artifact-directory> --output evidence.har
 dawg diagnostics copy-curl <artifact-directory> --request-id <request-id>
 dawg run <artifact-directory>
 
-# Export it for another DAWG installation
+# Export, import, or delete a managed local artifact instance
 dawg artifacts export <artifact-directory> --output checkout-timeout.dawg
-
-# Import a portable archive into the local store
 dawg artifacts import checkout-timeout.dawg
+dawg artifacts delete <artifact-directory>
+
+# Open Chromium Editor for point/range review flags
+dawg editor <artifact-directory> --interactive
 ```
 
 Use `--force` with `dawg artifacts export` only when you intend to replace an existing output file.

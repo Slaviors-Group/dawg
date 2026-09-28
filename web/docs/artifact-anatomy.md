@@ -73,10 +73,13 @@ DAWG manifest before adding it to the local artifact store.
 ## Integrity and compatibility
 
 DAWG verifies blob digests against the descriptors in the manifest before it
-reads evidence. The schema version controls which artifact fields are required;
-newer artifacts do not make older supported schemas unreadable. Artifacts from
-`0.2.3-naughty` onward remain supported for inspection, import/export, and
-replay, though older artifacts can have no diagnostic evidence layers.
+reads evidence. The schema version controls which artifact fields are required.
+New artifacts use `0.4.1-omega`; its flagged revisions require an Engine that
+supports the Omega review schema. Older supported schemas remain readable:
+artifacts from `0.2.3-naughty` onward can be inspected, imported/exported, and
+replayed, though older artifacts can have no diagnostic evidence layers. The
+browser extension remains display version `0.3.5_middlechild`; review flags do
+not require an extension update.
 
 ## Privacy and fidelity boundaries
 
@@ -98,7 +101,25 @@ boundaries.
 
 ## Reviewed artifacts
 
-Replay lets you remove complete diagnostic categories or selected retained body
+### Flagged review revisions
+
+Chromium Editor adds portable review flags to an artifact without changing its
+captured evidence. A point flag records one timeline offset; a range flag records
+start and end offsets. Flags also carry a title, optional note, category, and
+severity. **Save draft** retains validated flags locally for the selected source
+artifact, so they can be reopened and edited before publication.
+
+**Save artifact** creates a separate immutable flagged revision. The new
+manifest records the review root, parent artifact ID, revision number, review
+time, and flags; its OCI descriptors and logical identity are recomputed. The
+source stays unchanged, and later revisions preserve the same root while using
+the immediately edited revision as their parent. Flag titles and notes are
+portable content, so review them before sharing. Flags guide replay navigation;
+they do not delete evidence or modify rrweb state.
+
+### Evidence-removal copies
+
+Replay can also remove complete diagnostic categories or selected retained body
 references. DAWG creates a separate reviewed artifact for that operation. It
 repackages the remaining evidence with recomputed descriptors and a new logical
 identity; the source artifact remains unchanged. Removed bodies are represented

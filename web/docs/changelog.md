@@ -4,7 +4,49 @@ description: "DAWG release history, direct Windows and Linux downloads, compatib
 
 # Changelog
 
-Notable changes to DAWG are grouped by release family and listed in descending release order. Released versions link to their corresponding GitHub releases. Download links appear only for assets currently published on that release.
+Notable changes to DAWG are grouped by release family and listed in descending release order. Released versions link to their corresponding GitHub releases and direct release assets.
+
+## Omega family — `0.4.x`
+
+### [0.4.1-omega](https://github.com/Slaviors-Group/dawg/releases/tag/omega) - 2026-09-28
+
+**Tag:** [`omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega) · **Desktop:** `0.4.1` · **Extension display version:** `0.3.5_middlechild` (unchanged)
+
+**Downloads:** [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_x64-setup.exe) · [Linux AppImage](https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_amd64.AppImage)
+
+### Added
+
+- A dedicated **Artifacts** page for catalog search, origin and review filtering, inspection, replay, editing, import/export, revision history, and confirmed safe local deletion.
+- A Chromium-hosted **Editor** for portable point and range flags with titles, notes, categories, severities, keyboard adjustment, local drafts, and non-destructive revision publication.
+- A review timeline that distinguishes blue point markers from purple range bands, shows drag handles only for the selected flag, supports short-range hit targets, and provides immediate delete with Undo.
+- Custom saved-artifact names, with the default `<source title> review <revision>`, plus an in-Chromium confirmation once the Engine has actually published the new artifact.
+- Replay flag lists, timeline markers, click-to-seek, previous/next navigation, selected-flag playback, and **Review flags only** mode.
+- Dashboard summaries with one latest-added local artifact and counts for local captures, imported artifacts, flagged artifacts, diagnostics, and Doctor compatibility.
+- Explicit Doctor compatibility reporting for the labeled Engine/application version and numeric Desktop version.
+
+### Changed
+
+- Acquisition origin and portable review state are independent, so an artifact can be both **Imported** and **Flagged**.
+- The local catalog uses instance-based identity, allowing duplicate copies of one artifact digest to be managed independently.
+- **Save draft** stores validated review flags locally for the selected source artifact; **Save artifact** publishes a named immutable artifact revision and clears its draft.
+- Replay and Editor fit the fixed recorded viewport into the available space once, while an unused review panel no longer consumes replay width.
+- New artifacts use the explicit `v0.4.1-omega` schema while previous supported schemas remain readable.
+- The capture extension remains display version `0.3.5_middlechild` because Omega does not change extension source.
+
+### Fixed
+
+- Closing Chromium or using **Stop Replay** / **Stop Editor** now releases the interactive-process reservation before another interactive window can launch.
+- Valid numeric point and range offsets are accepted by the generated Editor client, with field-specific validation feedback.
+- Saving review revisions accepts rrweb JSONL records up to the shared 16 MiB limit instead of failing with Go's default scanner `token too long` error.
+- Empty Editor selections hide the flag form and disable draft/artifact save actions; externally discarded flags cannot be restored by a stale Undo action.
+
+### Compatibility and privacy
+
+- Flagged `0.4.1-omega` artifacts require an Engine that supports the Omega review schema; supported older artifacts remain readable.
+- Flag titles, notes, and saved artifact names are portable artifact content and must be reviewed before sharing.
+- Flags guide replay navigation only; they do not delete captured evidence or alter rrweb state.
+
+---
 
 ## Middlechild family — `0.3.x`
 
