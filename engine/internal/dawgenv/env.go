@@ -419,8 +419,8 @@ func RunDoctor(ctx context.Context, engineVersion string) DoctorReport {
 	}
 	report.Components = append(report.Components, chromiumStatus)
 
-	// 5. Replay scripts. Browser capture is owned by the extension below.
-	scripts := []string{"replay-browser.cjs"}
+	// 5. Interactive Chromium scripts. Browser capture is owned by the extension below.
+	scripts := []string{"replay-browser.cjs", "editor-browser.cjs", "review-common.cjs"}
 	for _, scriptName := range scripts {
 		scriptPath := ResolveScript(scriptName)
 		scriptStatus := ComponentStatus{Name: "script:" + scriptName, Path: scriptPath}

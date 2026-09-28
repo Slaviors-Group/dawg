@@ -6,7 +6,9 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
 )
@@ -66,6 +68,26 @@ func TestValidateJSONRejectsMalformedSchema(t *testing.T) {
 	err := ValidateJSON(badSchema, []byte("{}"))
 	if !errors.Is(err, dawgtypes.ErrInvalidManifest) {
 		t.Fatalf("expected invalid manifest error, got %v", err)
+	}
+}
+
+func TestReviewValidateRejectsInvalidLineageAndOrdering(t *testing.T) {
+	artifactID := "sha256:" + strings.Repeat("a", 64)
+	review := Review{
+		FormatVersion: "1", Kind: "flagged", RootArtifactID: artifactID, ParentArtifactID: artifactID,
+		Revision: 1, ReviewedAt: time.Date(2026, time.September, 1, 10, 0, 0, 0, time.UTC),
+		Flags: []ReviewFlag{{ID: strings.Repeat("1", 32), StartOffsetMs: 20, Title: "Later", Category: "note", Severity: "info"}, {ID: strings.Repeat("2", 32), StartOffsetMs: 10, Title: "Earlier", Category: "bug", Severity: "warning"}},
+	}
+	if err := review.Validate(100); err == nil {
+		t.Fatal("expected unordered review flags to be rejected")
+	}
+	SortFlags(review.Flags)
+	if err := review.Validate(100); err != nil {
+		t.Fatalf("validate ordered review: %v", err)
+	}
+	review.ParentArtifactID = "not-an-artifact"
+	if err := review.Validate(100); err == nil {
+		t.Fatal("expected invalid parent artifact ID to be rejected")
 	}
 }
 

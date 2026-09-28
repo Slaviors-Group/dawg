@@ -321,7 +321,7 @@ func runCaptureDaemon(ctx context.Context, request captureStartRequest) error {
 		artifactTitle = defaultArtifactTitle(request.TargetURL, capturedAt)
 		artifactFolderName = defaultArtifactDirectoryName(request.TargetURL, capturedAt)
 	} else {
-		artifactFolderName = artifactDirectoryNameForTitle(artifactTitle, capturedAt)
+		artifactFolderName = artifactDirectoryNameForTitle(artifactTitle)
 	}
 	artifactDirectory, err := uniqueArtifactPath(defaultDawgDir("artifacts"), artifactFolderName)
 	if err != nil {
@@ -450,10 +450,10 @@ func defaultArtifactDirectoryName(targetURL string, capturedAt time.Time) string
 	if err == nil && parsed.Hostname() != "" {
 		host = parsed.Hostname()
 	}
-	return artifactDirectoryNameForTitle(host, capturedAt)
+	return fmt.Sprintf("%s-%s", capturedAt.Format("20060102-150405"), artifactDirectoryNameForTitle(host))
 }
 
-func artifactDirectoryNameForTitle(title string, capturedAt time.Time) string {
+func artifactDirectoryNameForTitle(title string) string {
 	slug := strings.ToLower(strings.TrimSpace(title))
 	var builder strings.Builder
 	lastDash := false
@@ -470,7 +470,7 @@ func artifactDirectoryNameForTitle(title string, capturedAt time.Time) string {
 	if slug == "" {
 		slug = "capture"
 	}
-	return fmt.Sprintf("%s-%s", capturedAt.Format("20060102-150405"), slug)
+	return slug
 }
 
 func daemonArguments(request captureStartRequest, sessionPath string) []string {

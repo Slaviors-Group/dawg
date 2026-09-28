@@ -170,7 +170,7 @@ export const CaptureControls: React.FC = () => {
             value={artifactTitle}
             onChange={(event) => setArtifactTitle(event.target.value)}
             disabled={isCapturing}
-            hint="Used for the dashboard label and readable artifact folder name. A timestamp and target host are used when left blank."
+            hint="Used unchanged for the dashboard label and folder name. A timestamp and target host are used only when left blank."
           />
 
           <fieldset disabled={isCapturing} className="flex flex-col gap-2">

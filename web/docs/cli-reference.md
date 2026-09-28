@@ -4,7 +4,7 @@ description: "DAWG CLI commands and flags for capture, diagnostics, artifacts, r
 
 # CLI Reference
 
-This reference describes the DAWG `0.3.5-middlechild` command-line interface.
+This reference describes the DAWG `0.4.1-omega` command-line interface.
 
 ## Usage
 
@@ -136,7 +136,7 @@ List validated OCI artifacts in the local artifact directory.
 dawg artifacts list
 ```
 
-The JSON result is backed by the local catalog, which can contain captured and imported artifacts and discovered legacy artifacts.
+The JSON result is backed by the local catalog, which can contain captured, imported, pulled, and discovered legacy artifacts. Catalog entries use instance identity, so duplicate local copies of one artifact digest can be managed independently; flagged revisions include their review lineage and flag metadata.
 
 ### `dawg artifacts export <artifact-directory>`
 
@@ -160,6 +160,34 @@ dawg artifacts import <file.dawg>
 ```
 
 Import validates archive paths, symlinks, size and compression limits, OCI structure, descriptors, and content digests before accepting the artifact.
+
+### `dawg artifacts delete <artifact-directory>`
+
+Delete one managed local artifact instance.
+
+```bash
+dawg artifacts delete <artifact-directory>
+```
+
+Deletion is limited to a direct, real directory within DAWG's managed artifact
+store. The engine rejects active, unmanaged, symlinked, or otherwise unsafe
+targets. Deleting one instance does not modify another local copy or a revision
+relative.
+
+### `dawg artifacts review <artifact-directory>`
+
+Publish an immutable flagged revision from validated review JSON.
+
+```bash
+dawg artifacts review <artifact-directory> --review-file review.json
+```
+
+| Flag | Required | Description |
+|---|---:|---|
+| `--review-file <file>` | Yes | JSON review envelope or object containing at least one flag |
+
+The engine derives review lineage from the selected source artifact and publishes
+a new local revision. It never overwrites the source.
 
 ### `dawg diagnostics inspect <artifact-directory>`
 
@@ -228,6 +256,23 @@ removes retained bodies because they have no remaining request context. Removing
 individual bodies rewrites matching network body states to `unavailable`; DAWG
 does not infer replacement content.
 
+### `dawg editor <artifact-directory>`
+
+Open the interactive Chromium Editor for point and range review flags.
+
+```bash
+dawg editor <artifact-directory> --interactive
+```
+
+| Flag | Required | Description |
+|---|---:|---|
+| `--interactive` | Yes | Open the Chromium review editor |
+
+Editor flags include a title, optional note, category, severity, start offset,
+and optional end offset. **Save draft** keeps a validated local draft for the
+selected source artifact. **Save artifact** publishes a new immutable flagged
+revision and clears that draft; it does not modify the source artifact.
+
 ### `dawg run <artifact-directory>`
 
 Replay an artifact and write its replay outcome.
@@ -242,7 +287,7 @@ dawg run <artifact-directory> [--interactive] [--output text|json]
 
 Replay unpacks the OCI layers, optionally starts a captured Compose environment and restores a PostgreSQL fixture, optionally starts cassette replay, and uses Playwright Chromium to render the recorded rrweb timeline. Standard mode plays to completion, writes `outcome/screenshot.png`, and exits. Interactive mode remains open until Chromium is closed or the Desktop **Stop Replay** action terminates it; it does not produce the final screenshot. Press `Ctrl+Shift+I` to inspect the reconstructed rrweb document and `window.__DAWG_REPLAY__`. Refreshing the local replay page restarts it at the beginning.
 
-`run` visualizes the recording; it does not re-execute recorded click/fill actions or navigate through the original application flow. See [Architecture](./architecture.md#replay) for platform and determinism boundaries.
+`run` visualizes the recording; it does not re-execute recorded click/fill actions or navigate through the original application flow. For flagged artifacts, interactive Chromium shows review markers, previous/next navigation, selected-flag playback, and **Review flags only** mode. See [Architecture](./architecture.md#replay) for platform and determinism boundaries.
 
 ### `dawg verify <artifact-directory>`
 
@@ -278,7 +323,7 @@ The report checks:
 - `replay-browser.cjs`
 - the browser extension manifest
 - the default Rego policy
-- the current `0.3.5-middlechild` manifest schema
+- the current `0.4.1-omega` manifest schema
 
 The report status is `ready` or `degraded`. A degraded component is recorded in the report; degradation alone does not currently make the command return an execution error.
 
@@ -317,7 +362,7 @@ Captured artifacts are stored under `artifacts/<timestamped-title>`.
 `dawg init` generates a configuration with the current schema version and absolute state paths:
 
 ```yaml
-schemaVersion: "0.3.5-middlechild"
+schemaVersion: "0.4.1-omega"
 capture:
   outputDir: "<absolute-state-directory>/captures"
   browser: "chromium"

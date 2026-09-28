@@ -4,7 +4,7 @@ description: "Explore DAWG's extension capture, sanitization, OCI packaging, art
 
 # Architecture
 
-DAWG `0.3.5-middlechild` captures a browser session through an extension, sanitizes supported JSONL streams and retained diagnostic bodies, packages them as an OCI Image Layout, and renders the recording for replay and verification.
+DAWG `0.4.1-omega` captures a browser session through an extension, sanitizes supported JSONL streams and retained diagnostic bodies, packages them as an OCI Image Layout, and renders the recording for replay, review, and verification.
 
 ## Pipeline Overview
 
@@ -27,7 +27,8 @@ flowchart TD
 | Capture | Record rrweb events, browser actions, Safe or Enhanced diagnostic evidence, and optional environment inputs |
 | Sanitize | Replace recognized secrets and PII in supported JSONL files and retained diagnostic bodies, then evaluate a Rego allow decision |
 | Package | Validate metadata and create content-addressed OCI layers, including bounded diagnostics when present |
-| Store | Register locally, export/import a `.dawg` archive, or push/pull through an OCI registry |
+| Store | Register local artifact instances, export/import a `.dawg` archive, or push/pull through an OCI registry |
+| Review | Add local drafts or publish immutable flagged revisions from Chromium Editor |
 | Replay | Restore available environment data and render the rrweb timeline in Playwright Chromium |
 | Verify | Compare replay exit status and any available HTTP and screenshot outcomes |
 
@@ -106,7 +107,7 @@ A packaged artifact is an OCI Image Layout:
         └── <digest>
 ```
 
-The DAWG manifest is validated against the schema matching its declared version. DAWG `0.3.5-middlechild` requires diagnostic summary metadata in addition to the schema version, SHA-256 artifact ID, creation time, non-empty title, source, at least one layer, sanitization metadata, determinism metadata, and expected outcome. The summary identifies the selected profile, sources, counts, retained/redacted/blocked/truncated body totals, limits, and any degradations.
+The DAWG manifest is validated against the schema matching its declared version. DAWG `0.4.1-omega` requires diagnostic summary metadata in addition to the schema version, SHA-256 artifact ID, creation time, non-empty title, source, at least one layer, sanitization metadata, determinism metadata, and expected outcome. A flagged revision also carries its review format, root and parent artifact IDs, revision number, review time, and flags. The diagnostic summary identifies the selected profile, sources, counts, retained/redacted/blocked/truncated body totals, limits, and any degradations.
 
 ### Current Layer Types
 
@@ -121,7 +122,7 @@ The DAWG manifest is validated against the schema matching its declared version.
 
 The trace layer groups `traces/`, `actions/`, `http/`, and `logs/`. Descriptors and blobs use SHA-256 content addressing.
 
-Artifacts default to the state directory at `~/.dawg/artifacts/<timestamped-title>` unless `DAWG_STATE_DIR` changes the state root. The local catalog distinguishes captured and imported artifacts and can discover legacy artifacts. Portable `.dawg` exports are ZIP archives containing the OCI layout.
+Artifacts default to the state directory at `~/.dawg/artifacts/<timestamped-title>` unless `DAWG_STATE_DIR` changes the state root. The local catalog records acquisition origin and instance identity, so captured, imported, pulled, legacy, and duplicate local instances can be managed independently. Flagged revisions retain their acquisition origin and are grouped by review root. Portable `.dawg` exports are ZIP archives containing the OCI layout.
 
 Import applies archive traversal, symlink, entry-count, size, compression-ratio, OCI-structure, descriptor, and digest validation before registration.
 
@@ -150,6 +151,22 @@ time, while network evidence uses request start, first-byte, and completion
 timestamps relative to the first rrweb timestamp. Evidence appears at those
 literal offsets; backward seeks reconstruct the earlier view, and uncorrelated
 records remain available through **All captured**.
+
+A flagged replay adds a Chromium review panel and timeline markers. Selecting a
+flag or marker seeks to its start; **Previous** and **Next** move through flags;
+**Play flag** plays a selected range or the review window around a point flag.
+**Review flags only** plays those intervals in order and stops after the last
+one. Flags guide navigation only and do not alter the rrweb recording.
+
+## Chromium Editor and immutable reviews
+
+The Editor opens the selected artifact's rrweb recording in Chromium. It can add
+point or range flags and edit their title, optional note, category, severity,
+and offsets. **Save draft** validates and stores review flags locally for that
+source artifact; reopening the editor restores the saved draft. **Save artifact**
+validates the review lineage, packages a new OCI artifact, records the source as
+its parent, and removes the local draft after publication. The source artifact's
+blobs and manifest remain unchanged.
 
 ## Evidence review and removal
 
@@ -203,7 +220,7 @@ dawg/
 │   ├── src/                      # React UI
 │   └── src-tauri/                # Tauri host
 ├── schema/
-│   ├── manifest/v0.3.5-middlechild.json
+│   ├── manifest/v0.4.1-omega.json
 │   ├── mediatypes.json
 │   └── policies/default.rego
 ├── tools/sync-versions.cjs

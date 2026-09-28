@@ -1,8 +1,11 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
+const { parseReviewFile } = require("./review-common.cjs");
 
 const REPLAY_PROTOCOL = "dawg.replay.v1";
+const DEFAULT_REVIEW_PRE_ROLL_MS = 3_000;
+const DEFAULT_REVIEW_POST_ROLL_MS = 5_000;
 let replaySequence = 0;
 
 function emitReplayEvent(event) {
@@ -28,6 +31,16 @@ function parseArguments(argumentsList) {
         }
     }
     return values;
+}
+
+function nonNegativeIntegerOption(value, name, fallback) {
+    if (value === undefined) return fallback;
+    if (!/^\d+$/.test(String(value))) throw new Error(`--${name} must be a non-negative integer`);
+    const parsed = Number(value);
+    if (!Number.isSafeInteger(parsed) || parsed > 600_000) {
+        throw new Error(`--${name} must be between 0 and 600000`);
+    }
+    return parsed;
 }
 
 function getRecordedViewport(events) {
@@ -76,9 +89,18 @@ function interactiveDocument() {
             <button id="rewind" type="button" aria-label="Rewind 10 seconds">-10s</button>
             <button id="forward" type="button" aria-label="Forward 10 seconds">+10s</button>
             <button id="speed" type="button" aria-label="Playback speed">1x</button>
-            <input id="timeline" type="range" min="0" value="0" step="100" aria-label="Replay timeline">
+            <div id="timeline-wrap">
+                <input id="timeline" type="range" min="0" value="0" step="100" aria-label="Replay timeline">
+                <div id="flag-track" aria-label="Review flag timeline markers"></div>
+            </div>
             <output id="time-label" for="timeline">0:00 / 0:00</output>
         </section>
+        <aside id="review-panel" aria-label="Review flags" hidden>
+            <div id="review-heading"><h2>Review flags</h2><label><input id="review-only" type="checkbox"> Review flags only</label></div>
+            <div id="review-actions"><button id="previous-flag" type="button">Previous</button><button id="next-flag" type="button">Next</button><button id="play-selected-flag" type="button">Play flag</button></div>
+            <p id="review-empty">No review flags are available.</p>
+            <ol id="flag-list"></ol>
+        </aside>
     </main>
 </body>
 </html>`;
@@ -88,12 +110,25 @@ function interactiveStyles(viewport) {
     return `:root { color-scheme: dark; font-family: system-ui, sans-serif; }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; overflow: hidden; background: #141414; }
-#replay-app { display: grid; grid-template-rows: minmax(0, 1fr) auto; height: 100vh; }
+#replay-app { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; height: 100vh; }
+#replay-app.has-review { grid-template-columns: minmax(0, 1fr) minmax(230px, 300px); }
 #viewport-host { display: flex; min-height: 0; align-items: center; justify-content: center; overflow: hidden; background: #050505; }
+#review-panel { grid-column: 2; grid-row: 1 / span 2; overflow: auto; padding: 14px; border-left: 1px solid #343434; background: #1a1a1a; color: #f3f3f3; }
+#review-heading { display: flex; flex-direction: column; gap: 8px; } #review-heading h2 { margin: 0; font-size: 1rem; }
+#review-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin: 14px 0; }
+#review-actions button, .flag-item { border: 1px solid #5a5a5a; border-radius: 4px; background: #2c2c2c; color: inherit; font: inherit; cursor: pointer; }
+#review-actions button { min-height: 32px; } #flag-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.flag-item { width: 100%; padding: 8px; text-align: left; } .flag-item[aria-current="true"] { border-color: #77a7ff; background: #273a59; }
+.flag-item-title, .flag-item-time { display: block; } .flag-item-time { margin-top: 4px; color: #c6c6c6; font-size: .82rem; font-variant-numeric: tabular-nums; }
+#review-empty { color: #c6c6c6; }
 #recorded-stage { width: ${viewport.width}px; height: ${viewport.height}px; flex: 0 0 auto; overflow: hidden; transform-origin: center center; background: white; box-shadow: 0 0 28px rgba(0, 0, 0, .7); }
 #replay-root, #replay-root > .replayer-wrapper { width: 100%; height: 100%; }
-#replay-controls { display: grid; grid-template-columns: auto auto auto auto minmax(120px, 1fr) auto; gap: 8px; align-items: center; padding: 10px 14px; border-top: 1px solid #343434; background: #1e1e1e; color: #f3f3f3; }
+#replay-controls { grid-column: 1; display: grid; grid-template-columns: auto auto auto auto minmax(120px, 1fr) auto; gap: 8px; align-items: center; padding: 10px 14px; border-top: 1px solid #343434; background: #1e1e1e; color: #f3f3f3; }
 #replay-controls button { min-width: 44px; min-height: 32px; border: 1px solid #5a5a5a; border-radius: 4px; background: #2c2c2c; color: inherit; cursor: pointer; font: inherit; }
+#timeline-wrap { position: relative; min-width: 120px; } #timeline { position: relative; z-index: 1; } #flag-track { position: absolute; inset: 0 8px; pointer-events: none; }
+.flag-marker { position: absolute; top: 3px; bottom: 3px; min-width: 4px; border: 0; border-radius: 2px; background: #e3ae46; pointer-events: auto; cursor: pointer; } .flag-marker.range { background: rgba(227, 174, 70, .58); }
+#review-actions button:hover, .flag-item:hover { background: #3a3a3a; }
+@media (max-width: 760px) { #replay-app, #replay-app.has-review { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto auto; } #review-panel { grid-column: 1; grid-row: 3; max-height: 34vh; border-top: 1px solid #343434; border-left: 0; } }
 #replay-controls button:hover { background: #3a3a3a; }
 #replay-controls button:focus-visible, #timeline:focus-visible { outline: 2px solid #77a7ff; outline-offset: 2px; }
 #timeline { width: 100%; accent-color: #77a7ff; cursor: pointer; }
@@ -101,12 +136,16 @@ body { margin: 0; min-width: 320px; overflow: hidden; background: #141414; }
 @media (max-width: 560px) { #replay-controls { grid-template-columns: auto auto auto auto minmax(80px, 1fr); } #time-label { grid-column: 1 / -1; text-align: left; } }`;
 }
 
-function interactiveScript(recordedViewport) {
+function interactiveScript(recordedViewport, reviewWindow) {
     return `(async () => {
     try {
-        const response = await fetch("/events.json");
-        if (!response.ok) throw new Error(\`events request failed: \${response.status}\`);
-        const events = await response.json();
+        const [eventsResponse, reviewResponse] = await Promise.all([fetch("/events.json"), fetch("/review.json")]);
+        if (!eventsResponse.ok) throw new Error("events request failed: " + eventsResponse.status);
+        if (!reviewResponse.ok) throw new Error("review request failed: " + reviewResponse.status);
+        const events = await eventsResponse.json();
+        const review = await reviewResponse.json();
+        const flags = Array.isArray(review.flags) ? review.flags : [];
+        const app = document.getElementById("replay-app");
         const root = document.getElementById("replay-root");
         const controls = document.getElementById("replay-controls");
         const viewportHost = document.getElementById("viewport-host");
@@ -117,7 +156,15 @@ function interactiveScript(recordedViewport) {
         const speed = document.getElementById("speed");
         const timeline = document.getElementById("timeline");
         const timeLabel = document.getElementById("time-label");
-        if (!root || !controls || !viewportHost || !stage || !playPause || !rewind || !forward || !speed || !timeline || !timeLabel) {
+        const reviewPanel = document.getElementById("review-panel");
+        const flagTrack = document.getElementById("flag-track");
+        const flagList = document.getElementById("flag-list");
+        const reviewEmpty = document.getElementById("review-empty");
+        const reviewOnly = document.getElementById("review-only");
+        const previousFlag = document.getElementById("previous-flag");
+        const nextFlag = document.getElementById("next-flag");
+        const playSelectedFlag = document.getElementById("play-selected-flag");
+        if (!app || !root || !controls || !viewportHost || !stage || !playPause || !rewind || !forward || !speed || !timeline || !timeLabel || !reviewPanel || !flagTrack || !flagList || !reviewEmpty || !reviewOnly || !previousFlag || !nextFlag || !playSelectedFlag) {
             throw new Error("interactive replay controls could not be initialized");
         }
 
@@ -136,6 +183,11 @@ function interactiveScript(recordedViewport) {
         let playing = false;
         let scrubbing = false;
         let activeViewport = { ...metadata.recordedViewport };
+        let selectedFlagId = flags[0] ? flags[0].id : null;
+        let reviewFlagsOnly = false;
+        let selectedRangeEnd = null;
+        const reviewWindowOptions = ${JSON.stringify({ preRollMs: DEFAULT_REVIEW_PRE_ROLL_MS, postRollMs: DEFAULT_REVIEW_POST_ROLL_MS })};
+        Object.assign(reviewWindowOptions, ${JSON.stringify(reviewWindow)});
 
         const replayState = (type = "state", reason = "update") => ({
             type,
@@ -146,6 +198,9 @@ function interactiveScript(recordedViewport) {
             lastTimestamp: metadata.lastTimestamp,
             playing,
             speed: speeds[speedIndex],
+            reviewFlagsOnly,
+            selectedFlagId,
+            flagCount: flags.length,
         });
         const reportState = (type = "state", reason = "update") => {
             const state = replayState(type, reason);
@@ -173,7 +228,92 @@ function interactiveScript(recordedViewport) {
             playPause.setAttribute("aria-label", playing ? "Pause replay" : "Play replay");
             speed.textContent = \`\${speeds[speedIndex]}x\`;
         };
+        const reviewInterval = flag => {
+            const start = flag.endOffsetMs === undefined
+                ? clamp(flag.startOffsetMs - reviewWindowOptions.preRollMs)
+                : flag.startOffsetMs;
+            const end = flag.endOffsetMs === undefined
+                ? clamp(flag.startOffsetMs + reviewWindowOptions.postRollMs)
+                : flag.endOffsetMs;
+            return { start, end: Math.max(start, end) };
+        };
+        const selectedFlag = () => flags.find(flag => flag.id === selectedFlagId) || null;
+        const renderFlags = () => {
+            app.classList.toggle("has-review", flags.length > 0);
+            reviewPanel.hidden = flags.length === 0;
+            reviewEmpty.hidden = flags.length !== 0;
+            flagList.replaceChildren();
+            flagTrack.replaceChildren();
+            for (const flag of flags) {
+                const interval = reviewInterval(flag);
+                const item = document.createElement("li");
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "flag-item";
+                button.setAttribute("aria-current", String(flag.id === selectedFlagId));
+                const title = document.createElement("strong");
+                title.className = "flag-item-title";
+                title.textContent = flag.title;
+                const time = document.createElement("span");
+                time.className = "flag-item-time";
+                time.textContent = flag.endOffsetMs === undefined
+                    ? formatTime(flag.startOffsetMs)
+                    : formatTime(flag.startOffsetMs) + " – " + formatTime(flag.endOffsetMs);
+                button.append(title, time);
+                button.addEventListener("click", () => selectFlag(flag.id, true));
+                item.append(button);
+                flagList.append(item);
+
+                const marker = document.createElement("button");
+                marker.type = "button";
+                marker.className = "flag-marker" + (flag.endOffsetMs === undefined ? "" : " range");
+                marker.setAttribute("aria-label", "Seek to review flag: " + flag.title);
+                marker.style.left = String(Math.min(100, Math.max(0, (interval.start / Math.max(1, replayDuration)) * 100))) + "%";
+                marker.style.width = String(Math.max(0.45, ((interval.end - interval.start) / Math.max(1, replayDuration)) * 100)) + "%";
+                marker.addEventListener("click", () => selectFlag(flag.id, true));
+                flagTrack.append(marker);
+            }
+        };
+        const selectFlag = (id, shouldSeek = false) => {
+            if (!flags.some(flag => flag.id === id)) throw new Error("unknown review flag");
+            selectedFlagId = id;
+            if (shouldSeek) seek(selectedFlag().startOffsetMs);
+            renderFlags();
+            reportState("state", "selectFlag");
+            return selectedFlag();
+        };
+        const relativeFlag = direction => {
+            if (flags.length === 0) return null;
+            const currentIndex = flags.findIndex(flag => flag.id === selectedFlagId);
+            const baseIndex = currentIndex < 0 ? 0 : currentIndex;
+            const index = Math.max(0, Math.min(flags.length - 1, baseIndex + direction));
+            return selectFlag(flags[index].id, true);
+        };
+        const playSelectedFlagRange = () => {
+            const flag = selectedFlag();
+            if (!flag) return null;
+            const interval = reviewInterval(flag);
+            selectedRangeEnd = interval.end;
+            seek(interval.start);
+            replayer.play(interval.start);
+            return interval;
+        };
         const play = () => {
+            if (reviewFlagsOnly && flags.length > 0) {
+                selectedRangeEnd = null;
+                const current = replayer.getCurrentTime();
+                const currentSelection = selectedFlag();
+                const next = currentSelection && reviewInterval(currentSelection).end >= current
+                    ? currentSelection
+                    : flags.find(flag => reviewInterval(flag).end >= current) || flags[0];
+                selectedFlagId = next.id;
+                const interval = reviewInterval(next);
+                const target = current >= interval.start && current < interval.end ? current : interval.start;
+                replayer.play(target);
+                renderFlags();
+                return;
+            }
+            selectedRangeEnd = null;
             if (replayer.getCurrentTime() >= replayDuration) replayer.pause(0);
             replayer.play(clamp(replayer.getCurrentTime()));
         };
@@ -195,6 +335,13 @@ function interactiveScript(recordedViewport) {
             updateControls(replayer.getCurrentTime());
             reportState("state", "speed");
             return speeds[speedIndex];
+        };
+        const setReviewFlagsOnly = enabled => {
+            reviewFlagsOnly = Boolean(enabled) && flags.length > 0;
+            reviewOnly.checked = reviewFlagsOnly;
+            if (reviewFlagsOnly && playing) play();
+            reportState("state", "reviewFlagsOnly");
+            return reviewFlagsOnly;
         };
         const getState = () => replayState("state", "requested");
         const restart = () => seek(0);
@@ -235,6 +382,10 @@ function interactiveScript(recordedViewport) {
         playPause.addEventListener("click", () => playing ? pause() : play());
         rewind.addEventListener("click", () => seek(replayer.getCurrentTime() - 10000));
         forward.addEventListener("click", () => seek(replayer.getCurrentTime() + 10000));
+        previousFlag.addEventListener("click", () => relativeFlag(-1));
+        nextFlag.addEventListener("click", () => relativeFlag(1));
+        playSelectedFlag.addEventListener("click", () => playSelectedFlagRange());
+        reviewOnly.addEventListener("change", () => setReviewFlagsOnly(reviewOnly.checked));
         speed.addEventListener("click", () => {
             setSpeed(speeds[(speedIndex + 1) % speeds.length]);
         });
@@ -248,11 +399,31 @@ function interactiveScript(recordedViewport) {
         new ResizeObserver(resizeStage).observe(viewportHost);
         resizeStage();
         window.setInterval(() => {
+            const current = replayer.getCurrentTime();
+            if (playing && selectedRangeEnd !== null && !reviewFlagsOnly && current >= selectedRangeEnd) {
+                replayer.pause(selectedRangeEnd);
+                selectedRangeEnd = null;
+            }
+            if (playing && reviewFlagsOnly && selectedFlag()) {
+                const interval = reviewInterval(selectedFlag());
+                if (current >= interval.end) {
+                    const currentIndex = flags.findIndex(flag => flag.id === selectedFlagId);
+                    if (currentIndex >= 0 && currentIndex + 1 < flags.length) {
+                        const next = flags[currentIndex + 1];
+                        selectedFlagId = next.id;
+                        replayer.play(reviewInterval(next).start);
+                        renderFlags();
+                    } else {
+                        replayer.pause(interval.end);
+                    }
+                }
+            }
             updateControls(replayer.getCurrentTime());
             if (playing) reportState("state", "tick");
         }, 100);
 
         replayer.pause(0);
+        renderFlags();
         updateControls(0);
         const iframe = root.querySelector("iframe");
         if (!iframe) throw new Error("rrweb replay iframe was not created");
@@ -260,7 +431,11 @@ function interactiveScript(recordedViewport) {
         iframe.name = "dawg-replay-frame";
         iframe.title = "DAWG replayed page";
         iframe.dataset.dawgReplay = "true";
-        window.__DAWG_REPLAY__ = { events, replayer, iframe, play, pause, seek, setSpeed, getState, restart, metadata };
+        window.__DAWG_REPLAY__ = {
+            events, replayer, iframe, play, pause, seek, setSpeed, getState, restart, metadata,
+            selectFlag, previousFlag: () => relativeFlag(-1), nextFlag: () => relativeFlag(1),
+            playSelectedFlag: playSelectedFlagRange, setReviewFlagsOnly,
+        };
     } catch (error) {
         window.__DAWG_REPLAY_ERROR__ = error && (error.stack || error.message) || String(error);
         console.error(error);
@@ -280,7 +455,9 @@ function installInteractiveControlChannel(page) {
             if (command.protocol && command.protocol !== REPLAY_PROTOCOL) throw new Error("unsupported replay protocol");
             if (command.type === "seek" && !Number.isFinite(command.offsetMs)) throw new Error("seek requires a finite offsetMs");
             if (command.type === "setSpeed" && ![0.5, 1, 1.5, 2, 4].includes(command.speed)) throw new Error("unsupported replay speed");
-            if (!["play", "pause", "seek", "setSpeed", "getState"].includes(command.type)) throw new Error("unsupported replay command");
+            if (command.type === "selectFlag" && (typeof command.flagId !== "string" || !/^[a-f0-9]{32}$/.test(command.flagId))) throw new Error("selectFlag requires a valid flagId");
+            if (command.type === "setReviewFlagsOnly" && typeof command.enabled !== "boolean") throw new Error("setReviewFlagsOnly requires enabled");
+            if (!["play", "pause", "seek", "setSpeed", "getState", "selectFlag", "previousFlag", "nextFlag", "playSelectedFlag", "setReviewFlagsOnly"].includes(command.type)) throw new Error("unsupported replay command");
         } catch (error) {
             emitReplayEvent({ type: "error", commandId: command?.id || null, message: error.message || String(error) });
             return;
@@ -294,6 +471,11 @@ function installInteractiveControlChannel(page) {
                     case "pause": controller.pause(); break;
                     case "seek": controller.seek(replayCommand.offsetMs); break;
                     case "setSpeed": controller.setSpeed(replayCommand.speed); break;
+                    case "selectFlag": controller.selectFlag(replayCommand.flagId, true); break;
+                    case "previousFlag": controller.previousFlag(); break;
+                    case "nextFlag": controller.nextFlag(); break;
+                    case "playSelectedFlag": controller.playSelectedFlag(); break;
+                    case "setReviewFlagsOnly": controller.setReviewFlagsOnly(replayCommand.enabled); break;
                     case "getState": break;
                     default: throw new Error("unsupported replay command");
                 }
@@ -305,22 +487,31 @@ function installInteractiveControlChannel(page) {
             if (!closed) emitReplayEvent({ type: "error", commandId: command.id || null, message: error.message || String(error) });
         }
     };
-    process.stdin.setEncoding("utf8");
-    process.stdin.on("data", chunk => {
+    const onData = chunk => {
+        if (closed) return;
         buffered += chunk;
         const lines = buffered.split("\n");
         buffered = lines.pop();
         for (const line of lines) void processLine(line);
-    });
-    process.stdin.on("end", () => { closed = true; });
+    };
+    const onEnd = () => { closed = true; };
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", onData);
+    process.stdin.on("end", onEnd);
     process.stdin.resume();
+    return () => {
+        closed = true;
+        process.stdin.off("data", onData);
+        process.stdin.off("end", onEnd);
+        process.stdin.pause();
+    };
 }
 
 async function main() {
     const options = parseArguments(process.argv.slice(2));
     for (const required of ["rrweb-input", "screenshot-output"]) {
-        if (!options[required]) {
-            throw new Error(`missing --${required}`);
+        if (typeof options[required] !== "string" || options[required].length === 0) {
+            throw new Error(`missing --${required} path`);
         }
     }
     const interactive = options.interactive === true;
@@ -348,6 +539,17 @@ async function main() {
     }
 
     const recordedViewport = interactive ? getRecordedViewport(events) : null;
+    const firstTimestamp = Number(events[0]?.timestamp);
+    const lastTimestamp = Number(events[events.length - 1]?.timestamp);
+    const reviewDuration = Math.round(lastTimestamp - firstTimestamp);
+    if (options["review-file"] && (!Number.isSafeInteger(reviewDuration) || reviewDuration < 0)) {
+        throw new Error("cannot validate review offsets because rrweb event timestamps are invalid");
+    }
+    const review = parseReviewFile(options["review-file"], reviewDuration, { allowEmpty: true });
+    const reviewWindow = {
+        preRollMs: nonNegativeIntegerOption(options["review-pre-roll-ms"], "review-pre-roll-ms", DEFAULT_REVIEW_PRE_ROLL_MS),
+        postRollMs: nonNegativeIntegerOption(options["review-post-roll-ms"], "review-post-roll-ms", DEFAULT_REVIEW_POST_ROLL_MS),
+    };
 
     // Diagnostics: a replayed page that renders blank despite the process
     // exiting successfully is otherwise invisible to the user (no error is
@@ -409,6 +611,7 @@ async function main() {
         });
 
         const eventsJson = JSON.stringify(events);
+        const reviewJson = JSON.stringify(review || { flags: [] });
         let evaluation;
 
         if (interactive) {
@@ -416,17 +619,18 @@ async function main() {
             const resources = new Map([
                 ["/", { contentType: "text/html", body: interactiveDocument() }],
                 ["/index.html", { contentType: "text/html", body: interactiveDocument() }],
-                ["/replay.js", { contentType: "text/javascript", body: interactiveScript(recordedViewport) }],
+                ["/replay.js", { contentType: "text/javascript", body: interactiveScript(recordedViewport, reviewWindow) }],
                 ["/replay.css", { contentType: "text/css", body: interactiveStyles(recordedViewport) }],
                 ["/rrweb.js", { contentType: "text/javascript", body: rrwebBundle }],
                 ["/rrweb.css", { contentType: "text/css", body: rrwebCss }],
                 ["/events.json", { contentType: "application/json", body: eventsJson }],
+                ["/review.json", { contentType: "application/json", body: reviewJson }],
             ]);
-            await page.route("http://dawg-replay.local/**", route => {
-                const resource = resources.get(new URL(route.request().url()).pathname);
-                if (resource) {
-                    return route.fulfill(resource);
-                }
+            await page.route("**/*", route => {
+                const requestUrl = new URL(route.request().url());
+                if (requestUrl.origin !== "http://dawg-replay.local") return route.abort();
+                const resource = resources.get(requestUrl.pathname);
+                if (resource) return route.fulfill(resource);
                 return route.fulfill({ status: 404, contentType: "text/plain", body: "Not found" });
             });
             await page.goto("http://dawg-replay.local/", { waitUntil: "load" });
@@ -476,13 +680,17 @@ async function main() {
         process.stderr.write(`Replayer attached ${evaluation.iframeCount} iframe(s) to the page.\n`);
 
         if (interactive) {
-            installInteractiveControlChannel(page);
+            const closeControlChannel = installInteractiveControlChannel(page);
             emitReplayEvent({ ...evaluation.replayState, type: "ready", reason: "ready" });
             process.stderr.write(`Interactive replay ready at http://dawg-replay.local/ with recorded viewport ${recordedViewport.width}x${recordedViewport.height}. Close the replay window when finished.\n`);
-            await Promise.race([
-                new Promise(resolve => browser.once("disconnected", resolve)),
-                new Promise(resolve => page.once("close", resolve)),
-            ]);
+            try {
+                await Promise.race([
+                    new Promise(resolve => browser.once("disconnected", resolve)),
+                    new Promise(resolve => page.once("close", resolve)),
+                ]);
+            } finally {
+                closeControlChannel();
+            }
             emitReplayEvent({ type: "closed" });
             return;
         }
@@ -512,7 +720,11 @@ async function main() {
     }
 }
 
-main().catch((error) => {
-    process.stderr.write(`${error.stack || error.message}\n`);
-    process.exitCode = 1;
-});
+if (require.main === module) {
+    main().catch((error) => {
+        process.stderr.write(`${error.stack || error.message}\n`);
+        process.exitCode = 1;
+    });
+}
+
+module.exports = { interactiveScript, interactiveStyles, parseArguments };

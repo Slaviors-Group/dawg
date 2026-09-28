@@ -4,7 +4,7 @@ description: "Review DAWG detection rules, redaction behavior, evidence sanitiza
 
 # Sanitizer Policy
 
-DAWG `0.3.5-middlechild` sanitizes supported capture streams and retained diagnostic bodies before packaging, then evaluates an Open Policy Agent (OPA) allow decision. Detection is heuristic: sanitization reduces exposure, but it is not a confidentiality or no-leak guarantee.
+DAWG `0.4.1-omega` sanitizes supported capture streams and retained diagnostic bodies before packaging, then evaluates an Open Policy Agent (OPA) allow decision. Detection is heuristic: sanitization reduces exposure, but it is not a confidentiality or no-leak guarantee.
 
 ## Processing Flow
 

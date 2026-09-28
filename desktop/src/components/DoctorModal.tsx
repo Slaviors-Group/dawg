@@ -46,6 +46,48 @@ export function DoctorModal({ open, onClose }: DoctorModalProps) {
             )}
           </div>
 
+          <div className="rounded-md border border-border bg-canvas-subtle p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-text-secondary">Version compatibility</span>
+              <Badge
+                variant={
+                  doctorReport.compatibility.status === "compatible"
+                    ? "success"
+                    : doctorReport.compatibility.status === "mismatch"
+                      ? "error"
+                      : "warning"
+                }
+                size="sm"
+                dot
+              >
+                {doctorReport.compatibility.status}
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
+              <CompatibilityValue
+                label="Application"
+                expected={doctorReport.compatibility.expectedApplicationVersion}
+                detected={doctorReport.compatibility.detectedEngineVersion}
+                status={doctorReport.compatibility.engine}
+              />
+              <CompatibilityValue
+                label="Schema"
+                expected={doctorReport.compatibility.expectedApplicationVersion}
+                detected={doctorReport.compatibility.currentSchemaVersion}
+                status={doctorReport.compatibility.schema}
+              />
+              <CompatibilityValue
+                label="Extension"
+                expected={doctorReport.compatibility.expectedExtensionVersion}
+                detected={doctorReport.compatibility.detectedExtensionVersion}
+                status={doctorReport.compatibility.extension}
+              />
+            </div>
+            <p className="mt-2 text-[11px] text-text-tertiary">
+              Desktop {doctorReport.compatibility.expectedDesktopVersion} is checked against the expected application contract, not directly against the engine version.
+            </p>
+          </div>
+
           {/* Path info grid */}
           <div className="grid grid-cols-2 gap-3 p-3 bg-canvas-subtle rounded-md border border-border text-xs">
             <div>
@@ -113,5 +155,32 @@ export function DoctorModal({ open, onClose }: DoctorModalProps) {
         </div>
       )}
     </Modal>
+  );
+}
+
+function CompatibilityValue({
+  label,
+  expected,
+  detected,
+  status,
+}: {
+  label: string;
+  expected: string;
+  detected?: string;
+  status: "compatible" | "mismatch" | "unknown";
+}) {
+  return (
+    <div className="rounded border border-border bg-surface p-2">
+      <span className="block text-[10px] uppercase tracking-wider text-text-tertiary">{label}</span>
+      <span className="block truncate font-mono text-xs text-text-primary" title={detected || "Not detected"}>
+        {detected || "Not detected"}
+      </span>
+      <span className="block truncate text-[10px] text-text-tertiary" title={`Expected ${expected}`}>
+        Expected {expected}
+      </span>
+      <Badge variant={status === "compatible" ? "success" : status === "mismatch" ? "error" : "warning"} size="sm" className="mt-1">
+        {status}
+      </Badge>
+    </div>
   );
 }

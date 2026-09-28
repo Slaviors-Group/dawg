@@ -170,7 +170,9 @@ echo "  -> Chromium staged at ${BROWSERS_TARGET_DIR}"
 echo -e "\n[6/7] Copying engine scripts, schema, and browser extension..."
 rm -rf "${SCRIPTS_TARGET_DIR}" "${SCHEMA_TARGET_DIR}" "${EXTENSION_TARGET_DIR}"
 mkdir -p "${SCRIPTS_TARGET_DIR}" "${SCHEMA_TARGET_DIR}" "${EXTENSION_TARGET_DIR}"
-cp "${ENGINE_DIR}/scripts/replay-browser.cjs" "${SCRIPTS_TARGET_DIR}/"
+for script in replay-browser.cjs editor-browser.cjs review-common.cjs; do
+  cp "${ENGINE_DIR}/scripts/${script}" "${SCRIPTS_TARGET_DIR}/"
+done
 cp -a "${SCHEMA_DIR}/." "${SCHEMA_TARGET_DIR}/"
 cp -a "${EXTENSION_DIR}/." "${EXTENSION_TARGET_DIR}/"
 rm -rf "${EXTENSION_TARGET_DIR}/tests"

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Slaviors-Group/dawg/engine/internal/artifact"
 	"github.com/Slaviors-Group/dawg/engine/internal/dawgenv"
 	"github.com/Slaviors-Group/dawg/engine/internal/dawgtypes"
 	"github.com/Slaviors-Group/dawg/engine/internal/manifest"
@@ -61,6 +62,9 @@ func newRunCommand() *cobra.Command {
 func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string, interactive bool) (dawgtypes.ReplayOutput, error) {
 	var out dawgtypes.ReplayOutput
 
+	if _, err := artifact.Validate(layoutDir); err != nil {
+		return out, fmt.Errorf("replay: validate artifact: %w", err)
+	}
 	if err := packager.Unpack(layoutDir, tmpDir); err != nil {
 		return out, fmt.Errorf("replay: unpack artifact: %w", err)
 	}
@@ -136,6 +140,16 @@ func ExecuteReplay(ctx context.Context, layoutDir, tmpDir string, interactive bo
 		BrowsersDir:  dawgenv.ResolveBrowsersDir(),
 		ChromiumPath: dawgenv.ResolveChromiumExecutable(),
 		Interactive:  interactive,
+	}
+	if m.Review != nil {
+		reviewContents, err := json.Marshal(m.Review)
+		if err != nil {
+			return out, fmt.Errorf("replay: serialize review: %w", err)
+		}
+		player.ReviewFile = filepath.Join(tmpDir, "review.json")
+		if err := os.WriteFile(player.ReviewFile, append(reviewContents, '\n'), 0o600); err != nil {
+			return out, fmt.Errorf("replay: write review: %w", err)
+		}
 	}
 	if evidence, err := packager.ReadDiagnostics(layoutDir); err == nil {
 		if appearance, ok := evidence.Device["appearance"].(map[string]any); ok {

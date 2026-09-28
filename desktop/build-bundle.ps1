@@ -231,7 +231,9 @@ Write-Host "`n[6/7] Copying engine scripts, JSON schema/policies, and browser ex
     }
     New-Item -ItemType Directory -Force -Path $_ | Out-Null
 }
-Copy-Item -Path "$engineDir\scripts\replay-browser.cjs" -Destination $scriptsTargetDir -Force
+@("replay-browser.cjs", "editor-browser.cjs", "review-common.cjs") | ForEach-Object {
+    Copy-Item -Path (Join-Path $engineDir "scripts\$_") -Destination $scriptsTargetDir -Force
+}
 Copy-Item -Path "$schemaSourceDir\*" -Destination $schemaTargetDir -Recurse -Force
 Copy-Item -Path "$extensionSourceDir\*" -Destination $extensionTargetDir -Recurse -Force
 $extensionTestsDir = Join-Path $extensionTargetDir "tests"
