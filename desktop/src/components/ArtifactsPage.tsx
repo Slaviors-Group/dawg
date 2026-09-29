@@ -13,7 +13,11 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { type ArtifactItem, useEngine } from "../context/EngineContext";
-import { chooseArtifactArchive, chooseArtifactExportPath, defaultArtifactExportName } from "../lib/artifactDialogs";
+import {
+  chooseArtifactArchive,
+  chooseArtifactExportPath,
+  defaultArtifactExportName,
+} from "../lib/artifactDialogs";
 import { ArtifactInspectorModal } from "./ArtifactInspectorModal";
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
@@ -137,8 +141,12 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
     const compare = (left: ArtifactItem, right: ArtifactItem) => {
       if (sort === "title") return (left.title || left.id).localeCompare(right.title || right.id);
       if (sort === "flags") return (right.flagCount ?? 0) - (left.flagCount ?? 0);
-      const leftDate = sort === "created" ? dateValue(left.createdAt) : dateValue(left.addedAt || left.createdAt);
-      const rightDate = sort === "created" ? dateValue(right.createdAt) : dateValue(right.addedAt || right.createdAt);
+      const leftDate =
+        sort === "created" ? dateValue(left.createdAt) : dateValue(left.addedAt || left.createdAt);
+      const rightDate =
+        sort === "created"
+          ? dateValue(right.createdAt)
+          : dateValue(right.addedAt || right.createdAt);
       return rightDate - leftDate;
     };
 
@@ -265,7 +273,9 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
                 : "border-border bg-canvas-subtle text-text-secondary",
             ].join(" ")}
           >
-            <p className="text-xs font-medium">Drop a .dawg archive anywhere in this catalog to import it</p>
+            <p className="text-xs font-medium">
+              Drop a .dawg archive anywhere in this catalog to import it
+            </p>
           </div>
         </div>
       </Card>
@@ -273,7 +283,9 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
       {groupedArtifacts.length === 0 ? (
         <EmptyState
           icon={<DownloadSimple size={32} weight="light" />}
-          title={artifacts.length === 0 ? "No artifact instances" : "No artifacts match these filters"}
+          title={
+            artifacts.length === 0 ? "No artifact instances" : "No artifacts match these filters"
+          }
           description={
             artifacts.length === 0
               ? "Capture a session or import a .dawg archive to build the local catalog."
@@ -300,7 +312,10 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
                 />
                 {expanded &&
                   revisions.slice(1).map((artifact) => (
-                    <div key={artifactIdentity(artifact)} className="ml-4 border-l-2 border-brand-200 pl-3">
+                    <div
+                      key={artifactIdentity(artifact)}
+                      className="ml-4 border-l-2 border-brand-200 pl-3"
+                    >
                       <ArtifactRow
                         artifact={artifact}
                         onInspect={openInspectModal}
@@ -326,10 +341,20 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
         maxWidth="sm"
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="secondary" size="sm" disabled={isDeleting} onClick={() => setDeleteTarget(null)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={isDeleting}
+              onClick={() => setDeleteTarget(null)}
+            >
               Cancel
             </Button>
-            <Button variant="danger" size="sm" loading={isDeleting} onClick={() => void confirmDelete()}>
+            <Button
+              variant="danger"
+              size="sm"
+              loading={isDeleting}
+              onClick={() => void confirmDelete()}
+            >
               Delete instance
             </Button>
           </div>
@@ -337,8 +362,8 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
       >
         <div className="flex flex-col gap-3 text-sm text-text-secondary">
           <p>
-            This removes only this managed local instance. The engine rejects artifacts that are active,
-            outside its managed store, or otherwise unsafe to delete.
+            This removes only this managed local instance. The engine rejects artifacts that are
+            active, outside its managed store, or otherwise unsafe to delete.
           </p>
           {deleteTarget && (
             <p className="rounded-md border border-border bg-canvas-subtle p-3 font-mono text-xs break-all">
@@ -375,19 +400,39 @@ function ArtifactRow({
   onToggleRevisions,
 }: ArtifactRowProps) {
   return (
-    <Card noPad className="flex flex-col gap-4 p-4 transition-colors hover:border-brand-300 xl:flex-row xl:items-center xl:justify-between">
+    <Card
+      noPad
+      className="flex flex-col gap-4 p-4 transition-colors hover:border-brand-300 xl:flex-row xl:items-center xl:justify-between"
+    >
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="truncate text-sm font-semibold text-text-primary" title={artifact.title || artifact.id}>
+          <span
+            className="truncate text-sm font-semibold text-text-primary"
+            title={artifact.title || artifact.id}
+          >
             {artifact.title || artifact.id}
           </span>
-          <Badge variant="brand" size="sm">.dawg</Badge>
+          <Badge variant="brand" size="sm">
+            .dawg
+          </Badge>
           <Badge variant={artifact.origin === "imported" ? "info" : "default"} size="sm">
             {originLabel[artifact.origin]}
           </Badge>
-          {artifact.flagged && <Badge variant="warning" size="sm">Flagged{artifact.flagCount ? ` · ${artifact.flagCount}` : ""}</Badge>}
-          {artifact.revision && <Badge variant="info" size="sm">Revision {artifact.revision}</Badge>}
-          {artifact.tags?.map((tag) => <Badge key={tag} size="sm">{tag}</Badge>)}
+          {artifact.flagged && (
+            <Badge variant="warning" size="sm">
+              Flagged{artifact.flagCount ? ` · ${artifact.flagCount}` : ""}
+            </Badge>
+          )}
+          {artifact.revision && (
+            <Badge variant="info" size="sm">
+              Revision {artifact.revision}
+            </Badge>
+          )}
+          {artifact.tags?.map((tag) => (
+            <Badge key={tag} size="sm">
+              {tag}
+            </Badge>
+          ))}
           {revisionCount && revisionCount > 1 && (
             <button
               type="button"
@@ -400,20 +445,62 @@ function ArtifactRow({
             </button>
           )}
         </div>
-        <p className="mt-1 truncate font-mono text-[11px] text-text-tertiary" title={artifact.path}>{artifact.path}</p>
+        <p className="mt-1 truncate font-mono text-[11px] text-text-tertiary" title={artifact.path}>
+          {artifact.path}
+        </p>
         <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-text-secondary">
           {artifact.targetUrl && <span className="truncate">{artifact.targetUrl}</span>}
           {artifact.targetUrl && <span className="text-border-strong">•</span>}
           <span>Added {new Date(artifact.addedAt || artifact.createdAt).toLocaleString()}</span>
-          {artifact.instanceId && <><span className="text-border-strong">•</span><span className="font-mono">{artifact.instanceId}</span></>}
+          {artifact.instanceId && (
+            <>
+              <span className="text-border-strong">•</span>
+              <span className="font-mono">{artifact.instanceId}</span>
+            </>
+          )}
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button variant="secondary" size="sm" onClick={() => onInspect(artifact)} iconLeft={<MagnifyingGlass size={14} />}>Inspect</Button>
-        <Button variant="secondary" size="sm" onClick={() => onReplay(artifact)} iconLeft={<PlayCircle size={14} />}>Replay</Button>
-        <Button variant="secondary" size="sm" onClick={() => onEdit(artifact)} iconLeft={<PencilSimple size={14} />}>Edit</Button>
-        <Button variant="secondary" size="sm" onClick={() => void onExport(artifact)} iconLeft={<DownloadSimple size={14} />}>Export</Button>
-        <Button variant="danger" size="sm" onClick={() => onDelete(artifact)} iconLeft={<Trash size={14} />}>Delete</Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => onInspect(artifact)}
+          iconLeft={<MagnifyingGlass size={14} />}
+        >
+          Inspect
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => onReplay(artifact)}
+          iconLeft={<PlayCircle size={14} />}
+        >
+          Replay
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => onEdit(artifact)}
+          iconLeft={<PencilSimple size={14} />}
+        >
+          Edit
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => void onExport(artifact)}
+          iconLeft={<DownloadSimple size={14} />}
+        >
+          Export
+        </Button>
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={() => onDelete(artifact)}
+          iconLeft={<Trash size={14} />}
+        >
+          Delete
+        </Button>
       </div>
     </Card>
   );

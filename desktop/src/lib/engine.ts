@@ -207,7 +207,15 @@ export interface EditorControl {
 export interface EditorEvent {
   protocol: "dawg.editor.v1";
   sequence: number;
-  type: "ready" | "state" | "draftChanged" | "draftSaved" | "artifactSaved" | "validationError" | "error" | "closed";
+  type:
+    | "ready"
+    | "state"
+    | "draftChanged"
+    | "draftSaved"
+    | "artifactSaved"
+    | "validationError"
+    | "error"
+    | "closed";
   message?: string;
   currentTimeMs?: number;
   durationMs?: number;
@@ -356,9 +364,10 @@ export class EngineBridge {
   }
 
   async listArtifacts(): Promise<ArtifactItem[]> {
-    const artifacts = await this.invokePayload<Array<ArtifactItem & { acquisitionOrigin?: ArtifactOrigin }>>(
-      "list_artifacts",
-    );
+    const artifacts =
+      await this.invokePayload<Array<ArtifactItem & { acquisitionOrigin?: ArtifactOrigin }>>(
+        "list_artifacts",
+      );
     return artifacts.map((artifact) => ({
       ...artifact,
       origin: artifact.origin ?? artifact.acquisitionOrigin ?? "legacy",
@@ -505,7 +514,9 @@ export class EngineBridge {
     if (!command.id.trim()) throw new Error("Editor controls require a command ID.");
     if (
       command.type === "seek" &&
-      (typeof command.offsetMs !== "number" || !Number.isFinite(command.offsetMs) || command.offsetMs < 0)
+      (typeof command.offsetMs !== "number" ||
+        !Number.isFinite(command.offsetMs) ||
+        command.offsetMs < 0)
     ) {
       throw new Error("Editor seek offset must be a non-negative number.");
     }

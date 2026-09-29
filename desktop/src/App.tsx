@@ -1,12 +1,12 @@
 import {
-  ArrowCounterClockwise,
   Archive,
+  ArrowCounterClockwise,
   Browser,
   GearSix,
   GitDiff,
   GithubLogo,
-  PencilSimple,
   Heart,
+  PencilSimple,
   Record,
   ShieldCheck,
   SquaresFour,
@@ -16,8 +16,8 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
-import { CaptureControls } from "./components/CaptureControls";
 import { ArtifactsPage } from "./components/ArtifactsPage";
+import { CaptureControls } from "./components/CaptureControls";
 import { Dashboard } from "./components/Dashboard";
 import { DiffReport } from "./components/DiffReport";
 import { EditorPage } from "./components/EditorPage";
@@ -245,9 +245,14 @@ function ShellContent() {
               )}
               {activeTab === "capture" && <CaptureControls />}
               {activeTab === "artifacts" && (
-                <ArtifactsPage onReplayArtifact={handleReplayArtifact} onEditArtifact={handleEditArtifact} />
+                <ArtifactsPage
+                  onReplayArtifact={handleReplayArtifact}
+                  onEditArtifact={handleEditArtifact}
+                />
               )}
-              {activeTab === "replay" && <ReplayViewer selectedArtifactIdentity={replayArtifactIdentity} />}
+              {activeTab === "replay" && (
+                <ReplayViewer selectedArtifactIdentity={replayArtifactIdentity} />
+              )}
               {activeTab === "editor" && (
                 <EditorPage
                   selectedArtifactIdentity={editorArtifactIdentity}
