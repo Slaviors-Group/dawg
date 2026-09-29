@@ -1,5 +1,7 @@
 "use strict";
 
+const path = require("node:path");
+
 const MAX_FLAGS = 500;
 const MAX_TITLE_LENGTH = 120;
 const MAX_NOTE_LENGTH = 2000;
@@ -7,6 +9,69 @@ const FLAG_ID_PATTERN = /^[a-f0-9]{32}$/;
 const ARTIFACT_ID_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const CATEGORIES = new Set(["bug", "error", "network", "console", "action", "note"]);
 const SEVERITIES = new Set(["info", "warning", "error"]);
+
+// linuxdeploy starts the desktop shell with AppDir libraries at the front of
+// LD_LIBRARY_PATH. WebKit needs that environment, but passing it to the
+// separately bundled Playwright Chromium mixes build-host libraries with the
+// user's graphics/NSS stack. Chromium must instead use the host's coherent
+// desktop-library stack.
+const APPDIR_PATH_LIST_VARIABLES = [
+    "GIO_EXTRA_MODULES",
+    "GI_TYPELIB_PATH",
+    "GST_PLUGIN_PATH",
+    "GST_PLUGIN_PATH_1_0",
+    "GST_PLUGIN_SYSTEM_PATH",
+    "GST_PLUGIN_SYSTEM_PATH_1_0",
+    "GTK_PATH",
+    "LD_LIBRARY_PATH",
+    "PATH",
+    "PERLLIB",
+    "PYTHONPATH",
+    "QT_PLUGIN_PATH",
+    "XDG_DATA_DIRS",
+];
+const APPDIR_SINGLE_PATH_VARIABLES = [
+    "GDK_PIXBUF_MODULE_FILE",
+    "GSETTINGS_SCHEMA_DIR",
+    "GST_PLUGIN_SCANNER",
+    "GST_PLUGIN_SCANNER_1_0",
+    "GST_PTP_HELPER",
+    "GST_PTP_HELPER_1_0",
+    "GTK_DATA_PREFIX",
+    "GTK_EXE_PREFIX",
+    "GTK_IM_MODULE_FILE",
+];
+
+function isInsideDirectory(candidate, directory) {
+    if (typeof candidate !== "string" || candidate.length === 0) return false;
+    const relative = path.relative(path.resolve(directory), path.resolve(candidate));
+    return relative === "" || (!relative.startsWith(`..${path.sep}`) && relative !== "..");
+}
+
+function hostBrowserEnvironment(environment = process.env, platform = process.platform) {
+    const browserEnvironment = { ...environment };
+    const appDir = environment.APPDIR;
+    if (platform !== "linux" || typeof appDir !== "string" || appDir.length === 0) {
+        return browserEnvironment;
+    }
+
+    for (const name of APPDIR_PATH_LIST_VARIABLES) {
+        if (typeof browserEnvironment[name] !== "string") continue;
+        const entries = browserEnvironment[name]
+            .split(path.delimiter)
+            .filter(entry => entry.length > 0 && !isInsideDirectory(entry, appDir));
+        if (entries.length === 0) delete browserEnvironment[name];
+        else browserEnvironment[name] = entries.join(path.delimiter);
+    }
+    for (const name of APPDIR_SINGLE_PATH_VARIABLES) {
+        if (isInsideDirectory(browserEnvironment[name], appDir)) delete browserEnvironment[name];
+    }
+
+    // APPDIR is meaningful only to the AppImage shell and can cause child
+    // helpers to rediscover the environment removed above.
+    delete browserEnvironment.APPDIR;
+    return browserEnvironment;
+}
 
 function fail(message) {
     throw new Error(`invalid review: ${message}`);
@@ -140,6 +205,7 @@ module.exports = {
     MAX_NOTE_LENGTH,
     MAX_TITLE_LENGTH,
     SEVERITIES: [...SEVERITIES],
+    hostBrowserEnvironment,
     makeFlagId,
     parseReviewFile,
     reviewFlags,

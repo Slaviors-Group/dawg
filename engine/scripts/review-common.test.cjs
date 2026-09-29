@@ -2,7 +2,7 @@
 
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { validateFlags, validateReview } = require("./review-common.cjs");
+const { hostBrowserEnvironment, validateFlags, validateReview } = require("./review-common.cjs");
 const { interactiveScript, interactiveStyles } = require("./replay-browser.cjs");
 const { clientScript, styles: editorStyles } = require("./editor-browser.cjs");
 
@@ -39,6 +39,34 @@ test("rejects unsafe text, duplicate IDs, and invalid ranges", () => {
     assert.throws(() => validateFlags([flag, { ...flag, title: "Duplicate" }], 1_000), /duplicated/);
     assert.throws(() => validateFlags([{ ...flag, title: " untrimmed" }], 1_000), /trimmed/);
     assert.throws(() => validateReview(review([{ ...flag, startOffsetMs: 1_001 }]), 1_000), /between/);
+});
+
+test("removes AppImage paths from the bundled Chromium environment on Linux", () => {
+    const appDir = "/tmp/.mount_DAWG_test";
+    const environment = hostBrowserEnvironment({
+        APPDIR: appDir,
+        DAWG_CHROMIUM_EXECUTABLE_PATH: `${appDir}/usr/lib/DAWG/resources/browsers/chrome`,
+        GDK_PIXBUF_MODULE_FILE: `${appDir}/usr/lib/gdk-pixbuf/loaders.cache`,
+        GST_PLUGIN_SCANNER_1_0: `${appDir}/usr/libexec/gstreamer-1.0/gst-plugin-scanner`,
+        HOME: "/home/tester",
+        LD_LIBRARY_PATH: `${appDir}/usr/lib:/opt/vendor/lib`,
+        PATH: `${appDir}/usr/bin:/usr/local/bin:/usr/bin`,
+        XDG_DATA_DIRS: `${appDir}/usr/share:/usr/local/share:/usr/share`,
+    }, "linux");
+
+    assert.equal(environment.APPDIR, undefined);
+    assert.equal(environment.GDK_PIXBUF_MODULE_FILE, undefined);
+    assert.equal(environment.GST_PLUGIN_SCANNER_1_0, undefined);
+    assert.equal(environment.LD_LIBRARY_PATH, "/opt/vendor/lib");
+    assert.equal(environment.PATH, "/usr/local/bin:/usr/bin");
+    assert.equal(environment.XDG_DATA_DIRS, "/usr/local/share:/usr/share");
+    assert.equal(environment.HOME, "/home/tester");
+    assert.equal(environment.DAWG_CHROMIUM_EXECUTABLE_PATH, `${appDir}/usr/lib/DAWG/resources/browsers/chrome`);
+});
+
+test("leaves non-Linux browser environments unchanged", () => {
+    const original = { APPDIR: "C:\\DAWG", PATH: "C:\\Windows\\System32" };
+    assert.deepEqual(hostBrowserEnvironment(original, "win32"), original);
 });
 
 test("generated Chromium clients are valid JavaScript", () => {
