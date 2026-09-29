@@ -203,6 +203,14 @@ if [ "${SKIP_TAURI}" = false ]; then
     "${DESKTOP_DIR}/src-tauri/target/release/resources" \
     "${DESKTOP_DIR}/src-tauri/target/release/bundle/appimage/DAWG.AppDir" \
     "${DESKTOP_DIR}/src-tauri/target/release/bundle/appimage_deb"
+  if [ -d "${DESKTOP_DIR}/src-tauri/target/release/bundle/appimage" ]; then
+    find "${DESKTOP_DIR}/src-tauri/target/release/bundle/appimage" \
+      -maxdepth 1 -type f \
+      \( -name 'DAWG_*_amd64.AppImage' \
+        -o -name 'DAWG_*_amd64.AppImage.repacked' \
+        -o -name '.appimage-runtime.*' \) \
+      -delete
+  fi
   # Tauri's GStreamer helper knows Debian's multiarch directory but not
   # Fedora's lib64/libexec layout. Point it at the native locations when they
   # exist so WebKit does not start with missing elements such as appsink.
@@ -220,6 +228,7 @@ if [ "${SKIP_TAURI}" = false ]; then
   # the native libgiognutls module enters an x86_64 AppDir.
   PATH="${DESKTOP_DIR}/scripts/linuxdeploy:${PATH}" \
     NO_STRIP=1 npm run tauri build -- --bundles appimage
+  "${DESKTOP_DIR}/scripts/finalize-appimage.sh"
   echo -e "\nDAWG Desktop AppImage created."
 else
   echo -e "\nBundle staging complete (Tauri build skipped)."
