@@ -17,6 +17,7 @@ echo "==> Engine, extension, and version validation"
 cd "${REPO_ROOT}/engine"
 npm ci --no-audit --no-fund
 npm run check:versions
+node --test "${REPO_ROOT}/engine/scripts/review-common.test.cjs"
 node --check "${REPO_ROOT}/extension/background/service_worker.js"
 node --check "${REPO_ROOT}/extension/content/recorder.js"
 node --check "${REPO_ROOT}/extension/content/popup-panel.js"

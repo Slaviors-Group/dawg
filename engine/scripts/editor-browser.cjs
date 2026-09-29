@@ -3,7 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
-const { ARTIFACT_ID_PATTERN, CATEGORIES, SEVERITIES, parseReviewFile, validateFlags, validateReview } = require("./review-common.cjs");
+const { ARTIFACT_ID_PATTERN, CATEGORIES, SEVERITIES, hostBrowserEnvironment, parseReviewFile, validateFlags, validateReview } = require("./review-common.cjs");
 
 const PROTOCOL = "dawg.editor.v1";
 let sequence = 0;
@@ -122,7 +122,7 @@ async function main() {
     const rrwebBundle = fs.readFileSync(path.join(rrwebRoot, "rrweb.umd.cjs"), "utf8");
     const rrwebCss = fs.readFileSync(path.join(rrwebRoot, "style.css"), "utf8");
     const recordedViewport = viewport(events);
-    const launchOptions = { headless: false, args: [`--window-size=${recordedViewport.width},${Math.min(2400, recordedViewport.height + 180)}`] };
+    const launchOptions = { headless: false, env: hostBrowserEnvironment(), args: [`--window-size=${recordedViewport.width},${Math.min(2400, recordedViewport.height + 180)}`] };
     if (process.env.DAWG_CHROMIUM_EXECUTABLE_PATH) launchOptions.executablePath = process.env.DAWG_CHROMIUM_EXECUTABLE_PATH;
     const browser = await chromium.launch(launchOptions);
     try {

@@ -1,7 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
-const { parseReviewFile } = require("./review-common.cjs");
+const { hostBrowserEnvironment, parseReviewFile } = require("./review-common.cjs");
 
 const REPLAY_PROTOCOL = "dawg.replay.v1";
 const DEFAULT_REVIEW_PRE_ROLL_MS = 3_000;
@@ -570,7 +570,7 @@ async function main() {
     // Use the Playwright-managed Chromium bundled with DAWG. An explicit
     // executable remains available for CI and advanced deployments, but replay
     // must not silently depend on a separately installed Google Chrome.
-    const launchOptions = { headless: false };
+    const launchOptions = { headless: false, env: hostBrowserEnvironment() };
     if (recordedViewport) {
         // The outer Chromium window needs room for browser chrome and the
         // player controls below the fixed-size recorded stage.

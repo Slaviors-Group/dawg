@@ -49,6 +49,17 @@ test -f "${resources}/extension/manifest.json"
 test -f "${resources}/extension/content/popup-panel.js"
 test -f "${resources}/scripts/replay-browser.cjs"
 
+mapfile -t chromium_executables < <(
+  find "${resources}/browsers" -type f -path '*/chrome-linux/chrome' -print
+)
+if [ "${#chromium_executables[@]}" -ne 1 ]; then
+  echo "Expected exactly one bundled Chromium executable, found ${#chromium_executables[@]}." >&2
+  exit 1
+fi
+bundled_node="${resources}/binaries/node/node"
+test -x "${bundled_node}"
+test -x "${chromium_executables[0]}"
+
 mapfile -t forbidden_graphics_libraries < <(
   find "${libdir}" -maxdepth 1 \( -type f -o -type l \) \
     \( -name 'libwayland*.so*' \
@@ -95,6 +106,16 @@ fi
 DAWG_RESOURCES_DIR="${resources}" \
 PLAYWRIGHT_BROWSERS_PATH="${resources}/browsers" \
   "${engine}" doctor | tee "${ARTIFACT_DIR}/doctor.txt"
+
+# AppRun puts AppDir libraries ahead of the host for WebKitGTK. Replay and
+# Editor launch a separate Chromium process, which must strip those paths or a
+# bundle built on Ubuntu can combine Ubuntu NSS/GLib with the user's Mesa/NSS
+# stack and abort. Exercise the packaged browser and enforce that isolation.
+timeout 30s env \
+  APPDIR="${appdir}" \
+  LD_LIBRARY_PATH="${appdir}/usr/lib:${appdir}/usr/lib/x86_64-linux-gnu:${appdir}/usr/lib64" \
+  DAWG_CHROMIUM_EXECUTABLE_PATH="${chromium_executables[0]}" \
+  "${bundled_node}" "${SCRIPT_DIR}/smoke-bundled-browser.cjs" "${resources}"
 
 {
   echo "git_commit=${DAWG_CI_GIT_COMMIT:-unknown}"
