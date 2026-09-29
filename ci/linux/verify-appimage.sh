@@ -22,10 +22,11 @@ artifact_name="$(basename "${appimage}")"
 (
   cd "${ARTIFACT_DIR}"
   sha256sum "${artifact_name}" > SHA256SUMS
-  # Jenkins reaches this host through a userspace Tailscale SOCKS proxy. A
-  # handful of parallel SSH streams is substantially faster than one stream.
+  # Jenkins reaches this host through a userspace Tailscale SOCKS proxy. Split
+  # the image so interrupted transfers can resume at a verified chunk boundary.
   split --bytes=16M --numeric-suffixes=0 --suffix-length=4 \
     "${artifact_name}" "${artifact_name}.part."
+  sha256sum "${artifact_name}.part."* > PARTS.sha256
 )
 
 extract_root="$(mktemp -d)"
@@ -38,11 +39,58 @@ trap 'rm -rf "${extract_root}"' EXIT
 appdir="${extract_root}/squashfs-root"
 resources="${appdir}/usr/lib/DAWG/resources"
 engine="${resources}/binaries/dawg"
+libdir="${appdir}/usr/lib"
+gstreamer_plugins="${libdir}/gstreamer-1.0"
+gstreamer_scanner="${libdir}/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner"
+gstreamer_hook="${appdir}/apprun-hooks/linuxdeploy-plugin-gstreamer.sh"
 
 test -x "${engine}"
 test -f "${resources}/extension/manifest.json"
 test -f "${resources}/extension/content/popup-panel.js"
 test -f "${resources}/scripts/replay-browser.cjs"
+
+mapfile -t forbidden_graphics_libraries < <(
+  find "${libdir}" -maxdepth 1 \( -type f -o -type l \) \
+    \( -name 'libwayland*.so*' \
+      -o -name 'libEGL.so*' \
+      -o -name 'libGL.so*' \
+      -o -name 'libGLX.so*' \
+      -o -name 'libGLdispatch.so*' \
+      -o -name 'libOpenGL.so*' \
+      -o -name 'libgbm.so*' \
+      -o -name 'libdrm.so*' \) \
+    -print
+)
+if [ "${#forbidden_graphics_libraries[@]}" -ne 0 ]; then
+  echo "AppImage contains host-coupled graphics libraries:" >&2
+  printf '  %s\n' "${forbidden_graphics_libraries[@]}" >&2
+  exit 1
+fi
+
+test -x "${gstreamer_scanner}"
+test -d "${gstreamer_plugins}"
+test -x "${gstreamer_hook}"
+bash -n "${gstreamer_hook}"
+grep -Fq 'unset GST_PLUGIN_SYSTEM_PATH_1_0' "${gstreamer_hook}"
+
+plugin_count=0
+while IFS= read -r -d '' plugin; do
+  plugin_count=$((plugin_count + 1))
+  if ! file -Lb "${plugin}" | grep -Eq '^ELF 64-bit .* x86-64'; then
+    echo "GStreamer plugin is not an x86-64 ELF object: ${plugin}" >&2
+    file -L "${plugin}" >&2
+    exit 1
+  fi
+done < <(find "${gstreamer_plugins}" -maxdepth 1 -type f -name '*.so' -print0)
+if [ "${plugin_count}" -eq 0 ]; then
+  echo "AppImage does not contain any GStreamer plugins." >&2
+  exit 1
+fi
+if ! file -Lb "${gstreamer_scanner}" | grep -Eq '^ELF 64-bit .* x86-64'; then
+  echo "GStreamer plugin scanner is not an x86-64 ELF executable." >&2
+  file -L "${gstreamer_scanner}" >&2
+  exit 1
+fi
 
 DAWG_RESOURCES_DIR="${resources}" \
 PLAYWRIGHT_BROWSERS_PATH="${resources}/browsers" \
