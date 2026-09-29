@@ -48,7 +48,9 @@ export function DoctorModal({ open, onClose }: DoctorModalProps) {
 
           <div className="rounded-md border border-border bg-canvas-subtle p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="text-xs font-semibold text-text-secondary">Version compatibility</span>
+              <span className="text-xs font-semibold text-text-secondary">
+                Version compatibility
+              </span>
               <Badge
                 variant={
                   doctorReport.compatibility.status === "compatible"
@@ -84,7 +86,8 @@ export function DoctorModal({ open, onClose }: DoctorModalProps) {
               />
             </div>
             <p className="mt-2 text-[11px] text-text-tertiary">
-              Desktop {doctorReport.compatibility.expectedDesktopVersion} is checked against the expected application contract, not directly against the engine version.
+              Desktop {doctorReport.compatibility.expectedDesktopVersion} is checked against the
+              expected application contract, not directly against the engine version.
             </p>
           </div>
 
@@ -172,13 +175,23 @@ function CompatibilityValue({
   return (
     <div className="rounded border border-border bg-surface p-2">
       <span className="block text-[10px] uppercase tracking-wider text-text-tertiary">{label}</span>
-      <span className="block truncate font-mono text-xs text-text-primary" title={detected || "Not detected"}>
+      <span
+        className="block truncate font-mono text-xs text-text-primary"
+        title={detected || "Not detected"}
+      >
         {detected || "Not detected"}
       </span>
-      <span className="block truncate text-[10px] text-text-tertiary" title={`Expected ${expected}`}>
+      <span
+        className="block truncate text-[10px] text-text-tertiary"
+        title={`Expected ${expected}`}
+      >
         Expected {expected}
       </span>
-      <Badge variant={status === "compatible" ? "success" : status === "mismatch" ? "error" : "warning"} size="sm" className="mt-1">
+      <Badge
+        variant={status === "compatible" ? "success" : status === "mismatch" ? "error" : "warning"}
+        size="sm"
+        className="mt-1"
+      >
         {status}
       </Badge>
     </div>

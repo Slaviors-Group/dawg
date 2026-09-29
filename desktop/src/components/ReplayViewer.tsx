@@ -58,7 +58,8 @@ interface ReplayViewerProps {
   selectedArtifactIdentity?: string;
 }
 
-const artifactIdentity = (artifact: { instanceId?: string; path: string }) => artifact.instanceId || artifact.path;
+const artifactIdentity = (artifact: { instanceId?: string; path: string }) =>
+  artifact.instanceId || artifact.path;
 
 export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIdentity }) => {
   const { artifacts, addLogLine, exportArtifact, importArtifact } = useEngine();
