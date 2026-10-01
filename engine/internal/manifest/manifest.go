@@ -16,7 +16,7 @@ import (
 )
 
 // SchemaVersion is the current DAWG manifest schema version.
-const SchemaVersion = "0.4.1-omega"
+const SchemaVersion = "0.4.2-omega"
 
 var schemaFiles = map[string]string{
 	"0.2.3-naughty":     "v0.2.3-naughty.json",
@@ -27,6 +27,7 @@ var schemaFiles = map[string]string{
 	"0.3.3-middlechild": "v0.3.3-middlechild.json",
 	"0.3.5-middlechild": "v0.3.5-middlechild.json",
 	"0.4.1-omega":       "v0.4.1-omega.json",
+	"0.4.2-omega":       "v0.4.2-omega.json",
 }
 
 // Manifest is the OCI config document for a DAWG artifact.

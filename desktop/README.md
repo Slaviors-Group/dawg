@@ -3,11 +3,11 @@
 DAWG Desktop is the Tauri v2 interface for the Go engine. It uses Rust, React 19,
 Vite 7, Tailwind CSS 4, Framer Motion, and Phosphor icons.
 
-> Application package: `0.4.1-omega` · Tauri/Cargo package: `0.4.1`
+> Application package: `0.4.2-omega` · Tauri/Cargo package: `0.4.2`
 >
 > Extension display version: `0.3.5_middlechild` (unchanged) · Bundled Node.js: `22.14.0` · Bundled mitmproxy: `12.2.3`
 >
-> Download the [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_x64-setup.exe) or [Linux AppImage](https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_amd64.AppImage) from the [Omega release](https://github.com/Slaviors-Group/dawg/releases/tag/omega).
+> Download the [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/omega-2/DAWG_0.4.2_x64-setup.exe) or [Linux AppImage](https://github.com/Slaviors-Group/dawg/releases/download/omega-2/DAWG_0.4.2_amd64.AppImage) from the [Omega 2 release](https://github.com/Slaviors-Group/dawg/releases/tag/omega-2).
 
 ## 🧭 Current Desktop Scope
 
@@ -221,7 +221,7 @@ npm run check:versions
 ```
 
 The desktop npm package uses the labeled application version
-`0.4.1-omega`; Cargo and Tauri use numeric version `0.4.1`. The extension
+`0.4.2-omega`; Cargo and Tauri use numeric version `0.4.2`. The extension
 remains numeric version `0.3.5` with display label `0.3.5_middlechild`.
 
 ## ✅ Validation

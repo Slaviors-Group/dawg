@@ -1,8 +1,5 @@
 import {
-  Cube,
   Export,
-  Flask,
-  Info,
   MagnifyingGlass,
   PlayCircle,
   StopCircle,
@@ -35,13 +32,10 @@ import { ReplayDiagnosticInspector } from "./ReplayDiagnosticInspector";
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
 import { Card, CardHeader, CardTitle } from "./ui/Card";
-import { EmptyState } from "./ui/EmptyState";
 import { Input } from "./ui/Input";
 import { PageShell } from "./ui/PageShell";
 import { Select } from "./ui/Select";
 
-// UI-only OS detection; the engine selects the actual replay mode.
-const isWindows = typeof navigator !== "undefined" && navigator.userAgent.includes("Windows");
 const REPLAY_SPEEDS: ReplaySpeed[] = [0.5, 1, 1.5, 2, 4];
 
 const formatReplayTime = (milliseconds: number) => {
@@ -182,20 +176,6 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
     };
   }, [selectedArtifactItem]);
 
-  const sandboxStatus = useMemo(() => {
-    if (isWindows) {
-      return {
-        title: "Native Compatibility Mode (Windows)",
-        description:
-          "Bare Windows hosts skip rootless Docker isolation and DB fixture restore. Browser replay still runs natively. Use WSL2/Linux with rootless Docker for full sandbox isolation and DB restore.",
-      };
-    }
-    return {
-      title: "Rootless Docker Sandbox",
-      description:
-        "Replay isolates the captured environment in a rootless Docker Compose project. Run a replay to see live sandbox status in the execution logs.",
-    };
-  }, []);
 
   const visibleArtifacts = useMemo(() => {
     const query = artifactSearch.trim().toLowerCase();
@@ -610,26 +590,6 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
           if (reviewAction === "curl") await copyCurlAfterReview();
         }}
       />
-
-      <Card>
-        <CardHeader bordered={false}>
-          <div className="flex items-center gap-2">
-            <Cube size={18} className="text-text-secondary" />
-            <CardTitle title="Sandbox Environment" subtitle="Replay isolation status" />
-          </div>
-        </CardHeader>
-
-        <EmptyState
-          icon={<Info size={32} weight="light" />}
-          title={sandboxStatus.title}
-          description={sandboxStatus.description}
-          action={
-            <Button variant="secondary" size="sm" iconLeft={<Flask size={14} />}>
-              View Setup Guide
-            </Button>
-          }
-        />
-      </Card>
 
       <div className="flex flex-col gap-4 mt-2">
         <h3 className="text-base font-bold text-text-primary">Execution Logs</h3>
