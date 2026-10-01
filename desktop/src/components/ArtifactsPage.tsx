@@ -204,8 +204,10 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
     <PageShell
       title="Artifacts"
       subtitle="Search, review, export, and safely manage local artifact instances"
+      className="h-full min-h-0 overflow-hidden"
+      bodyClassName="min-h-0 flex-1 overflow-hidden"
     >
-      <Card>
+      <Card className="shrink-0">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
             <Input
@@ -280,8 +282,9 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
         </div>
       </Card>
 
-      {groupedArtifacts.length === 0 ? (
-        <EmptyState
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-2">
+        {groupedArtifacts.length === 0 ? (
+          <EmptyState
           icon={<DownloadSimple size={32} weight="light" />}
           title={
             artifacts.length === 0 ? "No artifact instances" : "No artifacts match these filters"
@@ -291,10 +294,10 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
               ? "Capture a session or import a .dawg archive to build the local catalog."
               : "Try clearing a search term or changing the catalog filters."
           }
-        />
-      ) : (
-        <div className="flex flex-col gap-3">
-          {groupedArtifacts.map(({ root, revisions }) => {
+          />
+        ) : (
+          <div className="flex flex-col gap-3">
+            {groupedArtifacts.map(({ root, revisions }) => {
             const latest = revisions[0];
             const expanded = expandedRoots.has(root);
             return (
@@ -328,9 +331,10 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
                   ))}
               </div>
             );
-          })}
-        </div>
-      )}
+            })}
+          </div>
+        )}
+      </div>
 
       <ArtifactInspectorModal artifact={inspectedArtifact} onClose={closeInspectModal} />
       <Modal
