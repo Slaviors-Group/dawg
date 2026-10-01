@@ -13,6 +13,6 @@ repos:
         pass_filenames: false
       - id: biome
         name: biome
-        entry: npx biome check --write
+        entry: npx --prefix desktop @biomejs/biome check --write
         language: system
         types_or: [javascript, jsx, ts, tsx, json]
