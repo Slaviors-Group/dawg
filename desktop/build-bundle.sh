@@ -226,6 +226,7 @@ if [ "${SKIP_TAURI}" = false ]; then
   # The GTK plugin also copies both i386 /usr/lib and native /usr/lib64 GIO
   # modules on multilib Fedora. Prefix its narrowly scoped find shim so only
   # the native libgiognutls module enters an x86_64 AppDir.
+  APPIMAGE_EXTRACT_AND_RUN=1 \
   PATH="${DESKTOP_DIR}/scripts/linuxdeploy:${PATH}" \
     NO_STRIP=1 npm run tauri build -- --bundles appimage
   "${DESKTOP_DIR}/scripts/finalize-appimage.sh"

@@ -37,7 +37,7 @@ CGO_ENABLED=0 go build -trimpath -o "${OUTPUT_DIR}/dawg" ./cmd/dawg
 echo "==> Desktop validation"
 cd "${REPO_ROOT}/desktop"
 npm ci --no-audit --no-fund
-npx --no-install biome check .
+npx --no-install @biomejs/biome check .
 npm run build
 
 cd "${REPO_ROOT}/desktop/src-tauri"
