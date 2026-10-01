@@ -111,7 +111,7 @@ function ShellContent() {
 
   return (
     <div className="flex h-screen bg-canvas overflow-hidden">
-      <aside className="w-65 shrink-0 flex flex-col bg-surface border-r border-border py-4 px-4 gap-6 z-20">
+      <aside className="w-65 shrink-0 flex h-screen flex-col overflow-hidden bg-surface border-r border-border py-4 px-4 gap-6 z-20">
         <div className="flex items-center gap-3 p-2 mb-2">
           <img src="/paw-dawg.svg" alt="DAWG Logo" className="w-10 h-10 shrink-0" />
           <div>
@@ -122,7 +122,10 @@ function ShellContent() {
           </div>
         </div>
 
-        <nav className="flex flex-col gap-1 flex-1" aria-label="Main navigation">
+        <nav
+          className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain pr-1"
+          aria-label="Main navigation"
+        >
           {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
             <NavItem
               key={id}
@@ -226,7 +229,7 @@ function ShellContent() {
       <main className="flex-1 relative min-w-0 overflow-y-auto bg-grid-pattern z-10">
         <div className="glow-orb -top-25 -left-25" />
         <div className="glow-orb-cyan -right-12.5 top-37.5" />
-        <div className="relative px-10 pt-10 min-h-full flex flex-col">
+        <div className="relative flex h-full min-h-0 flex-col px-10 pt-10">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -234,7 +237,11 @@ function ShellContent() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="min-h-full flex flex-col"
+              className={
+                activeTab === "artifacts"
+                  ? "flex h-full min-h-0 flex-col"
+                  : "flex min-h-full flex-col"
+              }
             >
               {activeTab === "dashboard" && (
                 <Dashboard
@@ -267,7 +274,7 @@ function ShellContent() {
             </motion.div>
           </AnimatePresence>
 
-          <div className="h-10 shrink-0 w-full" />
+          {activeTab !== "artifacts" && <div className="h-10 w-full shrink-0" />}
         </div>
       </main>
 

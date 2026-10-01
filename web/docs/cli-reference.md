@@ -4,7 +4,7 @@ description: "DAWG CLI commands and flags for capture, diagnostics, artifacts, r
 
 # CLI Reference
 
-This reference describes the DAWG `0.4.1-omega` command-line interface.
+This reference describes the DAWG `0.4.2-omega` command-line interface.
 
 ## Usage
 
@@ -323,7 +323,7 @@ The report checks:
 - `replay-browser.cjs`
 - the browser extension manifest
 - the default Rego policy
-- the current `0.4.1-omega` manifest schema
+- the current `0.4.2-omega` manifest schema
 
 The report status is `ready` or `degraded`. A degraded component is recorded in the report; degradation alone does not currently make the command return an execution error.
 
@@ -362,7 +362,7 @@ Captured artifacts are stored under `artifacts/<timestamped-title>`.
 `dawg init` generates a configuration with the current schema version and absolute state paths:
 
 ```yaml
-schemaVersion: "0.4.1-omega"
+schemaVersion: "0.4.2-omega"
 capture:
   outputDir: "<absolute-state-directory>/captures"
   browser: "chromium"

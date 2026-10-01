@@ -15,7 +15,7 @@ const { isRevealed, sectionRef } = useScrollReveal()
           </h2>
           <p class="dh-final-desc">Install the desktop bundle and extension, capture the failing session, then replay or share the validated artifact.</p>
           <div class="dh-final-actions">
-            <a class="dh-cta dh-cta-lg dh-cta-dark" href="https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_x64-setup.exe">Download for Windows &rarr;</a>
+            <a class="dh-cta dh-cta-lg dh-cta-dark" href="https://github.com/Slaviors-Group/dawg/releases/download/omega-2/DAWG_0.4.2_x64-setup.exe">Download for Windows &rarr;</a>
             <a class="dh-cta dh-cta-outline" href="https://github.com/Slaviors-Group/dawg/issues/new/choose" target="_blank" rel="noopener noreferrer">Report a bug</a>
             <a class="dh-final-link" href="/docs/installation">Linux and other options</a>
           </div>

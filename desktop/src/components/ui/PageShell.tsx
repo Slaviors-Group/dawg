@@ -11,6 +11,10 @@ interface PageShellProps {
   eyebrow?: string;
   /** Action buttons rendered to the right of the title */
   actions?: ReactNode;
+  /** Optional classes for pages that manage their own fixed/scrollable regions. */
+  className?: string;
+  /** Optional classes applied to the page body wrapper. */
+  bodyClassName?: string;
   children: ReactNode;
 }
 
@@ -20,12 +24,14 @@ export function PageShell({
   subtitle,
   eyebrow,
   actions,
+  className,
+  bodyClassName,
   children,
 }: PageShellProps) {
   return (
     <motion.div
       key={title}
-      className="flex flex-col gap-8 min-h-full"
+      className={["flex min-h-full flex-col gap-8", className].filter(Boolean).join(" ")}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
@@ -49,7 +55,9 @@ export function PageShell({
       </div>
 
       {/* Page body */}
-      <div className="flex flex-col gap-6">{children}</div>
+      <div className={["flex flex-col gap-6", bodyClassName].filter(Boolean).join(" ")}>
+        {children}
+      </div>
     </motion.div>
   );
 }

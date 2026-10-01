@@ -6,26 +6,26 @@ description: "Capture, sanitize, inspect, export, import, and replay your first 
 
 DAWG records one browser tab, sanitizes the captured data, and packages the session as a portable OCI artifact. The recommended workflow uses the desktop app together with the DAWG Browser Extension.
 
-> **Current release:** [`0.4.1-omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega) — desktop `0.4.1`; extension display version `0.3.5_middlechild` (unchanged).
+> **Current release:** [`0.4.2-omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega-2) — desktop `0.4.2`; extension display version `0.3.5_middlechild` (unchanged).
 
 ## Quick Start: Desktop App
 
 ### 1. Install DAWG
 
-Download the `omega` release directly:
+Download the `omega-2` release directly:
 
-- [Windows x64 installer](https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_x64-setup.exe)
-- [Linux x86_64 AppImage](https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_amd64.AppImage)
+- [Windows x64 installer](https://github.com/Slaviors-Group/dawg/releases/download/omega-2/DAWG_0.4.2_x64-setup.exe)
+- [Linux x86_64 AppImage](https://github.com/Slaviors-Group/dawg/releases/download/omega-2/DAWG_0.4.2_amd64.AppImage)
 
 See [Installation](/docs/installation) for Linux AppImage launch steps and the
-[GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/omega) for
+[GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/omega-2) for
 checksums and release notes.
 
 The packaged desktop app includes the engine, Node.js, mitmdump, Playwright, Chromium for replay, schemas, policies, and an installable copy of the extension. You do not need to install those runtimes separately.
 
 ### 2. Install the Browser Extension
 
-Capture is extension-driven. Chrome or Chromium **116 or newer** is required.
+Capture is extension-driven and currently supports only Chromium-based desktop browsers **116 or newer**, such as Chrome or Edge. Firefox and Safari recording are not supported in `0.4.2-omega`.
 
 Install the [DAWG Browser Extension from the Chrome Web Store](https://chromewebstore.google.com/detail/peiigoeakholhhbbbbfkeojomekmmokj?utm_source=item-share-cb). This is the recommended installation method.
 
