@@ -285,52 +285,52 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-2">
         {groupedArtifacts.length === 0 ? (
           <EmptyState
-          icon={<DownloadSimple size={32} weight="light" />}
-          title={
-            artifacts.length === 0 ? "No artifact instances" : "No artifacts match these filters"
-          }
-          description={
-            artifacts.length === 0
-              ? "Capture a session or import a .dawg archive to build the local catalog."
-              : "Try clearing a search term or changing the catalog filters."
-          }
+            icon={<DownloadSimple size={32} weight="light" />}
+            title={
+              artifacts.length === 0 ? "No artifact instances" : "No artifacts match these filters"
+            }
+            description={
+              artifacts.length === 0
+                ? "Capture a session or import a .dawg archive to build the local catalog."
+                : "Try clearing a search term or changing the catalog filters."
+            }
           />
         ) : (
           <div className="flex flex-col gap-3">
             {groupedArtifacts.map(({ root, revisions }) => {
-            const latest = revisions[0];
-            const expanded = expandedRoots.has(root);
-            return (
-              <div key={root} className="flex flex-col gap-2">
-                <ArtifactRow
-                  artifact={latest}
-                  revisionCount={revisions.length}
-                  onInspect={openInspectModal}
-                  onReplay={onReplayArtifact}
-                  onEdit={onEditArtifact}
-                  onExport={handleExport}
-                  onDelete={setDeleteTarget}
-                  onToggleRevisions={revisions.length > 1 ? () => toggleRoot(root) : undefined}
-                  revisionsExpanded={expanded}
-                />
-                {expanded &&
-                  revisions.slice(1).map((artifact) => (
-                    <div
-                      key={artifactIdentity(artifact)}
-                      className="ml-4 border-l-2 border-brand-200 pl-3"
-                    >
-                      <ArtifactRow
-                        artifact={artifact}
-                        onInspect={openInspectModal}
-                        onReplay={onReplayArtifact}
-                        onEdit={onEditArtifact}
-                        onExport={handleExport}
-                        onDelete={setDeleteTarget}
-                      />
-                    </div>
-                  ))}
-              </div>
-            );
+              const latest = revisions[0];
+              const expanded = expandedRoots.has(root);
+              return (
+                <div key={root} className="flex flex-col gap-2">
+                  <ArtifactRow
+                    artifact={latest}
+                    revisionCount={revisions.length}
+                    onInspect={openInspectModal}
+                    onReplay={onReplayArtifact}
+                    onEdit={onEditArtifact}
+                    onExport={handleExport}
+                    onDelete={setDeleteTarget}
+                    onToggleRevisions={revisions.length > 1 ? () => toggleRoot(root) : undefined}
+                    revisionsExpanded={expanded}
+                  />
+                  {expanded &&
+                    revisions.slice(1).map((artifact) => (
+                      <div
+                        key={artifactIdentity(artifact)}
+                        className="ml-4 border-l-2 border-brand-200 pl-3"
+                      >
+                        <ArtifactRow
+                          artifact={artifact}
+                          onInspect={openInspectModal}
+                          onReplay={onReplayArtifact}
+                          onEdit={onEditArtifact}
+                          onExport={handleExport}
+                          onDelete={setDeleteTarget}
+                        />
+                      </div>
+                    ))}
+                </div>
+              );
             })}
           </div>
         )}
