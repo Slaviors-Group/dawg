@@ -176,7 +176,6 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
     };
   }, [selectedArtifactItem]);
 
-
   const visibleArtifacts = useMemo(() => {
     const query = artifactSearch.trim().toLowerCase();
     return artifacts.filter((artifact) => {
