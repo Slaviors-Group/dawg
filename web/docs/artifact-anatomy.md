@@ -74,7 +74,7 @@ DAWG manifest before adding it to the local artifact store.
 
 DAWG verifies blob digests against the descriptors in the manifest before it
 reads evidence. The schema version controls which artifact fields are required.
-New artifacts use `0.4.1-omega`; its flagged revisions require an Engine that
+New artifacts use `0.4.2-omega`; its flagged revisions require an Engine that
 supports the Omega review schema. Older supported schemas remain readable:
 artifacts from `0.2.3-naughty` onward can be inspected, imported/exported, and
 replayed, though older artifacts can have no diagnostic evidence layers. The

@@ -140,6 +140,17 @@ export const CaptureControls: React.FC = () => {
         ) : undefined
       }
     >
+      <div
+        role="status"
+        className="rounded-md border border-warning-border bg-warning-bg px-4 py-3 text-sm text-warning-text"
+      >
+        <p className="font-semibold">Chromium-based browser recording only</p>
+        <p className="mt-1 text-xs">
+          DAWG 0.4.2 supports recording in Chrome, Edge, and other Chromium-based desktop
+          browsers. Firefox and Safari recording are not supported in this release.
+        </p>
+      </div>
+
       {/* Session controls */}
       <Card>
         <CardHeader>

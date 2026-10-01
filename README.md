@@ -9,25 +9,29 @@ Manifest V3 extension.
 
 **Website and documentation:** [dawg.slaviors.id](https://dawg.slaviors.id/)
 
-> **Current release:** [`0.4.1-omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega)
+> **Current release:** [`0.4.2-omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega-2)
 >
-> Application and artifact schema: `0.4.1-omega` · Desktop: `0.4.1` · Extension: `0.3.5_middlechild` (unchanged)
+> Application and artifact schema: `0.4.2-omega` · Desktop: `0.4.2` · Extension: `0.3.5_middlechild` (unchanged)
 
 ## 📦 Install the Current Release
 
-DAWG [`0.4.1-omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega) is the current application and artifact-schema release.
+DAWG [`0.4.2-omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega-2) is the current application and artifact-schema release.
 
-- [Download DAWG for Windows (x64 installer)](https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_x64-setup.exe)
-- [Download DAWG for Linux (x86_64 AppImage)](https://github.com/Slaviors-Group/dawg/releases/download/omega/DAWG_0.4.1_amd64.AppImage)
+- [Download DAWG for Windows (x64 installer)](https://github.com/Slaviors-Group/dawg/releases/download/omega-2/DAWG_0.4.2_x64-setup.exe)
+- [Download DAWG for Linux (x86_64 AppImage)](https://github.com/Slaviors-Group/dawg/releases/download/omega-2/DAWG_0.4.2_amd64.AppImage)
 
-These links download the matching asset from the `omega` GitHub release directly.
+These links download the matching asset from the `omega-2` GitHub release directly.
 After downloading the Linux AppImage, make it executable with
-`chmod +x DAWG_0.4.1_amd64.AppImage` and run it with
-`./DAWG_0.4.1_amd64.AppImage`. Visit the
+`chmod +x DAWG_0.4.2_amd64.AppImage` and run it with
+`./DAWG_0.4.2_amd64.AppImage`. Visit the
 [GitHub releases page](https://github.com/Slaviors-Group/dawg/releases) for
 checksums, release notes, and older assets.
 
 ## 🔎 Current Capabilities
+
+> **Browser compatibility:** DAWG `0.4.2-omega` records only Chromium-based
+> desktop browsers such as Chrome and Edge. Firefox and Safari recording are not
+> supported in this release. Replay and review use bundled Playwright Chromium.
 
 - **Extension-driven capture:** the desktop app or CLI selects one `http://` or
   `https://` tab. The extension records rrweb events, click/input actions, and
@@ -263,8 +267,8 @@ Node.js, and mitmproxy versions.
 
 ```json
 {
-  "appVersion": "0.4.1-omega",
-  "desktopVersion": "0.4.1",
+  "appVersion": "0.4.2-omega",
+  "desktopVersion": "0.4.2",
   "extensionVersion": "0.3.5_middlechild",
   "runtime": {
     "mitmproxy": "12.2.3",

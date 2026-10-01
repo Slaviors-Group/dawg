@@ -8,6 +8,29 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 
 ## Omega family — `0.4.x`
 
+### [0.4.2-omega](https://github.com/Slaviors-Group/dawg/releases/tag/omega-2) - 2026-10-01
+
+**Tag:** [`omega-2`](https://github.com/Slaviors-Group/dawg/releases/tag/omega-2) · **Desktop:** `0.4.2` · **Extension display version:** `0.3.5_middlechild` (unchanged)
+
+**Downloads:** [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/omega-2/DAWG_0.4.2_x64-setup.exe) · [Linux AppImage](https://github.com/Slaviors-Group/dawg/releases/download/omega-2/DAWG_0.4.2_amd64.AppImage)
+
+### Changed
+
+- Desktop Capture now displays a prominent compatibility notice that recording currently supports Chromium-based desktop browsers only.
+- The obsolete replay sandbox status UI has been removed from Desktop while replay execution and controls remain available.
+- Website installation guidance and the main project documentation now state the current browser-recording boundary explicitly.
+- New artifacts use the explicit `v0.4.2-omega` schema while all previously supported schemas remain readable.
+- Application, Desktop, website metadata, and release downloads now identify `0.4.2-omega`, Desktop `0.4.2`, and tag `omega-2`.
+- The capture extension remains display version `0.3.5_middlechild`; no extension update is required.
+
+### Compatibility
+
+- Recording requires Chrome, Edge, or another Chromium-based desktop browser version 116 or newer.
+- Firefox and Safari recording are not supported in this release.
+- Replay and review continue to use the bundled Playwright Chromium runtime.
+
+---
+
 ### [0.4.1-omega](https://github.com/Slaviors-Group/dawg/releases/tag/omega) - 2026-09-28
 
 **Tag:** [`omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega) · **Desktop:** `0.4.1` · **Extension display version:** `0.3.5_middlechild` (unchanged)
