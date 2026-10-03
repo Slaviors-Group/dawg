@@ -7,6 +7,7 @@ interface BadgeProps {
   dot?: boolean;
   children: React.ReactNode;
   className?: string;
+  title?: string;
 }
 
 const variantClasses: Record<Variant, string> = {
@@ -38,9 +39,11 @@ export function Badge({
   dot = false,
   children,
   className = "",
+  title,
 }: BadgeProps) {
   return (
     <span
+      title={title}
       className={[
         "inline-flex items-center font-medium border",
         variantClasses[variant],

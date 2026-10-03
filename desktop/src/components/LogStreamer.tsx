@@ -48,7 +48,7 @@ export function LogStreamer() {
             />
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-2 border-l border-border pl-2 sm:pl-4">
+          <div className="flex items-center gap-1 sm:gap-2">
             <div className="flex items-center gap-1.5 mr-1 sm:mr-2" title="Auto-scroll">
               <span className="text-xs text-text-secondary hidden xl:inline">Auto-scroll</span>
               <Toggle checked={autoScroll} onChange={setAutoScroll} />

@@ -1,11 +1,10 @@
 import { ArrowLeft, ArrowRight, GithubLogo, Heart } from "@phosphor-icons/react";
 import { isTauri } from "@tauri-apps/api/core";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { Button } from "./ui/Button";
 
 interface OnboardingPageProps {
-  onStartCapture: () => void;
   onExplore: () => void;
   onInstallExtension: () => void;
   onOpenGitHub: () => void;
@@ -74,7 +73,7 @@ const SLIDES = [
   },
   {
     title: "You're ready to dig in.",
-    description: "Start a capture or explore the workspace. DAWG is open source.",
+    description: "Open the dashboard for a guided tour of the workspace. DAWG is open source.",
     image: "/onboarding-complete.svg",
     imageAlt: "DAWG logo surrounded by confetti",
   },
@@ -141,7 +140,7 @@ function OnboardingSlide({
         )}
       </div>
 
-      <div className="onboarding-art-panel flex min-h-64 items-center justify-center overflow-hidden border-t border-border p-6 sm:p-9 md:min-h-0 md:border-t-0 md:border-l">
+      <div className="onboarding-art-panel flex min-h-64 items-center justify-center overflow-hidden border-t border-border p-6 sm:p-9 md:min-h-0 md:border-t-0">
         {index === SLIDES.length - 1 ? (
           <div className="relative w-full max-w-130">
             <img src={slide.image} alt="" className="h-auto w-full object-contain" />
@@ -164,7 +163,6 @@ function OnboardingSlide({
 }
 
 export function OnboardingPage({
-  onStartCapture,
   onExplore,
   onInstallExtension,
   onOpenGitHub,
@@ -173,7 +171,37 @@ export function OnboardingPage({
   links,
 }: OnboardingPageProps) {
   const [slideIndex, setSlideIndex] = useState(0);
+  const nextRef = useRef<HTMLButtonElement>(null);
   const isLastSlide = slideIndex === SLIDES.length - 1;
+
+  useEffect(() => {
+    nextRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key !== "Enter" ||
+        event.repeat ||
+        event.isComposing ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.shiftKey
+      )
+        return;
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest("button, a, input, select, textarea, [contenteditable='true']")
+      )
+        return;
+      event.preventDefault();
+      nextRef.current?.click();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const changeSlide = (nextIndex: number) => {
     if (nextIndex < 0 || nextIndex >= SLIDES.length) return;
@@ -242,11 +270,12 @@ export function OnboardingPage({
             </Button>
           )}
           <Button
+            ref={nextRef}
             size="lg"
-            onClick={isLastSlide ? onStartCapture : () => changeSlide(slideIndex + 1)}
+            onClick={isLastSlide ? onExplore : () => changeSlide(slideIndex + 1)}
             iconRight={<ArrowRight size={17} />}
           >
-            {isLastSlide ? "Start capturing" : "Next"}
+            {isLastSlide ? "Open dashboard" : "Next"}
           </Button>
         </div>
       </div>

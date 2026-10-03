@@ -181,7 +181,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
     return artifacts.filter((artifact) => {
       if (originFilter !== "all" && artifact.origin !== originFilter) return false;
       if (!query) return true;
-      return [artifact.title, artifact.id, artifact.targetUrl, artifact.path]
+      return [artifact.title, artifact.id, artifact.instanceId, artifact.targetUrl, artifact.path]
         .join(" ")
         .toLowerCase()
         .includes(query);
@@ -341,7 +341,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
 
   return (
     <PageShell title="Replay" subtitle="Inspect a captured browser session.">
-      <Card>
+      <Card data-tour="replay-choose">
         <CardHeader>
           <CardTitle title="Choose artifact" />
         </CardHeader>
@@ -353,7 +353,16 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
               label="Search artifacts"
               placeholder="Name, URL, digest, or path..."
               value={artifactSearch}
-              onChange={(event) => setArtifactSearch(event.target.value)}
+              onChange={(event) => {
+                setArtifactSearch(event.target.value);
+                setSelectedArtifact("");
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" || !artifactSearch.trim()) return;
+                event.preventDefault();
+                const firstMatch = visibleArtifacts[0];
+                if (firstMatch) setSelectedArtifact(artifactIdentity(firstMatch));
+              }}
               iconLeft={<MagnifyingGlass size={14} />}
             />
             <Select
@@ -370,6 +379,12 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
               ]}
             />
           </div>
+          {artifactSearch.trim() && (
+            <output className="text-xs text-text-tertiary">
+              {visibleArtifacts.length} {visibleArtifacts.length === 1 ? "match" : "matches"}. Enter
+              to select the first.
+            </output>
+          )}
 
           <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
             <Select
@@ -445,7 +460,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
         </div>
       </Card>
 
-      <Card>
+      <Card data-tour="replay-controls">
         <CardHeader>
           <CardTitle title="Replay controls" />
           <Badge

@@ -54,8 +54,9 @@ import/export, replay controls, logs, and runtime diagnostics.
 - **First launch:** shows four welcome slides for recording, DOM-and-mouse replay,
   QA-to-Dev artifact sharing, and project support. The final slide links to
   Slaviors Group, Buy Me a Coffee, and GitHub Sponsors. Skipping or finishing
-  stores the completed onboarding state locally, so later launches open the
-  workspace directly.
+  opens the Dashboard and a guided tour that highlights controls across the
+  main tabs. The tour can be stopped and reopened from the Dashboard.
+  Completion is stored locally.
 
 The Sanitizer Policy screen currently displays built-in policy examples; it does
 not edit the engine policy. The Diff & Verify screen is currently a UI preview

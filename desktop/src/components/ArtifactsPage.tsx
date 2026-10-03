@@ -1,7 +1,9 @@
 import {
+  Archive,
   CaretDown,
   CaretRight,
   DownloadSimple,
+  Globe,
   MagnifyingGlass,
   PencilSimple,
   PlayCircle,
@@ -47,6 +49,15 @@ const artifactIdentity = (artifact: ArtifactItem) => artifact.instanceId || arti
 const dateValue = (value?: string) => {
   const parsed = value ? new Date(value).getTime() : Number.NaN;
   return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const targetLabel = (value: string) => {
+  try {
+    const url = new URL(value);
+    return `${url.host}${url.pathname === "/" ? "" : url.pathname}`;
+  } catch {
+    return value;
+  }
 };
 
 export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPageProps) {
@@ -123,8 +134,10 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
       return [
         artifact.title,
         artifact.id,
+        artifact.instanceId,
         artifact.targetUrl,
         artifact.path,
+        ...(artifact.tags ?? []),
         ...(artifact.flagTitles ?? []),
       ]
         .join(" ")
@@ -160,6 +173,7 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
       }))
       .sort((left, right) => compare(left.revisions[0], right.revisions[0]));
   }, [artifacts, flagged, origin, query, sort]);
+  const matchCount = groupedArtifacts.reduce((count, group) => count + group.revisions.length, 0);
 
   const handleImport = async () => {
     const archive = await chooseArtifactArchive();
@@ -211,11 +225,18 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
             <Input
+              data-tour="artifacts-search"
               id="artifact-catalog-search"
               label="Search catalog"
-              placeholder="Search title, URL, path, or flag..."
+              placeholder="Search name, URL, ID, or path..."
               value={query}
               onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" || !query.trim()) return;
+                event.preventDefault();
+                const firstMatch = groupedArtifacts[0]?.revisions[0];
+                if (firstMatch) openInspectModal(firstMatch);
+              }}
               iconLeft={<MagnifyingGlass size={15} />}
               wrapperClassName="flex-1"
             />
@@ -259,6 +280,7 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
               wrapperClassName="lg:w-40"
             />
             <Button
+              data-tour="artifacts-import"
               variant="secondary"
               onClick={handleImport}
               loading={isImporting}
@@ -267,6 +289,11 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
               Import
             </Button>
           </div>
+          {query.trim() && (
+            <output className="text-xs text-text-tertiary">
+              {matchCount} {matchCount === 1 ? "match" : "matches"}. Enter to inspect the first.
+            </output>
+          )}
           <div
             className={[
               "rounded-2xl border border-dashed px-4 py-3 text-center transition-colors",
@@ -280,7 +307,10 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
         </div>
       </Card>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-2">
+      <div
+        data-tour="artifacts-list"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-2"
+      >
         {groupedArtifacts.length === 0 ? (
           <EmptyState
             icon={<DownloadSimple size={32} weight="light" />}
@@ -313,10 +343,7 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
                   />
                   {expanded &&
                     revisions.slice(1).map((artifact) => (
-                      <div
-                        key={artifactIdentity(artifact)}
-                        className="ml-4 border-l-2 border-brand-200 pl-3"
-                      >
+                      <div key={artifactIdentity(artifact)} className="ml-4">
                         <ArtifactRow
                           artifact={artifact}
                           onInspect={openInspectModal}
@@ -398,108 +425,122 @@ function ArtifactRow({
   onDelete,
   onToggleRevisions,
 }: ArtifactRowProps) {
+  const addedAt = new Date(artifact.addedAt || artifact.createdAt);
+  const addedLabel = Number.isNaN(addedAt.getTime())
+    ? "Date unavailable"
+    : `Added ${addedAt.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })}`;
+
   return (
-    <Card
-      noPad
-      className="flex flex-col gap-4 p-4 transition-colors hover:border-brand-300 xl:flex-row xl:items-center xl:justify-between"
-    >
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className="truncate text-sm font-semibold text-text-primary"
-            title={artifact.title || artifact.id}
-          >
-            {artifact.title || artifact.id}
-          </span>
-          <Badge variant="brand" size="sm">
-            .dawg
-          </Badge>
-          <Badge variant={artifact.origin === "imported" ? "info" : "default"} size="sm">
-            {originLabel[artifact.origin]}
-          </Badge>
-          {artifact.flagged && (
-            <Badge variant="warning" size="sm">
-              Flagged{artifact.flagCount ? ` · ${artifact.flagCount}` : ""}
-            </Badge>
-          )}
-          {artifact.revision && (
-            <Badge variant="info" size="sm">
-              Revision {artifact.revision}
-            </Badge>
-          )}
-          {artifact.tags?.map((tag) => (
-            <Badge key={tag} size="sm">
-              {tag}
-            </Badge>
-          ))}
-          {revisionCount && revisionCount > 1 && (
-            <button
-              type="button"
-              onClick={onToggleRevisions}
-              className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
-              aria-expanded={revisionsExpanded}
+    <Card noPad className="p-4 transition-colors hover:border-brand-300 sm:p-5">
+      <div className="flex min-w-0 items-start gap-3 sm:gap-4">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-600">
+          <Archive size={20} weight="duotone" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <h3
+              className="min-w-0 truncate text-sm font-semibold text-text-primary sm:text-base"
+              title={artifact.title || artifact.id}
             >
-              {revisionsExpanded ? <CaretDown size={13} /> : <CaretRight size={13} />}
-              {revisionCount} revisions
-            </button>
-          )}
-        </div>
-        <p className="mt-1 truncate font-mono text-[11px] text-text-tertiary" title={artifact.path}>
-          {artifact.path}
-        </p>
-        <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-text-secondary">
-          {artifact.targetUrl && <span className="truncate">{artifact.targetUrl}</span>}
-          {artifact.targetUrl && <span className="text-border-strong">•</span>}
-          <span>Added {new Date(artifact.addedAt || artifact.createdAt).toLocaleString()}</span>
-          {artifact.instanceId && (
-            <>
-              <span className="text-border-strong">•</span>
-              <span className="font-mono">{artifact.instanceId}</span>
-            </>
-          )}
+              {artifact.title || artifact.id}
+            </h3>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Badge variant={artifact.origin === "imported" ? "info" : "default"} size="sm">
+                {originLabel[artifact.origin]}
+              </Badge>
+              {artifact.flagged && (
+                <Badge variant="warning" size="sm">
+                  Flagged{artifact.flagCount ? ` · ${artifact.flagCount}` : ""}
+                </Badge>
+              )}
+              {artifact.revision && (
+                <Badge variant="info" size="sm">
+                  Revision {artifact.revision}
+                </Badge>
+              )}
+              {artifact.tags?.map((tag) => (
+                <Badge key={tag} size="sm">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-secondary">
+            {artifact.targetUrl && (
+              <span
+                className="inline-flex min-w-0 max-w-full items-center gap-1.5"
+                title={artifact.targetUrl}
+              >
+                <Globe size={14} className="shrink-0 text-brand-600" aria-hidden />
+                <span className="truncate">{targetLabel(artifact.targetUrl)}</span>
+              </span>
+            )}
+            <span title={Number.isNaN(addedAt.getTime()) ? undefined : addedAt.toLocaleString()}>
+              {addedLabel}
+            </span>
+          </div>
         </div>
       </div>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => onInspect(artifact)}
-          iconLeft={<MagnifyingGlass size={14} />}
-        >
-          Inspect
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => onReplay(artifact)}
-          iconLeft={<PlayCircle size={14} />}
-        >
-          Replay
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => onEdit(artifact)}
-          iconLeft={<PencilSimple size={14} />}
-        >
-          Edit
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => void onExport(artifact)}
-          iconLeft={<DownloadSimple size={14} />}
-        >
-          Export
-        </Button>
-        <Button
-          variant="danger"
-          size="sm"
-          onClick={() => onDelete(artifact)}
-          iconLeft={<Trash size={14} />}
-        >
-          Delete
-        </Button>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+        {revisionCount && revisionCount > 1 ? (
+          <button
+            type="button"
+            onClick={onToggleRevisions}
+            className="inline-flex min-h-8 items-center gap-1 rounded-full px-2 text-xs font-medium text-brand-600 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-2 focus-visible:outline-brand-500"
+            aria-expanded={revisionsExpanded}
+          >
+            {revisionsExpanded ? <CaretDown size={13} /> : <CaretRight size={13} />}
+            {revisionCount} revisions
+          </button>
+        ) : (
+          <span />
+        )}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => onInspect(artifact)}
+            iconLeft={<MagnifyingGlass size={14} />}
+          >
+            Inspect
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => onReplay(artifact)}
+            iconLeft={<PlayCircle size={14} />}
+          >
+            Replay
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => onEdit(artifact)}
+            iconLeft={<PencilSimple size={14} />}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => void onExport(artifact)}
+            iconLeft={<DownloadSimple size={14} />}
+          >
+            Export
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => onDelete(artifact)}
+            iconLeft={<Trash size={14} />}
+          >
+            Delete
+          </Button>
+        </div>
       </div>
     </Card>
   );

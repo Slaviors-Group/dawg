@@ -82,6 +82,22 @@ export const ArtifactInspectorModal: React.FC<Props> = ({ artifact, onClose }) =
           </div>
           <div className="min-w-0">
             <span className="block text-[10px] font-medium text-text-tertiary uppercase tracking-wider mb-1">
+              Added At
+            </span>
+            <span className="text-text-secondary">
+              {new Date(artifact.addedAt || artifact.createdAt).toLocaleString()}
+            </span>
+          </div>
+          {artifact.instanceId && (
+            <div className="min-w-0">
+              <span className="block text-[10px] font-medium text-text-tertiary uppercase tracking-wider mb-1">
+                Instance ID
+              </span>
+              <span className="break-all font-mono text-text-primary">{artifact.instanceId}</span>
+            </div>
+          )}
+          <div className="min-w-0">
+            <span className="block text-[10px] font-medium text-text-tertiary uppercase tracking-wider mb-1">
               Components
             </span>
             <div className="flex flex-wrap gap-1 mt-0.5">

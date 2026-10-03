@@ -1,10 +1,4 @@
-import {
-  CheckCircle,
-  PencilSimple,
-  PlayCircle,
-  StopCircle,
-  WarningCircle,
-} from "@phosphor-icons/react";
+import { PencilSimple, PlayCircle, StopCircle } from "@phosphor-icons/react";
 import { listen } from "@tauri-apps/api/event";
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -199,117 +193,101 @@ export const EditorPage: React.FC<EditorPageProps> = ({
 
   return (
     <PageShell title="Editor" subtitle="Add review flags in Chromium.">
-      <Card>
-        <CardHeader>
-          <CardTitle title="Artifact selection" />
-          <Badge
-            variant={statusVariant}
-            size="sm"
-            dot={editorState === "ready" || editorState === "dirty"}
-          >
-            {statusLabel}
-          </Badge>
-        </CardHeader>
-        <div className="flex flex-col gap-4">
-          <Select
-            id="editor-artifact-select"
-            label="Artifact"
-            value={selectedIdentity}
-            onChange={setSelectedIdentity}
-            placeholder={artifacts.length ? "Select an artifact…" : "No local artifacts available"}
-            disabled={artifacts.length === 0 || isLaunching || isStopping}
-            options={artifacts.map((artifact) => ({
-              value: artifactIdentity(artifact),
-              label: `${artifact.title || artifact.id}${artifact.flagged ? ` · ${artifact.flagCount ?? 0} flags` : ""}`,
-            }))}
+      <Card data-tour="editor-selection">
+        {artifacts.length === 0 ? (
+          <EmptyState
+            icon={<PencilSimple size={32} weight="light" />}
+            title="Nothing to edit yet"
+            description="Capture or import an artifact to start reviewing."
           />
-          {selectedArtifact && (
-            <div className="grid grid-cols-1 gap-3 rounded-xl bg-canvas-subtle p-4 text-xs sm:grid-cols-3">
-              <div>
-                <span className="block text-text-tertiary">Review flags</span>
-                <strong className="text-text-primary">{selectedArtifact.flagCount ?? 0}</strong>
-              </div>
-              <div>
-                <span className="block text-text-tertiary">Revision</span>
-                <strong className="text-text-primary">
-                  {selectedArtifact.revision ?? "Original"}
-                </strong>
-              </div>
-              <div>
-                <span className="block text-text-tertiary">Origin</span>
-                <strong className="text-text-primary capitalize">{selectedArtifact.origin}</strong>
+        ) : (
+          <>
+            <CardHeader>
+              <CardTitle title="Artifact selection" />
+              <Badge
+                variant={statusVariant}
+                size="sm"
+                dot={editorState === "ready" || editorState === "dirty"}
+                title={message}
+              >
+                {statusLabel}
+              </Badge>
+            </CardHeader>
+            <div className="flex flex-col gap-4">
+              <Select
+                id="editor-artifact-select"
+                label="Artifact"
+                value={selectedIdentity}
+                onChange={setSelectedIdentity}
+                placeholder="Select an artifact…"
+                disabled={isLaunching || isStopping}
+                options={artifacts.map((artifact) => ({
+                  value: artifactIdentity(artifact),
+                  label: `${artifact.title || artifact.id}${artifact.flagged ? ` · ${artifact.flagCount ?? 0} flags` : ""}`,
+                }))}
+              />
+              {selectedArtifact && (
+                <div className="grid grid-cols-1 gap-3 rounded-xl bg-canvas-subtle p-4 text-xs sm:grid-cols-3">
+                  <div>
+                    <span className="block text-text-tertiary">Review flags</span>
+                    <strong className="text-text-primary">{selectedArtifact.flagCount ?? 0}</strong>
+                  </div>
+                  <div>
+                    <span className="block text-text-tertiary">Revision</span>
+                    <strong className="text-text-primary">
+                      {selectedArtifact.revision ?? "Original"}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="block text-text-tertiary">Origin</span>
+                    <strong className="text-text-primary capitalize">
+                      {selectedArtifact.origin}
+                    </strong>
+                  </div>
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {editorState === "starting" ||
+                editorState === "ready" ||
+                editorState === "dirty" ||
+                editorState === "saving" ? (
+                  <Button
+                    variant="danger"
+                    loading={isStopping}
+                    onClick={() => void stopEditor()}
+                    iconLeft={<StopCircle size={16} />}
+                  >
+                    Stop Editor
+                  </Button>
+                ) : (
+                  <Button
+                    disabled={
+                      !selectedArtifact ||
+                      isStopping ||
+                      editorState === "closing" ||
+                      activeEditorRun.current !== null
+                    }
+                    loading={isLaunching}
+                    onClick={() => void launchEditor()}
+                    iconLeft={<PencilSimple size={16} />}
+                  >
+                    {editorState === "closing" ? "Finishing cleanup…" : "Edit"}
+                  </Button>
+                )}
+                {savedArtifact && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => onReplayArtifact(artifactIdentity(savedArtifact))}
+                    iconLeft={<PlayCircle size={16} />}
+                  >
+                    Replay saved revision
+                  </Button>
+                )}
               </div>
             </div>
-          )}
-          <div className="flex flex-wrap gap-2">
-            {editorState === "starting" ||
-            editorState === "ready" ||
-            editorState === "dirty" ||
-            editorState === "saving" ? (
-              <Button
-                variant="danger"
-                loading={isStopping}
-                onClick={() => void stopEditor()}
-                iconLeft={<StopCircle size={16} />}
-              >
-                Stop Editor
-              </Button>
-            ) : (
-              <Button
-                disabled={
-                  !selectedArtifact ||
-                  isStopping ||
-                  editorState === "closing" ||
-                  activeEditorRun.current !== null
-                }
-                loading={isLaunching}
-                onClick={() => void launchEditor()}
-                iconLeft={<PencilSimple size={16} />}
-              >
-                {editorState === "closing"
-                  ? "Finishing cleanup…"
-                  : editorState === "idle"
-                    ? "Launch Editor"
-                    : "Reopen Editor"}
-              </Button>
-            )}
-            {savedArtifact && (
-              <Button
-                variant="secondary"
-                onClick={() => onReplayArtifact(artifactIdentity(savedArtifact))}
-                iconLeft={<PlayCircle size={16} />}
-              >
-                Replay saved revision
-              </Button>
-            )}
-          </div>
-        </div>
+          </>
+        )}
       </Card>
-
-      <Card>
-        <div className="flex items-start gap-3">
-          {editorState === "error" ? (
-            <WarningCircle size={20} className="shrink-0 text-error-text" />
-          ) : (
-            <CheckCircle size={20} className="shrink-0 text-brand-500" />
-          )}
-          <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-text-primary">Editor status</h3>
-            <p className="mt-1 text-sm text-text-secondary wrap-anywhere">{message}</p>
-            <p className="mt-2 text-xs text-text-tertiary">
-              Saving creates a new revision. The source artifact stays unchanged.
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {artifacts.length === 0 && (
-        <EmptyState
-          icon={<PencilSimple size={32} weight="light" />}
-          title="Nothing to edit yet"
-          description="Capture or import an artifact to start reviewing."
-        />
-      )}
     </PageShell>
   );
 };

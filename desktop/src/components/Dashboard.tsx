@@ -1,17 +1,22 @@
 import {
   Archive,
+  ArrowCounterClockwise,
   ArrowRight,
   ArrowUpRight,
+  BookOpen,
   Cpu,
   Flag,
+  PencilSimple,
   Record,
   ShieldCheck,
   StarFour,
+  UploadSimple,
 } from "@phosphor-icons/react";
 import type React from "react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { type ArtifactItem, useEngine } from "../context/EngineContext";
+import { chooseArtifactArchive } from "../lib/artifactDialogs";
 import { EngineHelpBanner } from "./EngineHelpBanner";
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
@@ -19,12 +24,17 @@ import { Card, CardHeader, CardTitle } from "./ui/Card";
 import { EmptyState } from "./ui/EmptyState";
 import { PageShell } from "./ui/PageShell";
 import { StatCard } from "./ui/StatCard";
+import { useToast } from "./ui/Toast";
 
 interface DashboardProps {
   onReplayArtifact: (artifact: ArtifactItem) => void;
   onEditArtifact: (artifact: ArtifactItem) => void;
   onViewArtifacts: () => void;
   onStartCapture: () => void;
+  onOpenReplay: () => void;
+  onOpenEditor: () => void;
+  onOpenPolicy: () => void;
+  onOpenGuide: () => void;
 }
 
 const addedTimestamp = (artifact: ArtifactItem) => {
@@ -37,8 +47,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onEditArtifact,
   onViewArtifacts,
   onStartCapture,
+  onOpenReplay,
+  onOpenEditor,
+  onOpenPolicy,
+  onOpenGuide,
 }) => {
-  const { engineStatus, artifacts, doctorReport, isCapturing } = useEngine();
+  const { engineStatus, artifacts, doctorReport, isCapturing, importArtifact } = useEngine();
+  const { error: showToastError } = useToast();
+  const [isImporting, setIsImporting] = useState(false);
   const latestArtifact = useMemo(
     () => [...artifacts].sort((left, right) => addedTimestamp(right) - addedTimestamp(left))[0],
     [artifacts],
@@ -58,6 +74,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const otherArtifacts = Math.max(0, artifacts.length - summaries.captured - summaries.imported);
   const highestSourceCount = Math.max(1, summaries.captured, summaries.imported, otherArtifacts);
 
+  const handleImport = async () => {
+    if (isImporting) return;
+    setIsImporting(true);
+    try {
+      const archive = await chooseArtifactArchive();
+      if (!archive) return;
+      if (!archive.toLowerCase().endsWith(".dawg")) {
+        showToastError("Choose a .dawg archive");
+        return;
+      }
+      await importArtifact(archive);
+      onViewArtifacts();
+    } catch (error) {
+      showToastError("Could not import artifact", String(error));
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   return (
     <PageShell
       eyebrow={new Date().toLocaleDateString("en-US", {
@@ -68,9 +103,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
       title="Dashboard"
       subtitle="Capture, inspect, and replay browser issues."
       actions={
-        <Badge variant={engineStatus.installed ? "success" : "warning"} dot>
-          {engineStatus.installed ? "Engine ready" : "Engine unavailable"}
-        </Badge>
+        <Button
+          variant="secondary"
+          size="sm"
+          iconLeft={<BookOpen size={15} />}
+          onClick={onOpenGuide}
+        >
+          Guide
+        </Button>
       }
     >
       <EngineHelpBanner />
@@ -116,6 +156,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
           <div className="relative z-10 mt-6 flex flex-wrap items-center gap-2">
             <Button
+              data-tour="dashboard-start"
               onClick={onStartCapture}
               iconRight={<ArrowUpRight size={16} weight="bold" />}
               className="!bg-[#1c1b2b] !text-white hover:!bg-[#33314a]"
@@ -132,7 +173,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </section>
 
-        <Card className="flex flex-col">
+        <Card data-tour="dashboard-status" className="flex flex-col">
           <CardHeader>
             <CardTitle title="Workspace status" />
             <span className="grid size-9 place-items-center rounded-full bg-brand-100 text-brand-600">
@@ -174,7 +215,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div data-tour="dashboard-summary" className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           label="Local artifacts"
           icon={<Archive size={20} weight="duotone" />}
@@ -200,7 +241,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.8fr)_minmax(280px,1fr)]">
-        <Card>
+        <Card data-tour="dashboard-latest">
           <CardHeader>
             <CardTitle title="Latest artifact" />
             <Button
@@ -307,6 +348,69 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <span className="block text-xs text-text-tertiary">
                   Inspect and export artifacts
                 </span>
+              </span>
+              <ArrowUpRight size={16} className="shrink-0 text-text-tertiary" />
+            </button>
+            <button
+              type="button"
+              onClick={() => (latestArtifact ? onReplayArtifact(latestArtifact) : onOpenReplay())}
+              className="flex w-full items-center gap-3 rounded-xl border border-border/70 bg-canvas-subtle px-4 py-3 text-left transition-colors hover:border-brand-300 hover:bg-brand-50"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-600">
+                <ArrowCounterClockwise size={19} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-text-primary">
+                  Replay a session
+                </span>
+                <span className="block text-xs text-text-tertiary">Review recorded steps</span>
+              </span>
+              <ArrowUpRight size={16} className="shrink-0 text-text-tertiary" />
+            </button>
+            <button
+              type="button"
+              onClick={() => (latestArtifact ? onEditArtifact(latestArtifact) : onOpenEditor())}
+              className="flex w-full items-center gap-3 rounded-xl border border-border/70 bg-canvas-subtle px-4 py-3 text-left transition-colors hover:border-brand-300 hover:bg-brand-50"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-600">
+                <PencilSimple size={19} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-text-primary">Open Editor</span>
+                <span className="block text-xs text-text-tertiary">Add review flags</span>
+              </span>
+              <ArrowUpRight size={16} className="shrink-0 text-text-tertiary" />
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleImport()}
+              disabled={isImporting}
+              className="flex w-full items-center gap-3 rounded-xl border border-border/70 bg-canvas-subtle px-4 py-3 text-left transition-colors hover:border-brand-300 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-600">
+                <UploadSimple size={19} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-text-primary">
+                  {isImporting ? "Importing..." : "Import .dawg file"}
+                </span>
+                <span className="block text-xs text-text-tertiary">Add a shared artifact</span>
+              </span>
+              <ArrowUpRight size={16} className="shrink-0 text-text-tertiary" />
+            </button>
+            <button
+              type="button"
+              onClick={onOpenPolicy}
+              className="flex w-full items-center gap-3 rounded-xl border border-border/70 bg-canvas-subtle px-4 py-3 text-left transition-colors hover:border-brand-300 hover:bg-brand-50"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-600">
+                <ShieldCheck size={19} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-text-primary">
+                  Sanitizer policy
+                </span>
+                <span className="block text-xs text-text-tertiary">Review data rules</span>
               </span>
               <ArrowUpRight size={16} className="shrink-0 text-text-tertiary" />
             </button>

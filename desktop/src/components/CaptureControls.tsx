@@ -151,7 +151,7 @@ export const CaptureControls: React.FC = () => {
         </CardHeader>
 
         <form onSubmit={handleStart} className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div data-tour="capture-target" className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Input
               id="target-url"
               type="url"
@@ -187,6 +187,7 @@ export const CaptureControls: React.FC = () => {
                 return (
                   <label
                     key={profile.id}
+                    data-tour={`capture-profile-${profile.id}`}
                     className={[
                       "flex cursor-pointer gap-3 rounded-xl border p-4 transition-colors",
                       isSelected
@@ -273,6 +274,7 @@ export const CaptureControls: React.FC = () => {
           <div className="flex items-center gap-3">
             {!isCapturing ? (
               <Button
+                data-tour="capture-action"
                 type="submit"
                 variant="primary"
                 size="md"
@@ -283,6 +285,7 @@ export const CaptureControls: React.FC = () => {
               </Button>
             ) : (
               <Button
+                data-tour="capture-action"
                 type="button"
                 variant="danger"
                 size="md"
@@ -323,7 +326,7 @@ export const CaptureControls: React.FC = () => {
 
       {/* Live session banner */}
       {isCapturing && (
-        <Card accent>
+        <Card>
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <span className="w-2.5 h-2.5 rounded-full bg-error-dot animate-ping shrink-0" />

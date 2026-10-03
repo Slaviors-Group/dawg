@@ -1,13 +1,11 @@
 import { type HTMLAttributes, forwardRef } from "react";
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  accent?: boolean;
-
   noPad?: boolean;
 }
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ accent = false, noPad = false, className = "", children, ...props }, ref) => {
+  ({ noPad = false, className = "", children, ...props }, ref) => {
     return (
       <div
         ref={ref}
@@ -15,7 +13,6 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
           "bg-surface border border-border/70 rounded-2xl",
           "shadow-card",
           !noPad && "p-5 sm:p-6",
-          accent && "border-l-4 border-l-brand-500",
           className,
         ]
           .filter(Boolean)

@@ -14,7 +14,7 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ArtifactsPage } from "./components/ArtifactsPage";
 import { CaptureControls } from "./components/CaptureControls";
@@ -32,6 +32,7 @@ import { MotionProvider } from "./context/MotionContext";
 import { ThemeProvider } from "./context/ThemeContext";
 
 import { DoctorModal } from "./components/DoctorModal";
+import { GuidedTour } from "./components/GuidedTour";
 import { OnboardingPage } from "./components/OnboardingPage";
 import "./App.css";
 
@@ -43,10 +44,19 @@ const GITHUB_SPONSORS_URL = "https://github.com/sponsors/Slaviors-Group";
 const GITHUB_GROUP_URL = "https://github.com/Slaviors-Group";
 const BUY_ME_A_COFFEE_URL = "https://buymeacoffee.com/slaviorsgroup";
 const ONBOARDING_COMPLETE_KEY = "dawg-onboarding-complete";
+const GUIDE_COMPLETE_KEY = "dawg-workspace-guide-complete";
 
 function hasCompletedOnboarding() {
   try {
     return localStorage.getItem(ONBOARDING_COMPLETE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function hasCompletedGuide() {
+  try {
+    return localStorage.getItem(GUIDE_COMPLETE_KEY) === "true";
   } catch {
     return false;
   }
@@ -69,6 +79,10 @@ const NAV_ITEMS: {
 function ShellContent() {
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
   const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
+  const [showGuide, setShowGuide] = useState(
+    () => hasCompletedOnboarding() && !hasCompletedGuide(),
+  );
+  const [guideStep, setGuideStep] = useState(0);
   const [replayArtifactIdentity, setReplayArtifactIdentity] = useState<string | undefined>();
   const [editorArtifactIdentity, setEditorArtifactIdentity] = useState<string | undefined>();
   const [showDoctor, setShowDoctor] = useState(false);
@@ -136,21 +150,31 @@ function ShellContent() {
     }
   };
 
-  const finishOnboarding = (tab: Tab) => {
+  const finishOnboarding = () => {
     try {
       localStorage.setItem(ONBOARDING_COMPLETE_KEY, "true");
     } catch {
       // Continue into the workspace even if the WebView cannot persist preferences.
     }
-    setActiveTab(tab);
+    setActiveTab("dashboard");
+    setGuideStep(0);
+    setShowGuide(true);
     setShowOnboarding(false);
   };
+
+  const finishGuide = useCallback(() => {
+    try {
+      localStorage.setItem(GUIDE_COMPLETE_KEY, "true");
+    } catch {
+      // The guide can still close if preferences cannot be persisted.
+    }
+    setShowGuide(false);
+  }, []);
 
   if (showOnboarding) {
     return (
       <OnboardingPage
-        onStartCapture={() => finishOnboarding("capture")}
-        onExplore={() => finishOnboarding("dashboard")}
+        onExplore={finishOnboarding}
         onInstallExtension={() => void handleInstallWebExtension()}
         onOpenGitHub={() => void openOnboardingLink(GITHUB_GROUP_URL, "Slaviors Group")}
         onOpenCoffee={() => void openOnboardingLink(BUY_ME_A_COFFEE_URL, "Buy Me a Coffee")}
@@ -305,6 +329,14 @@ function ShellContent() {
                   onEditArtifact={handleEditArtifact}
                   onViewArtifacts={() => setActiveTab("artifacts")}
                   onStartCapture={() => setActiveTab("capture")}
+                  onOpenReplay={() => setActiveTab("replay")}
+                  onOpenEditor={() => setActiveTab("editor")}
+                  onOpenPolicy={() => setActiveTab("policy")}
+                  onOpenGuide={() => {
+                    setActiveTab("dashboard");
+                    setGuideStep(0);
+                    setShowGuide(true);
+                  }}
                 />
               )}
               {activeTab === "capture" && <CaptureControls />}
@@ -332,6 +364,16 @@ function ShellContent() {
           </AnimatePresence>
         </div>
       </main>
+
+      {showGuide && (
+        <GuidedTour
+          step={guideStep}
+          activeTab={activeTab}
+          onStepChange={setGuideStep}
+          onNavigate={setActiveTab}
+          onFinish={finishGuide}
+        />
+      )}
 
       <DoctorModal open={showDoctor} onClose={() => setShowDoctor(false)} />
       <SettingsPanel open={showSettings} onClose={() => setShowSettings(false)} />
