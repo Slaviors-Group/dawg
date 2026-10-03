@@ -198,16 +198,10 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     editorState === "dirty" ? "Draft changed" : editorState[0].toUpperCase() + editorState.slice(1);
 
   return (
-    <PageShell
-      title="Editor"
-      subtitle="Launch Chromium review editing; the engine owns drafts and immutable artifact publication"
-    >
+    <PageShell title="Editor" subtitle="Add review flags in Chromium.">
       <Card>
         <CardHeader>
-          <CardTitle
-            title="Artifact selection"
-            subtitle="Select the local artifact instance to review"
-          />
+          <CardTitle title="Artifact selection" />
           <Badge
             variant={statusVariant}
             size="sm"
@@ -230,7 +224,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             }))}
           />
           {selectedArtifact && (
-            <div className="grid grid-cols-1 gap-3 rounded-md border border-border bg-canvas-subtle p-4 text-xs sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 rounded-xl bg-canvas-subtle p-4 text-xs sm:grid-cols-3">
               <div>
                 <span className="block text-text-tertiary">Review flags</span>
                 <strong className="text-text-primary">{selectedArtifact.flagCount ?? 0}</strong>
@@ -303,10 +297,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             <h3 className="text-sm font-semibold text-text-primary">Editor status</h3>
             <p className="mt-1 text-sm text-text-secondary wrap-anywhere">{message}</p>
             <p className="mt-2 text-xs text-text-tertiary">
-              Saving in Chromium creates a new artifact revision; it never changes the source
-              artifact. You can choose its name in Chromium, or leave it blank to use the source
-              title plus the revision number. Validation and active-process errors are shown here
-              and in the shared engine log.
+              Saving creates a new revision. The source artifact stays unchanged.
             </p>
           </div>
         </div>
@@ -316,7 +307,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         <EmptyState
           icon={<PencilSimple size={32} weight="light" />}
           title="Nothing to edit yet"
-          description="Capture or import a .dawg artifact, then return here to add portable review flags."
+          description="Capture or import an artifact to start reviewing."
         />
       )}
     </PageShell>

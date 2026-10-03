@@ -8,7 +8,7 @@ import { PageShell } from "./ui/PageShell";
 const POLICIES = {
   "default.rego": {
     name: "Default Gate Policy",
-    description: "Standard OPA export gate. Refuses packaging if any unresolved violation exists.",
+    description: "Blocks export when violations remain.",
     code: `package dawg.sanitize
 
 default allow = false
@@ -20,7 +20,7 @@ allow {
   },
   "strict-pci.rego": {
     name: "Strict PCI Policy",
-    description: "Enforces strict PCI-DSS secret redaction (credit cards, CVVs, Bearer tokens).",
+    description: "Requires PCI secret redaction before export.",
     code: `package dawg.sanitize
 
 default allow = false
@@ -33,7 +33,7 @@ allow {
   },
   "relaxed-dev.rego": {
     name: "Dev Relaxed Policy",
-    description: "Dev-only policy allowing localhost HTTP traffic without strict export blocking.",
+    description: "Allows local development exports.",
     code: `package dawg.sanitize
 
 default allow = true
@@ -50,10 +50,7 @@ export const PolicyConfig: React.FC = () => {
   const activePolicy = POLICIES[selectedPolicyKey];
 
   return (
-    <PageShell
-      title="Sanitizer Policy Configuration"
-      subtitle="Built-in OPA Rego policy and secret-redaction examples"
-    >
+    <PageShell title="Sanitizer policies" subtitle="Review built-in export rules.">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {(Object.keys(POLICIES) as Array<keyof typeof POLICIES>).map((key) => {
           const isSelected = key === selectedPolicyKey;
@@ -65,7 +62,7 @@ export const PolicyConfig: React.FC = () => {
               type="button"
               onClick={() => setSelectedPolicyKey(key)}
               className={[
-                "text-left p-4 rounded-lg border transition-all duration-[--duration-fast]",
+                "text-left p-5 rounded-2xl border transition-all duration-[--duration-fast]",
                 "flex flex-col gap-1 relative",
                 isSelected
                   ? "bg-brand-50 border-brand-400 shadow-sm"

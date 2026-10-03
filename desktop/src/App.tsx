@@ -166,8 +166,8 @@ function ShellContent() {
   }
 
   return (
-    <div className="flex h-screen bg-canvas overflow-hidden">
-      <aside className="w-65 shrink-0 flex h-screen flex-col overflow-hidden bg-surface border-r border-border py-4 px-4 gap-6 z-20">
+    <div className="flex h-screen overflow-hidden bg-canvas">
+      <aside className="z-20 flex h-screen w-65 shrink-0 flex-col gap-6 overflow-hidden border-r border-border/70 bg-surface px-4 py-4">
         <div className="flex items-center gap-3 p-2 mb-2">
           <img src="/paw-dawg.svg" alt="DAWG Logo" className="w-10 h-10 shrink-0" />
           <div>
@@ -204,7 +204,7 @@ function ShellContent() {
             <button
               type="button"
               onClick={() => setShowDoctor(true)}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-surface-hover transition-colors duration-fast"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-surface-hover transition-colors duration-fast"
             >
               <span
                 className={[
@@ -227,7 +227,7 @@ function ShellContent() {
             <button
               type="button"
               onClick={() => setShowSettings(true)}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-surface-hover transition-colors duration-fast text-text-secondary"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-surface-hover transition-colors duration-fast text-text-secondary"
             >
               <GearSix size={18} className="text-text-tertiary" />
               <span className="text-xs font-medium">Settings</span>
@@ -235,7 +235,7 @@ function ShellContent() {
             <button
               type="button"
               onClick={() => void handleInstallWebExtension()}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-surface-hover transition-colors duration-fast text-text-secondary"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-surface-hover transition-colors duration-fast text-text-secondary"
             >
               <Browser size={18} className="text-text-tertiary" />
               <span className="text-xs font-medium">Install DAWG Web Extension</span>
@@ -243,8 +243,8 @@ function ShellContent() {
           </div>
         </nav>
 
-        <div className="relative p-5 rounded-2xl overflow-hidden shadow-card shrink-0">
-          <div className="absolute inset-0 bg-linear-to-br from-brand-600 to-brand-400" />
+        <div className="relative shrink-0 overflow-hidden rounded-3xl p-5 shadow-card">
+          <div className="absolute inset-0 bg-linear-to-br from-[hsl(258_65%_45%)] to-[hsl(258_65%_65%)]" />
           <div
             className="absolute inset-0 opacity-30"
             style={{
@@ -252,21 +252,20 @@ function ShellContent() {
               backgroundSize: "12px 12px",
             }}
           />
-
-          <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white opacity-20 rounded-full blur-2xl mix-blend-overlay" />
+          <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white opacity-20 blur-2xl mix-blend-overlay" />
           <div className="relative z-10 flex flex-col items-start gap-3">
             <div className="flex items-center gap-2">
               <GithubLogo size={18} weight="fill" className="text-white" />
               <span className="font-bold text-sm text-white">Open Source</span>
             </div>
-            <p className="text-xs text-brand-50 leading-relaxed font-medium">
+            <p className="text-xs font-medium leading-relaxed text-[hsl(258_75%_98%)]">
               Source code, releases, and issue tracking.
             </p>
             <a
               href="https://github.com/Slaviors-Group/dawg"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-1 px-4 py-1.5 bg-white text-brand-700 hover:bg-brand-50 font-semibold text-xs rounded-full shadow-sm transition-colors w-full text-center block"
+              className="mt-1 block w-full rounded-full bg-white px-4 py-1.5 text-center text-xs font-semibold text-[hsl(258_65%_40%)] shadow-sm transition-colors hover:bg-[hsl(258_75%_98%)]"
             >
               Open GitHub
             </a>
@@ -282,10 +281,13 @@ function ShellContent() {
         </div>
       </aside>
 
-      <main className="flex-1 relative min-w-0 overflow-y-auto bg-grid-pattern z-10">
-        <div className="glow-orb -top-25 -left-25" />
-        <div className="glow-orb-cyan -right-12.5 top-37.5" />
-        <div className="relative flex h-full min-h-0 flex-col px-10 pt-10">
+      <main className="relative z-10 min-w-0 flex-1 overflow-y-auto bg-canvas">
+        <div
+          className={[
+            "mx-auto flex w-full max-w-[1600px] flex-col px-5 pb-10 pt-7 sm:px-7 xl:px-9",
+            activeTab === "artifacts" ? "h-full min-h-0" : "min-h-full",
+          ].join(" ")}
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -294,9 +296,7 @@ function ShellContent() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
               className={
-                activeTab === "artifacts"
-                  ? "flex h-full min-h-0 flex-col"
-                  : "flex min-h-full flex-col"
+                activeTab === "artifacts" ? "flex min-h-0 flex-1 flex-col" : "flex flex-col"
               }
             >
               {activeTab === "dashboard" && (
@@ -304,6 +304,7 @@ function ShellContent() {
                   onReplayArtifact={handleReplayArtifact}
                   onEditArtifact={handleEditArtifact}
                   onViewArtifacts={() => setActiveTab("artifacts")}
+                  onStartCapture={() => setActiveTab("capture")}
                 />
               )}
               {activeTab === "capture" && <CaptureControls />}
@@ -329,8 +330,6 @@ function ShellContent() {
               {activeTab === "policy" && <PolicyConfig />}
             </motion.div>
           </AnimatePresence>
-
-          {activeTab !== "artifacts" && <div className="h-10 w-full shrink-0" />}
         </div>
       </main>
 

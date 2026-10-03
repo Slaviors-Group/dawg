@@ -50,8 +50,8 @@ export function DiagnosticReviewModal({
     <Modal
       open={open}
       onClose={close}
-      title="Review diagnostic evidence"
-      subtitle="Confirm the sanitized evidence before it leaves this device."
+      title="Review evidence"
+      subtitle="Check what will be shared."
       footer={
         <div className="flex justify-end gap-2">
           <Button variant="secondary" size="sm" onClick={close} disabled={submitting}>
@@ -70,11 +70,8 @@ export function DiagnosticReviewModal({
       }
     >
       <div className="flex flex-col gap-4 text-sm">
-        <p className="text-text-secondary">
-          DAWG exports only evidence retained in the artifact after sanitization. Empty, blocked,
-          unavailable, and truncated values are not reconstructed.
-        </p>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-md border border-border bg-canvas-subtle p-3 text-xs">
+        <p className="text-text-secondary">Only retained, sanitized evidence is included.</p>
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-xl bg-canvas-subtle p-4 text-xs">
           <div>
             <dt className="text-text-tertiary">Profile</dt>
             <dd className="font-medium text-text-primary">{String(summary.profile ?? "legacy")}</dd>
@@ -108,17 +105,14 @@ export function DiagnosticReviewModal({
             </dd>
           </div>
         </dl>
-        <label className="flex cursor-pointer items-start gap-2 text-xs text-text-primary">
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-3 text-xs text-text-primary">
           <input
             type="checkbox"
             checked={confirmed}
             onChange={(event) => setConfirmed(event.target.checked)}
             className="mt-0.5 accent-[--color-brand-500]"
           />
-          <span>
-            I reviewed the retained diagnostic evidence and understand that a copied cURL may mutate
-            a live service.
-          </span>
+          <span>I reviewed this evidence. A copied cURL command may change a live service.</span>
         </label>
       </div>
     </Modal>

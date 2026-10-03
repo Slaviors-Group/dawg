@@ -6,32 +6,32 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
   /* Color Palette - Canvas & Surfaces */
-  --color-canvas: hsl(248 60% 97%);
-  --color-canvas-subtle: hsl(248 40% 95%);
+  --color-canvas: hsl(232 28% 96%);
+  --color-canvas-subtle: hsl(238 28% 98%);
   --color-surface: hsl(0 0% 100%);
-  --color-surface-hover: hsl(248 40% 97%);
-  --color-surface-active: hsl(248 40% 95%);
+  --color-surface-hover: hsl(248 44% 97%);
+  --color-surface-active: hsl(248 46% 94%);
 
   /* Borders */
-  --color-border: hsl(248 20% 90%);
-  --color-border-strong: hsl(248 20% 80%);
+  --color-border: hsl(240 22% 91%);
+  --color-border-strong: hsl(240 17% 82%);
 
   /* Text Colors */
-  --color-text-primary: hsl(240 15% 12%);
-  --color-text-secondary: hsl(240 15% 35%);
-  --color-text-tertiary: hsl(240 10% 50%);
-  --color-text-disabled: hsl(240 10% 70%);
+  --color-text-primary: hsl(240 20% 13%);
+  --color-text-secondary: hsl(240 12% 34%);
+  --color-text-tertiary: hsl(240 8% 51%);
+  --color-text-disabled: hsl(240 8% 66%);
 
   /* Brand Colors (Deep Violet) */
-  --color-brand-50: hsl(258 75% 98%);
-  --color-brand-100: hsl(258 70% 95%);
-  --color-brand-200: hsl(258 70% 90%);
-  --color-brand-300: hsl(258 65% 80%);
-  --color-brand-400: hsl(258 65% 65%);
-  --color-brand-500: hsl(258 65% 50%);
-  --color-brand-600: hsl(258 65% 45%);
-  --color-brand-700: hsl(258 65% 40%);
-  --color-brand-800: hsl(258 65% 35%);
+  --color-brand-50: hsl(248 82% 98%);
+  --color-brand-100: hsl(248 82% 95%);
+  --color-brand-200: hsl(248 75% 89%);
+  --color-brand-300: hsl(248 73% 80%);
+  --color-brand-400: hsl(248 70% 70%);
+  --color-brand-500: hsl(248 68% 61%);
+  --color-brand-600: hsl(248 65% 53%);
+  --color-brand-700: hsl(248 60% 43%);
+  --color-brand-800: hsl(248 55% 34%);
 
   /* Semantic Colors */
   --color-success-bg: hsl(142 60% 95%);
@@ -63,15 +63,17 @@
   --z-toast: 70;
 
   /* Shadows */
-  --shadow-card: 0 4px 20px -2px hsl(240 15% 12% / 0.05), 0 0 3px hsl(240 15% 12% / 0.02);
-  --shadow-modal: 0 24px 60px -12px hsl(258 50% 20% / 0.2), 0 12px 24px -8px hsl(258 50% 20% / 0.1);
-  --shadow-dropdown: 0 10px 24px -4px hsl(240 15% 12% / 0.1);
+  --shadow-card: 0 12px 34px -18px hsl(240 35% 30% / 0.12), 0 1px 3px hsl(240 35% 30% / 0.03);
+  --shadow-modal: 0 30px 80px -24px hsl(240 30% 20% / 0.28);
+  --shadow-dropdown: 0 16px 38px -16px hsl(240 25% 25% / 0.24);
 
   /* Border radius */
-  --radius-sm: 8px;
+  --radius-sm: 10px;
   --radius-md: 12px;
   --radius-lg: 16px;
-  --radius-xl: 24px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 28px;
   --radius-full: 9999px;
 
   /* Transition */
@@ -82,19 +84,25 @@
 
 /* Dark Theme Overrides */
 html.dark {
-  --color-canvas: hsl(240 18% 8%);
-  --color-canvas-subtle: hsl(240 16% 12%);
-  --color-surface: hsl(240 15% 14%);
-  --color-surface-hover: hsl(240 15% 18%);
-  --color-surface-active: hsl(240 15% 22%);
+  --color-brand-50: hsl(248 32% 18%);
+  --color-brand-100: hsl(248 35% 23%);
+  --color-brand-200: hsl(248 38% 31%);
+  --color-brand-700: hsl(248 78% 82%);
+  --color-brand-800: hsl(248 80% 88%);
 
-  --color-border: hsl(240 15% 24%);
-  --color-border-strong: hsl(240 15% 32%);
+  --color-canvas: hsl(240 19% 10%);
+  --color-canvas-subtle: hsl(240 17% 17%);
+  --color-surface: hsl(240 18% 14%);
+  --color-surface-hover: hsl(240 16% 20%);
+  --color-surface-active: hsl(240 15% 24%);
+
+  --color-border: hsl(240 14% 27%);
+  --color-border-strong: hsl(240 13% 36%);
 
   --color-text-primary: hsl(240 10% 94%);
-  --color-text-secondary: hsl(240 10% 70%);
-  --color-text-tertiary: hsl(240 10% 50%);
-  --color-text-disabled: hsl(240 10% 35%);
+  --color-text-secondary: hsl(240 9% 75%);
+  --color-text-tertiary: hsl(240 9% 61%);
+  --color-text-disabled: hsl(240 9% 44%);
 
   /* Semantic Colors Dark Mode */
   --color-success-bg: hsl(142 60% 10%);
@@ -149,6 +157,12 @@ html.dark {
     color: var(--color-text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="range"] {
+    accent-color: var(--color-brand-500);
   }
 }
 

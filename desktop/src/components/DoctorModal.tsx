@@ -18,7 +18,7 @@ export function DoctorModal({ open, onClose }: DoctorModalProps) {
       open={open}
       onClose={onClose}
       title="Engine Doctor"
-      subtitle="Runtime diagnostics and bundled resource verification"
+      subtitle="Check engine and extension health."
       maxWidth="md"
       footerLeft={
         <Button
@@ -28,7 +28,7 @@ export function DoctorModal({ open, onClose }: DoctorModalProps) {
           iconLeft={<ArrowsClockwise size={13} />}
           onClick={refetchEngineStatus}
         >
-          {isCheckingEngine ? "Re-probing…" : "Re-run Doctor"}
+          {isCheckingEngine ? "Checking..." : "Run checks"}
         </Button>
       }
     >
@@ -46,7 +46,7 @@ export function DoctorModal({ open, onClose }: DoctorModalProps) {
             )}
           </div>
 
-          <div className="rounded-md border border-border bg-canvas-subtle p-3">
+          <div className="rounded-xl bg-canvas-subtle p-4">
             <div className="mb-2 flex items-center justify-between gap-2">
               <span className="text-xs font-semibold text-text-secondary">
                 Version compatibility
@@ -85,29 +85,30 @@ export function DoctorModal({ open, onClose }: DoctorModalProps) {
                 status={doctorReport.compatibility.extension}
               />
             </div>
-            <p className="mt-2 text-[11px] text-text-tertiary">
-              Desktop {doctorReport.compatibility.expectedDesktopVersion} is checked against the
-              expected application contract, not directly against the engine version.
-            </p>
           </div>
 
-          {/* Path info grid */}
-          <div className="grid grid-cols-2 gap-3 p-3 bg-canvas-subtle rounded-md border border-border text-xs">
-            <div>
-              <span className="block text-[10px] text-text-tertiary uppercase tracking-wider mb-0.5">
-                Engine Path
-              </span>
-              <span className="font-mono text-text-brand break-all">{doctorReport.enginePath}</span>
+          {/* Paths are available when needed without crowding the health summary. */}
+          <details className="rounded-xl border border-border p-4 text-xs">
+            <summary className="cursor-pointer font-semibold text-text-secondary">Paths</summary>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <span className="block text-[10px] text-text-tertiary uppercase tracking-wider mb-0.5">
+                  Engine Path
+                </span>
+                <span className="font-mono text-brand-600 break-all">
+                  {doctorReport.enginePath}
+                </span>
+              </div>
+              <div>
+                <span className="block text-[10px] text-text-tertiary uppercase tracking-wider mb-0.5">
+                  Resource Root
+                </span>
+                <span className="font-mono text-brand-600 break-all">
+                  {doctorReport.resourceDir}
+                </span>
+              </div>
             </div>
-            <div>
-              <span className="block text-[10px] text-text-tertiary uppercase tracking-wider mb-0.5">
-                Resource Root
-              </span>
-              <span className="font-mono text-text-brand break-all">
-                {doctorReport.resourceDir}
-              </span>
-            </div>
-          </div>
+          </details>
 
           {/* Component list */}
           <div className="flex flex-col gap-1">
@@ -115,7 +116,7 @@ export function DoctorModal({ open, onClose }: DoctorModalProps) {
             {doctorReport.components.map((c) => (
               <div
                 key={c.name}
-                className="flex items-center justify-between gap-3 p-3 rounded-md bg-canvas-subtle border border-border"
+                className="flex items-center justify-between gap-3 rounded-xl bg-canvas-subtle p-3"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   {c.installed ? (
@@ -152,9 +153,7 @@ export function DoctorModal({ open, onClose }: DoctorModalProps) {
         </div>
       ) : (
         <div className="py-12 text-center text-text-tertiary text-sm">
-          {isCheckingEngine
-            ? "Running diagnostics…"
-            : "No diagnostic report available. Try re-running the doctor."}
+          {isCheckingEngine ? "Running diagnostics…" : "No report yet. Run checks."}
         </div>
       )}
     </Modal>
@@ -173,7 +172,7 @@ function CompatibilityValue({
   status: "compatible" | "mismatch" | "unknown";
 }) {
   return (
-    <div className="rounded border border-border bg-surface p-2">
+    <div className="rounded-xl border border-border bg-surface p-3">
       <span className="block text-[10px] uppercase tracking-wider text-text-tertiary">{label}</span>
       <span
         className="block truncate font-mono text-xs text-text-primary"

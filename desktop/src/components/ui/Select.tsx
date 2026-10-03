@@ -57,11 +57,11 @@ export const Select = ({
 
   return (
     <div
-      className={["flex flex-col gap-1 relative", wrapperClassName].join(" ")}
+      className={["flex flex-col gap-1.5 relative", wrapperClassName].join(" ")}
       ref={containerRef}
     >
       {label && (
-        <label htmlFor={selectId} className="text-xs font-medium text-text-secondary">
+        <label htmlFor={selectId} className="text-xs font-semibold text-text-secondary">
           {label}
         </label>
       )}
@@ -72,16 +72,16 @@ export const Select = ({
         disabled={disabled}
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={[
-          "w-full h-9 pl-3 pr-8 text-sm rounded-md text-left flex items-center justify-between",
-          "bg-canvas-subtle",
+          "w-full h-11 pl-4 pr-4 text-sm rounded-xl text-left flex items-center justify-between",
+          "bg-surface",
           "border transition-colors duration-[--duration-fast] cursor-pointer",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50",
+          "focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-500/10",
           "disabled:opacity-50 disabled:cursor-not-allowed",
           error
             ? "border-error-border"
             : isOpen
               ? "border-brand-400"
-              : "border-border hover:border-text-tertiary",
+              : "border-border hover:border-brand-300",
           !selectedOption ? "text-text-tertiary" : "text-text-primary",
           className,
         ].join(" ")}
@@ -105,7 +105,7 @@ export const Select = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute z-50 w-full mt-1 top-full bg-surface border border-border rounded-lg shadow-dropdown overflow-hidden"
+            className="absolute z-50 w-full mt-2 top-full bg-surface border border-border rounded-xl shadow-dropdown overflow-hidden"
           >
             <ul className="max-h-60 overflow-y-auto py-1 outline-none no-scrollbar">
               {options.length === 0 ? (

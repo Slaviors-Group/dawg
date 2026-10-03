@@ -52,12 +52,12 @@ export const ArtifactInspectorModal: React.FC<Props> = ({ artifact, onClose }) =
     <Modal
       open
       onClose={onClose}
-      title="Artifact Inspector"
+      title="Artifact details"
       subtitle={artifact.title || artifact.id}
       maxWidth="lg"
     >
       <div className="flex min-w-0 flex-col gap-5">
-        <div className="grid grid-cols-1 gap-3 rounded-md border border-border bg-canvas-subtle p-4 text-xs sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 rounded-xl bg-canvas-subtle p-4 text-xs sm:grid-cols-2">
           <div className="min-w-0">
             <span className="block text-[10px] font-medium text-text-tertiary uppercase tracking-wider mb-1">
               Path

@@ -26,7 +26,7 @@ export function CodeBlock({
   };
 
   return (
-    <div className={["relative group rounded-md overflow-hidden", className].join(" ")}>
+    <div className={["relative group rounded-xl overflow-hidden", className].join(" ")}>
       {/* Header bar */}
       <div className="flex items-center justify-between bg-[hsl(240,15%,10%)] px-3 py-1.5 border-b border-[hsl(240,10%,18%)]">
         <span className="text-[10px] font-mono text-[hsl(240,6%,48%)] uppercase tracking-wider">

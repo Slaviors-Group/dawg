@@ -1,7 +1,7 @@
 import { MonitorPlay, Moon, Sun } from "@phosphor-icons/react";
 import { useMotion } from "../../context/MotionContext";
 /**
- * SettingsPanel — slide-in settings drawer triggered from the sidebar.
+ * Settings dialog opened from the sidebar.
  * Contains theme selector, animations toggle, and app info.
  */
 import { type ThemeValue, useTheme } from "../../context/ThemeContext";
@@ -29,7 +29,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
       open={open}
       onClose={onClose}
       title="Settings"
-      subtitle="Appearance and accessibility preferences"
+      subtitle="Choose how the workspace looks and moves."
       maxWidth="sm"
     >
       <div className="flex flex-col gap-5">
@@ -47,7 +47,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                   type="button"
                   onClick={() => setTheme(value)}
                   className={[
-                    "flex flex-col items-center gap-2 p-3 rounded-md border text-sm font-medium",
+                    "flex flex-col items-center gap-2 p-3 rounded-xl border text-sm font-medium",
                     "transition-all duration-[--duration-fast]",
                     isActive
                       ? "bg-brand-100 border-brand-400 text-brand-700"
@@ -75,7 +75,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
             checked={animationsEnabled}
             onChange={setAnimationsEnabled}
             label="Interface animations"
-            hint="Disable for reduced visual motion."
+            hint="Turn off motion effects."
           />
         </section>
 

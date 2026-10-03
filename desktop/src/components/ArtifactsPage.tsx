@@ -203,7 +203,7 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
   return (
     <PageShell
       title="Artifacts"
-      subtitle="Search, review, export, and safely manage local artifact instances"
+      subtitle="Search, review, and export local artifacts."
       className="h-full min-h-0 overflow-hidden"
       bodyClassName="min-h-0 flex-1 overflow-hidden"
     >
@@ -213,7 +213,7 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
             <Input
               id="artifact-catalog-search"
               label="Search catalog"
-              placeholder="Title, ID, URL, path, or review flag..."
+              placeholder="Search title, URL, path, or flag..."
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               iconLeft={<MagnifyingGlass size={15} />}
@@ -269,15 +269,13 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
           </div>
           <div
             className={[
-              "rounded-lg border-2 border-dashed px-4 py-3 text-center transition-colors",
+              "rounded-2xl border border-dashed px-4 py-3 text-center transition-colors",
               isDragOver
                 ? "border-brand-500 bg-brand-100/50 text-brand-700"
                 : "border-border bg-canvas-subtle text-text-secondary",
             ].join(" ")}
           >
-            <p className="text-xs font-medium">
-              Drop a .dawg archive anywhere in this catalog to import it
-            </p>
+            <p className="text-xs font-medium">Drop a .dawg archive here to import it</p>
           </div>
         </div>
       </Card>
@@ -291,8 +289,8 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
             }
             description={
               artifacts.length === 0
-                ? "Capture a session or import a .dawg archive to build the local catalog."
-                : "Try clearing a search term or changing the catalog filters."
+                ? "Capture a session or import a DAWG archive."
+                : "Clear the search or change the filters."
             }
           />
         ) : (
@@ -340,7 +338,7 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
       <Modal
         open={Boolean(deleteTarget)}
         onClose={() => !isDeleting && setDeleteTarget(null)}
-        title="Delete local artifact instance?"
+        title="Delete artifact?"
         subtitle={deleteTarget?.title || deleteTarget?.id}
         maxWidth="sm"
         footer={
@@ -365,12 +363,9 @@ export function ArtifactsPage({ onReplayArtifact, onEditArtifact }: ArtifactsPag
         }
       >
         <div className="flex flex-col gap-3 text-sm text-text-secondary">
-          <p>
-            This removes only this managed local instance. The engine rejects artifacts that are
-            active, outside its managed store, or otherwise unsafe to delete.
-          </p>
+          <p>This deletes this local instance. Active or unmanaged artifacts cannot be deleted.</p>
           {deleteTarget && (
-            <p className="rounded-md border border-border bg-canvas-subtle p-3 font-mono text-xs break-all">
+            <p className="break-all rounded-xl border border-border bg-canvas-subtle p-3 font-mono text-xs">
               {deleteTarget.path}
             </p>
           )}

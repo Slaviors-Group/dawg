@@ -20,7 +20,7 @@ interface OnboardingPageProps {
 }
 
 const linkButtonClasses =
-  "inline-flex items-center justify-center gap-2 rounded-md border border-border bg-surface text-sm font-medium text-text-primary shadow-sm transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-brand-500 focus-visible:outline-offset-2";
+  "inline-flex items-center justify-center gap-2 rounded-full border border-border bg-surface text-sm font-semibold text-text-primary transition-colors hover:border-brand-300 hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-brand-500 focus-visible:outline-offset-2";
 
 function ExternalLink({
   href,
@@ -55,28 +55,26 @@ const SLIDES = [
   {
     title: "Catch the glitch. Keep the context.",
     description:
-      "Record a browser issue with the DAWG extension. The session is sanitized and saved as a portable artifact you can inspect later.",
+      "Record a browser issue. DAWG sanitizes the session and saves a portable artifact.",
     image: "/onboarding-workflow.svg",
     imageAlt: "Illustration of a browser capture becoming a portable DAWG artifact",
   },
   {
     title: "Replay the steps, not a video.",
     description:
-      "DAWG reconstructs the page from recorded DOM changes and mouse activity. Follow the interaction timeline and inspect what happened without a screen video.",
+      "Replay DOM changes and mouse activity to see what happened without a screen video.",
     image: "/onboarding-replay.svg",
     imageAlt: "Illustration of DOM events and mouse activity rebuilding a browser session",
   },
   {
     title: "Pass the finding from QA to Dev.",
-    description:
-      "Review the artifact, export a .dawg file, and share it with a developer. They can import the file to inspect the same evidence and replay the session.",
+    description: "Export a DAWG artifact so others can inspect and replay the same evidence.",
     image: "/onboarding-share.svg",
     imageAlt: "Illustration of a DAWG artifact shared from QA to development",
   },
   {
     title: "You're ready to dig in.",
-    description:
-      "Start capturing when you're ready. DAWG is open source; if it helps your team, visit Slaviors Group or support the project with a coffee.",
+    description: "Start a capture or explore the workspace. DAWG is open source.",
     image: "/onboarding-complete.svg",
     imageAlt: "DAWG logo surrounded by confetti",
   },
@@ -200,7 +198,7 @@ export function OnboardingPage({
       </header>
 
       <div className="mx-auto flex w-full max-w-6xl flex-1 items-center py-6 sm:py-8">
-        <div className="w-full overflow-hidden rounded-xl border border-border bg-surface shadow-card">
+        <div className="w-full overflow-hidden rounded-3xl border border-border bg-surface shadow-card">
           <OnboardingSlide index={slideIndex} {...slideActions} />
         </div>
       </div>

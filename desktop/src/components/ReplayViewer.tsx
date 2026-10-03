@@ -329,7 +329,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
   const handleCancelReplay = async () => {
     if (!isReplaying || isCancelling) return;
     setIsCancelling(true);
-    addLogLine("Stopping replay — terminating browser and engine process...");
+    addLogLine("Stopping replay. Closing browser and engine process...");
     try {
       await engine.cancelReplay();
     } catch (err) {
@@ -340,13 +340,10 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
   };
 
   return (
-    <PageShell title="Replay Engine" subtitle="Execute deterministic sandboxed artifact replay">
+    <PageShell title="Replay" subtitle="Inspect a captured browser session.">
       <Card>
         <CardHeader>
-          <CardTitle
-            title="Artifact Selection"
-            subtitle="Choose a captured session to replay in the sandbox"
-          />
+          <CardTitle title="Choose artifact" />
         </CardHeader>
 
         <div className="flex flex-col gap-4">
@@ -389,7 +386,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
               disabled={visibleArtifacts.length === 0}
               options={visibleArtifacts.map((art) => ({
                 value: artifactIdentity(art),
-                label: `${art.title || art.id}${art.targetUrl ? ` — ${art.targetUrl}` : ""} (${new Date(art.createdAt).toLocaleString()})`,
+                label: `${art.title || art.id}${art.targetUrl ? ` | ${art.targetUrl}` : ""} (${new Date(art.createdAt).toLocaleString()})`,
               }))}
             />
 
@@ -450,10 +447,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
 
       <Card>
         <CardHeader>
-          <CardTitle
-            title="Replay Player"
-            subtitle="Synchronized with the controls in replay Chromium"
-          />
+          <CardTitle title="Replay controls" />
           <Badge
             variant={replayReady ? (replayPlaying ? "success" : "info") : "default"}
             size="sm"
@@ -591,7 +585,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
       />
 
       <div className="flex flex-col gap-4 mt-2">
-        <h3 className="text-base font-bold text-text-primary">Execution Logs</h3>
+        <h3 className="text-base font-semibold text-text-primary">Logs</h3>
         <LogStreamer />
       </div>
     </PageShell>

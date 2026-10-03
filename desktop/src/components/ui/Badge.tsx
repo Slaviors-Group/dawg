@@ -28,8 +28,8 @@ const dotClasses: Record<Variant, string> = {
 };
 
 const sizeClasses: Record<Size, string> = {
-  sm: "px-1.5 py-0.5 text-[10px] gap-1 rounded-sm",
-  md: "px-2 py-0.5 text-xs gap-1.5 rounded-sm",
+  sm: "px-2.5 py-1 text-[10px] gap-1 rounded-full",
+  md: "px-3 py-1 text-xs gap-1.5 rounded-full",
 };
 
 export function Badge({

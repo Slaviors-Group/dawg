@@ -7,10 +7,7 @@ import { PageShell } from "./ui/PageShell";
 
 export const DiffReport: React.FC = () => {
   return (
-    <PageShell
-      title="Diff & Verify"
-      subtitle="Verification is currently available through the engine CLI"
-    >
+    <PageShell title="Diff & Verify" subtitle="Verify artifacts with the DAWG CLI.">
       <Card>
         <EmptyState
           icon={<TerminalWindow size={32} weight="light" />}

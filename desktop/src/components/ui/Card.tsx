@@ -12,10 +12,10 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
         className={[
-          "bg-surface border border-border rounded-lg",
+          "bg-surface border border-border/70 rounded-2xl",
           "shadow-card",
-          !noPad && "p-5",
-          accent && "border-l-2 border-l-[--color-brand-500]",
+          !noPad && "p-5 sm:p-6",
+          accent && "border-l-4 border-l-brand-500",
           className,
         ]
           .filter(Boolean)
@@ -32,14 +32,14 @@ Card.displayName = "Card";
 export function CardHeader({
   className = "",
   children,
-  bordered = true,
+  bordered = false,
   ...props
 }: HTMLAttributes<HTMLDivElement> & { bordered?: boolean }) {
   return (
     <div
       className={[
         "flex items-center justify-between gap-4",
-        bordered && "pb-4 mb-4 border-b border-border",
+        bordered ? "pb-4 mb-4 border-b border-border" : "mb-5",
         className,
       ]
         .filter(Boolean)
@@ -60,8 +60,10 @@ export function CardTitle({
 }) {
   return (
     <div>
-      <h2 className="text-base font-semibold text-text-primary leading-tight">{title}</h2>
-      {subtitle && <p className="text-xs text-text-tertiary mt-0.5">{subtitle}</p>}
+      <h2 className="text-[17px] font-semibold text-text-primary leading-tight tracking-tight">
+        {title}
+      </h2>
+      {subtitle && <p className="text-xs text-text-tertiary mt-1">{subtitle}</p>}
     </div>
   );
 }

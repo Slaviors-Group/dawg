@@ -28,12 +28,12 @@ const DIAGNOSTICS_PROFILES: Array<{
   {
     id: "safe",
     title: "Safe",
-    description: "Capture the standard sanitized browser and request metadata needed for replay.",
+    description: "Sanitized data for replay.",
   },
   {
     id: "enhanced",
     title: "Enhanced Diagnostics",
-    description: "Request additional diagnostic evidence when the engine supports it.",
+    description: "More evidence for troubleshooting.",
   },
 ];
 
@@ -131,7 +131,7 @@ export const CaptureControls: React.FC = () => {
   return (
     <PageShell
       title="Capture"
-      subtitle="Record one browser tab through the installed DAWG extension"
+      subtitle="Record a browser session with the DAWG extension."
       actions={
         isCapturing ? (
           <Badge variant="error" dot>
@@ -140,52 +140,47 @@ export const CaptureControls: React.FC = () => {
         ) : undefined
       }
     >
-      <output className="rounded-md border border-warning-border bg-warning-bg px-4 py-3 text-sm text-warning-text">
-        <p className="font-semibold">Chromium-based browser recording only</p>
-        <p className="mt-1 text-xs">
-          DAWG 0.4.2 supports recording in Chrome, Edge, and other Chromium-based desktop browsers.
-          Firefox and Safari recording are not supported in this release.
-        </p>
+      <output className="rounded-2xl border border-warning-border bg-warning-bg px-4 py-3 text-sm text-warning-text">
+        <p className="font-semibold">Use Chrome, Edge, or another Chromium browser to record.</p>
       </output>
 
       {/* Session controls */}
       <Card>
         <CardHeader>
-          <CardTitle
-            title="Target Application"
-            subtitle="Enter the URL of the app you want to capture"
-          />
+          <CardTitle title="Target application" />
         </CardHeader>
 
         <form onSubmit={handleStart} className="flex flex-col gap-4">
-          <Input
-            id="target-url"
-            type="url"
-            label="Target URL"
-            placeholder="https://staging.example.com"
-            value={targetUrl}
-            onChange={(e) => handleUrlChange(e.target.value)}
-            disabled={isCapturing}
-            error={urlError}
-            iconLeft={<Globe size={14} />}
-            hint="DAWG will focus an existing matching tab or open this URL in your browser."
-          />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Input
+              id="target-url"
+              type="url"
+              label="Target URL"
+              placeholder="https://staging.example.com"
+              value={targetUrl}
+              onChange={(e) => handleUrlChange(e.target.value)}
+              disabled={isCapturing}
+              error={urlError}
+              iconLeft={<Globe size={14} />}
+              hint="DAWG opens or focuses this URL."
+              wrapperClassName="min-w-0"
+            />
 
-          <Input
-            id="artifact-title"
-            label="Artifact name (optional)"
-            placeholder="Checkout validation regression"
-            value={artifactTitle}
-            onChange={(event) => setArtifactTitle(event.target.value)}
-            disabled={isCapturing}
-            hint="Used unchanged for the dashboard label and folder name. A timestamp and target host are used only when left blank."
-          />
+            <Input
+              id="artifact-title"
+              label="Artifact name (optional)"
+              placeholder="Checkout validation regression"
+              value={artifactTitle}
+              onChange={(event) => setArtifactTitle(event.target.value)}
+              disabled={isCapturing}
+              hint="Leave blank to name it automatically."
+              wrapperClassName="min-w-0"
+            />
+          </div>
 
           <fieldset disabled={isCapturing} className="flex flex-col gap-2">
             <legend className="text-xs font-medium text-text-secondary">Capture profile</legend>
-            <p className="text-xs text-text-tertiary">
-              Safe is the default. Enhanced Diagnostics requires confirmation before capture starts.
-            </p>
+            <p className="text-xs text-text-tertiary">Safe is the default.</p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {DIAGNOSTICS_PROFILES.map((profile) => {
                 const isSelected = diagnosticsProfile === profile.id;
@@ -193,7 +188,7 @@ export const CaptureControls: React.FC = () => {
                   <label
                     key={profile.id}
                     className={[
-                      "flex cursor-pointer gap-3 rounded-md border p-3 transition-colors",
+                      "flex cursor-pointer gap-3 rounded-xl border p-4 transition-colors",
                       isSelected
                         ? "border-brand-400 bg-brand-500/10"
                         : "border-border bg-canvas-subtle hover:border-text-tertiary",
@@ -222,13 +217,12 @@ export const CaptureControls: React.FC = () => {
             </div>
 
             {diagnosticsProfile === "enhanced" && (
-              <div className="rounded-md border border-warning-border bg-warning-bg p-3">
+              <div className="rounded-xl border border-warning-border bg-warning-bg p-4">
                 <p className="text-xs font-semibold text-warning-text">
                   Enhanced Diagnostics warning
                 </p>
                 <p className="mt-1 text-xs text-warning-text">
-                  Enhanced diagnostics may collect additional troubleshooting evidence. Review your
-                  organization&apos;s data-handling policy before recording sensitive applications.
+                  This may retain extra evidence. Check your data policy before recording.
                 </p>
                 <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-warning-text">
                   <input
@@ -240,7 +234,7 @@ export const CaptureControls: React.FC = () => {
                     }}
                     className="mt-0.5 accent-[--color-brand-500]"
                   />
-                  <span>I understand and consent to start an enhanced diagnostics capture.</span>
+                  <span>I understand and agree to enhanced diagnostics.</span>
                 </label>
                 {profileError && (
                   <p className="mt-2 text-xs text-error-text" role="alert">
@@ -261,7 +255,7 @@ export const CaptureControls: React.FC = () => {
                 disabled={isCapturing}
                 onClick={() => handleUrlChange(preset)}
                 className={[
-                  "px-2 py-0.5 rounded-sm border text-[11px] font-mono transition-all duration-[--duration-fast]",
+                  "rounded-full border px-3 py-1 text-[11px] font-mono transition-all duration-[--duration-fast]",
                   "disabled:opacity-50 disabled:cursor-not-allowed",
                   targetUrl === preset
                     ? "bg-brand-100 border-brand-300 text-brand-700"
@@ -297,16 +291,16 @@ export const CaptureControls: React.FC = () => {
                 iconLeft={<StopCircle size={14} />}
                 className="shrink-0"
               >
-                {isStopping ? "Packaging..." : "Stop Capture"}
+                {isStopping ? "Packaging..." : "Stop capture"}
               </Button>
             )}
             <div className="flex flex-col flex-1 max-w-md">
               <p className="text-xs text-text-tertiary">
                 {isStopping
-                  ? "Sanitizing and packaging the artifact — this may take 1–2 minutes for a large session."
+                  ? "Packaging the artifact. Large sessions may take 1 to 2 minutes."
                   : isCapturing
-                    ? "Capture is running. Stop to finalize and package the artifact."
-                    : "Requires the DAWG browser extension to be installed, enabled, and reloaded after updates."}
+                    ? "Stop capture to save the artifact."
+                    : "Requires the DAWG browser extension."}
               </p>
               {isStopping && (
                 <div className="mt-2 w-full">
@@ -350,17 +344,16 @@ export const CaptureControls: React.FC = () => {
       {/* Configuration summary */}
       <div className="flex flex-col gap-4 mt-2">
         <div>
-          <h3 className="text-base font-bold text-text-primary">Session Configuration</h3>
-          <p className="text-sm text-text-tertiary">Active capture components for this session</p>
+          <h3 className="text-base font-semibold text-text-primary">Capture components</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {CAPTURE_COMPONENTS.map(({ icon: Icon, label, description, variant }) => (
             <div
               key={label}
-              className="flex items-start gap-3 p-3 rounded-md bg-canvas-subtle border border-border"
+              className="flex items-start gap-3 rounded-2xl border border-border bg-surface p-4 shadow-card"
             >
-              <div className="w-7 h-7 rounded-sm bg-success-bg border border-success-border flex items-center justify-center shrink-0">
-                <Icon size={14} className="text-success-text" />
+              <div className="w-8 h-8 rounded-xl bg-brand-100 flex items-center justify-center shrink-0">
+                <Icon size={15} className="text-brand-600" />
               </div>
               <div>
                 <p className="text-xs font-semibold text-text-primary">{label}</p>

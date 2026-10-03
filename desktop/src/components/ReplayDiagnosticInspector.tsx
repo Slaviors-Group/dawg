@@ -234,29 +234,28 @@ const badgeVariant = (state: string): "default" | "success" | "warning" | "error
 
 const tabEmptyCopy: Record<WorkspaceTab, { title: string; description: string }> = {
   timeline: {
-    title: "No timeline evidence recorded",
-    description: "This artifact does not provide timeline samples in its manifest diagnostics.",
+    title: "No timeline evidence",
+    description: "No timeline samples were saved.",
   },
   console: {
-    title: "No console evidence recorded",
-    description: "Console entries are only shown when they are included in manifest diagnostics.",
+    title: "No console evidence",
+    description: "No console entries were saved.",
   },
   network: {
-    title: "No network evidence recorded",
-    description: "No requests are inferred from the artifact or replay logs.",
+    title: "No network evidence",
+    description: "No requests were saved.",
   },
   errors: {
-    title: "No error evidence recorded",
-    description: "This manifest does not include captured error samples.",
+    title: "No error evidence",
+    description: "No errors were saved.",
   },
   device: {
-    title: "No device profile recorded",
-    description:
-      "This artifact predates browser device capture or the profile was removed during review.",
+    title: "No device profile",
+    description: "No browser profile is available.",
   },
   artifact: {
-    title: "No artifact evidence recorded",
-    description: "This manifest does not include diagnostic artifact samples or layers.",
+    title: "No artifact evidence",
+    description: "No diagnostic samples were saved.",
   },
 };
 
@@ -369,10 +368,7 @@ export function ReplayDiagnosticInspector({
   return (
     <Card noPad className="overflow-hidden">
       <CardHeader className="px-5 pt-5">
-        <CardTitle
-          title="Replay Diagnostics"
-          subtitle="Evidence recorded in the selected artifact manifest"
-        />
+        <CardTitle title="Replay Diagnostics" subtitle="Evidence in this artifact." />
         <div className="flex items-center gap-2">
           {onExportHAR && diagnosticEvidence?.network.length ? (
             <button
@@ -400,12 +396,8 @@ export function ReplayDiagnosticInspector({
         </div>
       </CardHeader>
 
-      <div
-        className="border-b border-border px-3 sm:px-5"
-        role="tablist"
-        aria-label="Replay diagnostics"
-      >
-        <div className="flex gap-1 overflow-x-auto">
+      <div className="px-3 pb-3 sm:px-5" role="tablist" aria-label="Replay diagnostics">
+        <div className="flex gap-1 overflow-x-auto rounded-xl bg-canvas-subtle p-1">
           {WORKSPACE_TABS.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -416,10 +408,10 @@ export function ReplayDiagnosticInspector({
                 aria-selected={isActive}
                 onClick={() => setActiveTab(tab.id)}
                 className={[
-                  "shrink-0 border-b-2 px-3 py-2.5 text-xs font-medium transition-colors",
+                  "shrink-0 rounded-lg px-3 py-2 text-xs font-medium transition-colors",
                   isActive
-                    ? "border-brand-500 text-brand-600"
-                    : "border-transparent text-text-tertiary hover:text-text-primary",
+                    ? "bg-surface text-brand-600 shadow-card"
+                    : "text-text-tertiary hover:bg-surface-hover hover:text-text-primary",
                 ].join(" ")}
               >
                 {tab.label}
@@ -433,7 +425,7 @@ export function ReplayDiagnosticInspector({
         <EmptyState
           icon={<CircleNotch size={30} className="animate-spin" />}
           title="Loading artifact diagnostics"
-          description="Reading the selected artifact manifest…"
+          description="Reading the artifact…"
         />
       ) : error ? (
         <EmptyState
@@ -444,18 +436,15 @@ export function ReplayDiagnosticInspector({
       ) : !manifest ? (
         <EmptyState
           icon={<Info size={32} weight="light" />}
-          title="Select an artifact to inspect diagnostics"
-          description="The workspace displays only evidence available in that artifact's manifest."
+          title="Select an artifact"
+          description="Its recorded evidence will appear here."
         />
       ) : (
         <div className="p-5">
           {!hasDiagnostics && activeTab !== "artifact" && (
-            <div className="mb-4 flex gap-2 rounded-md border border-info-border bg-info-bg px-3 py-2 text-xs text-info-text">
+            <div className="mb-4 flex gap-2 rounded-xl border border-info-border bg-info-bg px-3 py-2 text-xs text-info-text">
               <Info size={15} className="mt-0.5 shrink-0" />
-              <p>
-                This legacy manifest does not contain diagnostics. DAWG will not infer timeline,
-                console, network, or error data.
-              </p>
+              <p>This artifact has no recorded diagnostics.</p>
             </div>
           )}
 
@@ -488,9 +477,9 @@ export function ReplayDiagnosticInspector({
                     type="button"
                     onClick={() => setEvidenceMode("replay")}
                     className={[
-                      "rounded-md px-3 py-1.5 text-xs font-medium",
+                      "rounded-full px-3 py-1.5 text-xs font-medium",
                       evidenceMode === "replay"
-                        ? "bg-brand-500 text-white"
+                        ? "bg-brand-600 text-white"
                         : "bg-canvas-subtle text-text-secondary",
                     ].join(" ")}
                   >
@@ -500,9 +489,9 @@ export function ReplayDiagnosticInspector({
                     type="button"
                     onClick={() => setEvidenceMode("all")}
                     className={[
-                      "rounded-md px-3 py-1.5 text-xs font-medium",
+                      "rounded-full px-3 py-1.5 text-xs font-medium",
                       evidenceMode === "all"
-                        ? "bg-brand-500 text-white"
+                        ? "bg-brand-600 text-white"
                         : "bg-canvas-subtle text-text-secondary",
                     ].join(" ")}
                   >
@@ -535,11 +524,11 @@ export function ReplayDiagnosticInspector({
                 <EmptyState
                   icon={<MagnifyingGlass size={30} weight="light" />}
                   title="No evidence matches these filters"
-                  description="Try clearing the search or choosing another recorded state."
+                  description="Clear the search or choose another state."
                 />
               ) : (
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.85fr)]">
-                  <div className="max-h-96 overflow-y-auto rounded-md border border-border divide-y divide-border">
+                  <div className="max-h-96 overflow-y-auto rounded-xl border border-border divide-y divide-border">
                     {filteredEvidence.map((entry, index) => {
                       const state = entryState(entry);
                       const time = entryTime(entry);
@@ -575,7 +564,7 @@ export function ReplayDiagnosticInspector({
                   </div>
 
                   {selectedEvidence && (
-                    <div className="min-w-0 rounded-md border border-border bg-canvas-subtle p-3">
+                    <div className="min-w-0 rounded-xl bg-canvas-subtle p-4">
                       <div className="mb-3 flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-[10px] font-medium uppercase tracking-wider text-text-tertiary">

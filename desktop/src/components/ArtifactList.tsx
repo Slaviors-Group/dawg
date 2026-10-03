@@ -36,9 +36,9 @@ export function ArtifactList({ onReplayArtifact }: ArtifactListProps) {
   if (artifacts.length === 0) {
     return (
       <EmptyState
-        icon={<Archive size={32} weight="light" />}
-        title="No captured artifacts"
-        description="Start a capture session to generate .dawg artifacts."
+        icon={<Archive size={32} weight="regular" />}
+        title="No artifacts yet"
+        description="Capture a session to create your first artifact."
       />
     );
   }
@@ -49,7 +49,7 @@ export function ArtifactList({ onReplayArtifact }: ArtifactListProps) {
         <Card
           key={art.id}
           noPad
-          className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-brand-300 transition-colors"
+          className="flex flex-col justify-between gap-4 p-5 transition-colors hover:border-brand-300 md:flex-row md:items-center"
         >
           <div className="flex flex-col gap-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
