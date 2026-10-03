@@ -26,12 +26,13 @@ import { ReplayViewer } from "./components/ReplayViewer";
 import { NavItem } from "./components/ui/NavItem";
 import { SettingsPanel } from "./components/ui/SettingsPanel";
 
-import { ToastProvider } from "./components/ui/Toast";
+import { ToastProvider, useToast } from "./components/ui/Toast";
 import { type ArtifactItem, EngineProvider, useEngine } from "./context/EngineContext";
 import { MotionProvider } from "./context/MotionContext";
 import { ThemeProvider } from "./context/ThemeContext";
 
 import { DoctorModal } from "./components/DoctorModal";
+import { OnboardingPage } from "./components/OnboardingPage";
 import "./App.css";
 
 type Tab = "dashboard" | "capture" | "artifacts" | "replay" | "editor" | "diff" | "policy";
@@ -39,6 +40,17 @@ type Tab = "dashboard" | "capture" | "artifacts" | "replay" | "editor" | "diff" 
 const CHROME_WEB_STORE_EXTENSION_URL =
   "https://chromewebstore.google.com/detail/peiigoeakholhhbbbbfkeojomekmmokj?utm_source=item-share-cb";
 const GITHUB_SPONSORS_URL = "https://github.com/sponsors/Slaviors-Group";
+const GITHUB_GROUP_URL = "https://github.com/Slaviors-Group";
+const BUY_ME_A_COFFEE_URL = "https://buymeacoffee.com/slaviorsgroup";
+const ONBOARDING_COMPLETE_KEY = "dawg-onboarding-complete";
+
+function hasCompletedOnboarding() {
+  try {
+    return localStorage.getItem(ONBOARDING_COMPLETE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
 
 const NAV_ITEMS: {
   id: Tab;
@@ -56,12 +68,14 @@ const NAV_ITEMS: {
 
 function ShellContent() {
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
+  const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
   const [replayArtifactIdentity, setReplayArtifactIdentity] = useState<string | undefined>();
   const [editorArtifactIdentity, setEditorArtifactIdentity] = useState<string | undefined>();
   const [showDoctor, setShowDoctor] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const startupArtifactHandled = useRef(false);
   const { engineStatus, isCheckingEngine, isCapturing, addLogLine, importArtifact } = useEngine();
+  const { error: showToastError } = useToast();
 
   useEffect(() => {
     if (startupArtifactHandled.current) return;
@@ -70,6 +84,9 @@ function ShellContent() {
     void invoke<string | null>("startup_artifact")
       .then(async (archive) => {
         if (!archive) return;
+        // An artifact opened through file association should remain visible on launch.
+        // The welcome page will still appear on the next ordinary launch.
+        setShowOnboarding(false);
         setActiveTab("dashboard");
         addLogLine(`Opening DAWG artifact ${archive}.`);
         try {
@@ -106,8 +123,47 @@ function ShellContent() {
       await openUrl(CHROME_WEB_STORE_EXTENSION_URL);
     } catch (error) {
       addLogLine(`[ERROR] Could not open the DAWG Web Extension page: ${String(error)}`);
+      showToastError("Could not open the browser extension page", String(error));
     }
   };
+
+  const openOnboardingLink = async (url: string, label: string) => {
+    try {
+      await openUrl(url);
+    } catch (error) {
+      addLogLine(`[ERROR] Could not open ${label}: ${String(error)}`);
+      showToastError(`Could not open ${label}`, String(error));
+    }
+  };
+
+  const finishOnboarding = (tab: Tab) => {
+    try {
+      localStorage.setItem(ONBOARDING_COMPLETE_KEY, "true");
+    } catch {
+      // Continue into the workspace even if the WebView cannot persist preferences.
+    }
+    setActiveTab(tab);
+    setShowOnboarding(false);
+  };
+
+  if (showOnboarding) {
+    return (
+      <OnboardingPage
+        onStartCapture={() => finishOnboarding("capture")}
+        onExplore={() => finishOnboarding("dashboard")}
+        onInstallExtension={() => void handleInstallWebExtension()}
+        onOpenGitHub={() => void openOnboardingLink(GITHUB_GROUP_URL, "Slaviors Group")}
+        onOpenCoffee={() => void openOnboardingLink(BUY_ME_A_COFFEE_URL, "Buy Me a Coffee")}
+        onDonate={() => void openOnboardingLink(GITHUB_SPONSORS_URL, "GitHub Sponsors")}
+        links={{
+          extension: CHROME_WEB_STORE_EXTENSION_URL,
+          github: GITHUB_GROUP_URL,
+          coffee: BUY_ME_A_COFFEE_URL,
+          donate: GITHUB_SPONSORS_URL,
+        }}
+      />
+    );
+  }
 
   return (
     <div className="flex h-screen bg-canvas overflow-hidden">

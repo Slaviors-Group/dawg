@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 200" fill="none" role="img" aria-labelledby="title">
+  <title id="title">DAWG paw mark</title>
+  <g fill="#2d2834">
+    <ellipse cx="49" cy="99" rx="9" ry="15" transform="rotate(-27 49 99)"/>
+    <ellipse cx="70" cy="77" rx="9" ry="15" transform="rotate(-23 70 77)"/>
+    <ellipse cx="94" cy="69" rx="10" ry="16" transform="rotate(-4 94 69)"/>
+    <ellipse cx="116" cy="91" rx="9" ry="15" transform="rotate(13 116 91)"/>
+    <path d="M69 123c6-7 9-20 18-20 10 0 14 14 21 19 7 5 16 10 15 18-1 9-13 10-22 7-7-2-10-5-15-5s-9 4-16 5c-9 2-19-1-19-9 0-7 11-11 18-15Z"/>
+
+    <ellipse cx="149" cy="132" rx="9" ry="15" transform="rotate(14 149 132)"/>
+    <ellipse cx="173" cy="111" rx="9" ry="15" transform="rotate(14 173 111)"/>
+    <ellipse cx="199" cy="117" rx="9" ry="15" transform="rotate(33 199 117)"/>
+    <ellipse cx="218" cy="143" rx="9" ry="15" transform="rotate(43 218 143)"/>
+    <path d="M159 160c7-6 11-19 21-19s13 14 19 21c6 6 13 9 13 16 0 9-11 12-20 10-7-1-10-5-15-5-6 0-10 4-17 5-10 2-20-2-20-10 0-7 11-12 19-18Z"/>
+  </g>
+</svg>

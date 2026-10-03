@@ -184,6 +184,14 @@ html[data-motion="reduced"] ::view-transition-new(root) {
 }
 
 @layer utilities {
+  .onboarding-art-panel {
+    background-color: hsl(258 75% 97%);
+  }
+
+  html.dark .onboarding-art-panel {
+    background-color: hsl(258 32% 17%);
+  }
+
   .bg-grid-pattern {
     background-image: linear-gradient(to right, hsl(240 10% 90% / 0.5) 1px, transparent 1px),
       linear-gradient(to bottom, hsl(240 10% 90% / 0.5) 1px, transparent 1px);
@@ -210,5 +218,192 @@ html[data-motion="reduced"] ::view-transition-new(root) {
   .glow-orb-cyan {
     background: radial-gradient(circle, hsl(180 80% 50%) 0%, transparent 60%);
     opacity: 0.12;
+  }
+}
+
+.empty-state {
+  --empty-ring: hsl(258 65% 70% / 0.25);
+  --empty-tile: var(--color-brand-50);
+  --empty-orbit-icon: var(--color-brand-700);
+  --empty-orbit-muted: var(--color-brand-400);
+  --empty-document: var(--color-brand-600);
+  --empty-document-icon: white;
+  --empty-fold: var(--color-brand-300);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px 36px;
+  text-align: center;
+}
+
+html.dark .empty-state {
+  --empty-ring: hsl(258 65% 70% / 0.18);
+  --empty-tile: hsl(258 35% 22%);
+  --empty-orbit-icon: var(--color-brand-300);
+  --empty-orbit-muted: var(--color-brand-400);
+  --empty-document: var(--color-brand-500);
+}
+
+.empty-state__scene {
+  position: relative;
+  width: min(100%, 470px);
+  height: 240px;
+  overflow: hidden;
+  flex: none;
+}
+
+.empty-state__ring {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  border: 1px solid var(--empty-ring);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.empty-state__ring--inner {
+  width: 170px;
+  height: 170px;
+}
+.empty-state__ring--middle {
+  width: 290px;
+  height: 290px;
+}
+.empty-state__ring--outer {
+  width: 420px;
+  height: 420px;
+}
+
+.empty-state__orbit-icon {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  color: var(--empty-orbit-muted);
+  background: var(--color-surface);
+  border-radius: 12px;
+}
+
+.empty-state__orbit-icon--tile {
+  width: 50px;
+  height: 50px;
+  color: var(--empty-orbit-icon);
+  background: var(--empty-tile);
+}
+
+.empty-state__orbit-icon--grid-left {
+  left: 4%;
+  top: 28%;
+}
+.empty-state__orbit-icon--file-top {
+  left: 26%;
+  top: 2%;
+}
+.empty-state__orbit-icon--grid-right {
+  right: 16%;
+  top: 24%;
+}
+.empty-state__orbit-icon--folder {
+  left: 18%;
+  top: 66%;
+}
+.empty-state__orbit-icon--file-bottom {
+  left: 6%;
+  top: 83%;
+}
+.empty-state__orbit-icon--image {
+  right: 3%;
+  top: 38%;
+}
+.empty-state__orbit-icon--play {
+  right: 5%;
+  top: 78%;
+}
+
+.empty-state__document {
+  position: absolute;
+  z-index: 2;
+  top: 48%;
+  left: 50%;
+  display: grid;
+  width: 66px;
+  height: 76px;
+  place-items: center;
+  padding-top: 12px;
+  color: var(--empty-document-icon);
+  background: var(--empty-document);
+  border-radius: 7px;
+  clip-path: polygon(0 0, 62% 0, 100% 31%, 100% 100%, 0 100%);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 5px hsl(240 5% 10% / 0.18);
+}
+
+.empty-state__document::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 25px;
+  height: 24px;
+  content: "";
+  background: var(--empty-fold);
+  clip-path: polygon(0 0, 0 100%, 100% 100%);
+}
+
+.empty-state__main-icon {
+  display: grid;
+  place-items: center;
+  color: var(--empty-document-icon);
+}
+
+.empty-state__copy {
+  position: relative;
+  z-index: 2;
+  max-width: 480px;
+}
+
+.empty-state__title {
+  color: var(--color-text-primary);
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+}
+
+.empty-state__description {
+  margin-top: 12px;
+  color: var(--color-text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.empty-state__action {
+  margin-top: 20px;
+}
+
+@media (max-width: 420px) {
+  .empty-state__scene {
+    height: 210px;
+  }
+  .empty-state__ring--outer {
+    width: 340px;
+    height: 340px;
+  }
+  .empty-state__ring--middle {
+    width: 250px;
+    height: 250px;
+  }
+  .empty-state__ring--inner {
+    width: 155px;
+    height: 155px;
+  }
+  .empty-state__title {
+    font-size: 1.25rem;
+  }
+  .empty-state__description {
+    font-size: 0.875rem;
   }
 }
