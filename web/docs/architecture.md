@@ -4,7 +4,7 @@ description: "Explore DAWG's extension capture, sanitization, OCI packaging, art
 
 # Architecture
 
-DAWG `0.4.2-omega` captures a browser session through an extension, sanitizes supported JSONL streams and retained diagnostic bodies, packages them as an OCI Image Layout, and renders the recording for replay, review, and verification.
+DAWG `0.4.3-omega` captures a browser session through an extension, sanitizes supported JSONL streams and retained diagnostic bodies, packages them as an OCI Image Layout, and renders the recording for replay, review, and verification.
 
 ## Pipeline Overview
 
@@ -43,7 +43,7 @@ The current `dawg capture` path is extension-driven. Although the source tree co
 5. `dawg capture stop` asks the extension to drain buffered data before finalization.
 6. The daemon sanitizes the session, packages it, and adds it to the local catalog.
 
-The extension requires a Chromium-based desktop browser 116 or newer and requests access to `<all_urls>`. Firefox and Safari recording are not supported in `0.4.2-omega`. It records only requests associated with the selected tab. Its `debugger` permission is used only when an Enhanced capture is requested.
+The extension requires a Chromium-based desktop browser 116 or newer and requests access to `<all_urls>`. Firefox and Safari recording are not supported in `0.4.3-omega`. It records only requests associated with the selected tab. Its `debugger` permission is used only when an Enhanced capture is requested.
 
 ### Session Data
 
@@ -107,7 +107,7 @@ A packaged artifact is an OCI Image Layout:
         └── <digest>
 ```
 
-The DAWG manifest is validated against the schema matching its declared version. DAWG `0.4.2-omega` requires diagnostic summary metadata in addition to the schema version, SHA-256 artifact ID, creation time, non-empty title, source, at least one layer, sanitization metadata, determinism metadata, and expected outcome. A flagged revision also carries its review format, root and parent artifact IDs, revision number, review time, and flags. The diagnostic summary identifies the selected profile, sources, counts, retained/redacted/blocked/truncated body totals, limits, and any degradations.
+The DAWG manifest is validated against the schema matching its declared version. DAWG `0.4.3-omega` requires diagnostic summary metadata in addition to the schema version, SHA-256 artifact ID, creation time, non-empty title, source, at least one layer, sanitization metadata, determinism metadata, and expected outcome. A flagged revision also carries its review format, root and parent artifact IDs, revision number, review time, and flags. The diagnostic summary identifies the selected profile, sources, counts, retained/redacted/blocked/truncated body totals, limits, and any degradations.
 
 ### Current Layer Types
 
@@ -220,7 +220,7 @@ dawg/
 │   ├── src/                      # React UI
 │   └── src-tauri/                # Tauri host
 ├── schema/
-│   ├── manifest/v0.4.2-omega.json
+│   ├── manifest/v0.4.3-omega.json
 │   ├── mediatypes.json
 │   └── policies/default.rego
 ├── tools/sync-versions.cjs

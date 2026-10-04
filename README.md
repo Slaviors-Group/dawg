@@ -9,28 +9,28 @@ Manifest V3 extension.
 
 **Website and documentation:** [dawg.slaviors.id](https://dawg.slaviors.id/)
 
-> **Current release:** [`0.4.2-omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega-2)
+> **Current release:** [`0.4.3-omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega-3)
 >
-> Application and artifact schema: `0.4.2-omega` · Desktop: `0.4.2` · Extension: `0.3.5_middlechild` (unchanged)
+> Application and artifact schema: `0.4.3-omega` · Desktop/npm/Cargo/Tauri: `0.4.3` · Extension: `0.3.5_middlechild` (install `0.3.5`, unchanged)
 
 ## 📦 Install the Current Release
 
-DAWG [`0.4.2-omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega-2) is the current application and artifact-schema release.
+DAWG [`0.4.3-omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega-3) is the current application and artifact-schema release.
 
-- [Download DAWG for Windows (x64 installer)](https://github.com/Slaviors-Group/dawg/releases/download/omega-2/DAWG_0.4.2_x64-setup.exe)
-- [Download DAWG for Linux (x86_64 AppImage)](https://github.com/Slaviors-Group/dawg/releases/download/omega-2/DAWG_0.4.2_amd64.AppImage)
+- [Download DAWG for Windows (x64 installer)](https://github.com/Slaviors-Group/dawg/releases/download/omega-3/DAWG_0.4.3_x64-setup.exe)
+- [Download DAWG for Linux (x86_64 AppImage)](https://github.com/Slaviors-Group/dawg/releases/download/omega-3/DAWG_0.4.3_amd64.AppImage)
 
-These links download the matching asset from the `omega-2` GitHub release directly.
+These links download the matching asset from the `omega-3` GitHub release directly.
 After downloading the Linux AppImage, make it executable with
-`chmod +x DAWG_0.4.2_amd64.AppImage` and run it with
-`./DAWG_0.4.2_amd64.AppImage`. Visit the
+`chmod +x DAWG_0.4.3_amd64.AppImage` and run it with
+`./DAWG_0.4.3_amd64.AppImage`. Visit the
 [GitHub releases page](https://github.com/Slaviors-Group/dawg/releases) for
 checksums, release notes, and older assets.
 
 ## 🔎 Current Capabilities
 
-> **Browser compatibility:** DAWG `0.4.2-omega` records only Chromium-based
-> desktop browsers such as Chrome and Edge. Firefox and Safari recording are not
+> **Browser compatibility:** DAWG `0.4.3-omega` records only Chromium-based
+> desktop browsers such as Chrome and Edge, version 116 or newer. Firefox and Safari recording are not
 > supported in this release. Replay and review use bundled Playwright Chromium.
 
 - **Extension-driven capture:** the desktop app or CLI selects one `http://` or
@@ -43,13 +43,21 @@ checksums, release notes, and older assets.
   under `~/.dawg/artifacts/` by default.
 - **Portable `.dawg` archives:** validated artifacts can be exported as ZIP-based
   `.dawg` files and imported into another DAWG installation.
+- **Welcome and guided tour:** four welcome slides introduce capture, replay,
+  artifact sharing, and project support. Skipping or finishing opens a 14-step
+  tour across Dashboard, Capture, Artifacts, Replay, and Editor. Stop, close, or
+  Escape ends the tour; the Dashboard **Guide** button reopens it. Welcome and
+  tour completion are stored in local storage. Opening a `.dawg` file through
+  file association bypasses welcome for that launch without marking it complete.
 - **Dashboard summary:** the Dashboard highlights one most recently added local
   artifact instance, shows its import/flag/revision state, and summarizes local
-  captures, flagged artifacts, diagnostics, and Doctor compatibility.
+  captures, flagged artifacts, diagnostics, and Doctor compatibility. Import a
+  `.dawg` archive or open the latest artifact with **Replay** or **Edit**.
 - **Artifact catalog:** the **Artifacts** page searches and filters local
   instances, groups review revisions by lineage, and supports inspection,
   replay, editing, `.dawg` import/export, and confirmed local deletion. A local
-  instance can be deleted only from DAWG's managed artifact store.
+  instance can be deleted only from DAWG's managed artifact store. Enter in a
+  nonempty search inspects the first matching artifact.
 - **Chromium review editor:** add point or range flags with a title, optional
   note, category, and severity. Save drafts locally and publish an immutable
   flagged revision when the review is ready; the source artifact and its rrweb
@@ -61,6 +69,8 @@ checksums, release notes, and older assets.
   Console and network evidence follows literal replay time and remains available
   for full-capture review. Its Replay workspace reviews packaged diagnostic
   evidence and can export sanitized HAR or copy a reviewed cURL request.
+  Replay artifact search includes `instanceId`; Enter in a nonempty search
+  selects the first match without running it. Choose **Run Replay** explicitly.
   Standard CLI replay writes a final screenshot and exits.
 - **Desktop process control:** an active replay can be cancelled. On Windows,
   cancellation and application shutdown terminate the tracked engine process
@@ -267,8 +277,8 @@ Node.js, and mitmproxy versions.
 
 ```json
 {
-  "appVersion": "0.4.2-omega",
-  "desktopVersion": "0.4.2",
+  "appVersion": "0.4.3-omega",
+  "desktopVersion": "0.4.3",
   "extensionVersion": "0.3.5_middlechild",
   "runtime": {
     "mitmproxy": "12.2.3",
@@ -284,7 +294,10 @@ npm run sync:versions
 npm run check:versions
 ```
 
-The synchronizer normalizes labels for npm, Cargo, Tauri, the schema, and Chrome.
+The synchronizer uses numeric `0.4.3` for Desktop/npm/Cargo/Tauri and labeled
+`0.4.3-omega` for the application/engine and artifact schema. New artifacts use
+`v0.4.3-omega.json`, retaining the `0.4.2-omega` schema structure. Historical
+supported schemas remain readable; no artifact migration is required.
 Chrome continues to receive numeric `version: "0.3.5"` plus display label
 `version_name: "0.3.5_middlechild"`; Omega does not change the extension.
 Dependency versions remain managed by package

@@ -8,22 +8,22 @@ DAWG is available as a self-contained desktop application or as source for engin
 
 ## Current Release
 
-DAWG [`0.4.2-omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega-2)
+DAWG [`0.4.3-omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega-3)
 is the current release. It includes application and artifact schema
-`0.4.2-omega`, Desktop `0.4.2`, and the unchanged extension display version
+`0.4.3-omega`, Desktop `0.4.3`, and the unchanged extension display version
 `0.3.5_middlechild`.
 
-Download the installer for your platform directly from the `omega-2` GitHub release:
+Download the installer for your platform directly from the `omega-3` GitHub release:
 
-- [Download DAWG for Windows (x64 installer)](https://github.com/Slaviors-Group/dawg/releases/download/omega-2/DAWG_0.4.2_x64-setup.exe)
-- [Download DAWG for Linux (x86_64 AppImage)](https://github.com/Slaviors-Group/dawg/releases/download/omega-2/DAWG_0.4.2_amd64.AppImage)
+- [Download DAWG for Windows (x64 installer)](https://github.com/Slaviors-Group/dawg/releases/download/omega-3/DAWG_0.4.3_x64-setup.exe)
+- [Download DAWG for Linux (x86_64 AppImage)](https://github.com/Slaviors-Group/dawg/releases/download/omega-3/DAWG_0.4.3_amd64.AppImage)
 
 The Windows link downloads the NSIS installer. The Linux link downloads the
 AppImage. After downloading the AppImage, make it executable and start it:
 
 ```bash
-chmod +x DAWG_0.4.2_amd64.AppImage
-./DAWG_0.4.2_amd64.AppImage
+chmod +x DAWG_0.4.3_amd64.AppImage
+./DAWG_0.4.3_amd64.AppImage
 ```
 
 See [all releases](https://github.com/Slaviors-Group/dawg/releases) for
@@ -36,14 +36,14 @@ checksums, release notes, older prereleases, and other assets.
 | Windows desktop app | x64 NSIS installer | Windows 10 or Windows 11, 64-bit |
 | Linux desktop app | x86_64 AppImage | A 64-bit Linux distribution capable of running AppImage bundles |
 | Browser capture | DAWG Browser Extension | Chromium-based desktop browser, version 116 or newer |
-| Omega flagged artifacts | DAWG Engine/application `0.4.2-omega` | Required to read or publish the current Omega review schema |
+| Omega flagged artifacts | DAWG Engine/application `0.4.3-omega` | Required to read or publish the current Omega review schema |
 
-> **Browser compatibility:** DAWG `0.4.2-omega` supports recording only in
+> **Browser compatibility:** DAWG `0.4.3-omega` supports recording only in
 > Chromium-based desktop browsers such as Chrome and Edge. Firefox and Safari
 > recording are not supported in this release. Replay and review continue to use
 > the bundled Playwright Chromium runtime.
 
-New Omega artifacts use schema `0.4.2-omega`; supported older artifacts remain
+New Omega artifacts use schema `0.4.3-omega`; supported older artifacts remain
 readable for inspection, import/export, and replay. The unchanged extension does
 not need an update for review flags.
 
@@ -64,16 +64,35 @@ AppImage does not launch, build DAWG from source with
 ### Linux
 
 1. Select **Download DAWG for Linux** above.
-2. Make the downloaded AppImage executable: `chmod +x DAWG_0.4.2_amd64.AppImage`.
-3. Launch it: `./DAWG_0.4.2_amd64.AppImage`.
+2. Make the downloaded AppImage executable: `chmod +x DAWG_0.4.3_amd64.AppImage`.
+3. Launch it: `./DAWG_0.4.3_amd64.AppImage`.
 4. Open the runtime diagnostics and confirm the engine reports **Ready**.
 5. Install the browser extension before starting a capture.
 
 The package stages the Go engine, Node.js, mitmdump, Playwright and Chromium for replay, schemas, policies, and the browser extension. These components do not require separate system installation for the packaged application.
 
+### First Launch: Onboarding and Guided Tour
+
+On the first ordinary launch, DAWG shows four welcome slides covering browser
+capture, DOM-and-mouse replay, QA-to-Dev artifact sharing, and getting into the
+workspace. Finish the welcome flow to open the Dashboard and start a **14-step
+guided tour** across **Dashboard**, **Capture**, **Artifacts**, **Replay**, and
+**Editor**.
+
+Use **Next** and **Previous** to move through the tour, then **Finish** to complete it. To skip it, select **Stop**,
+use the close button, or press **Escape**. Onboarding completion and tour
+completion (including skipping) are remembered locally in the desktop WebView's
+local storage, so they do not repeat on subsequent launches when preferences can
+be saved. Opening a `.dawg` file through file association bypasses the welcome
+screen for that launch without marking onboarding complete.
+
+The tour introduces the controls; install the Chromium browser extension before
+starting a real capture. See [Getting Started](/docs/getting-started) for the
+full workflow.
+
 ### Browser Extension
 
-DAWG capture currently requires a Chromium-based desktop browser **116 or newer**, such as Chrome or Edge. Firefox and Safari recording are not supported in `0.4.2-omega`.
+DAWG capture currently requires a Chromium-based desktop browser **116 or newer**, such as Chrome or Edge. Firefox and Safari recording are not supported in `0.4.3-omega`.
 
 Install the DAWG Browser Extension from the [Chrome Web Store](https://chromewebstore.google.com/detail/peiigoeakholhhbbbbfkeojomekmmokj?utm_source=item-share-cb). This is the recommended installation method.
 

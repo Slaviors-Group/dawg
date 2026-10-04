@@ -3,7 +3,6 @@ import {
   ArrowCounterClockwise,
   Browser,
   GearSix,
-  GitDiff,
   GithubLogo,
   Heart,
   PencilSimple,
@@ -19,7 +18,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArtifactsPage } from "./components/ArtifactsPage";
 import { CaptureControls } from "./components/CaptureControls";
 import { Dashboard } from "./components/Dashboard";
-import { DiffReport } from "./components/DiffReport";
 import { EditorPage } from "./components/EditorPage";
 import { PolicyConfig } from "./components/PolicyConfig";
 import { ReplayViewer } from "./components/ReplayViewer";
@@ -36,7 +34,7 @@ import { GuidedTour } from "./components/GuidedTour";
 import { OnboardingPage } from "./components/OnboardingPage";
 import "./App.css";
 
-type Tab = "dashboard" | "capture" | "artifacts" | "replay" | "editor" | "diff" | "policy";
+type Tab = "dashboard" | "capture" | "artifacts" | "replay" | "editor" | "policy";
 
 const CHROME_WEB_STORE_EXTENSION_URL =
   "https://chromewebstore.google.com/detail/peiigoeakholhhbbbbfkeojomekmmokj?utm_source=item-share-cb";
@@ -72,7 +70,6 @@ const NAV_ITEMS: {
   { id: "artifacts", label: "Artifacts", icon: Archive },
   { id: "replay", label: "Replay", icon: ArrowCounterClockwise },
   { id: "editor", label: "Editor", icon: PencilSimple },
-  { id: "diff", label: "Diff & Verify", icon: GitDiff },
   { id: "policy", label: "Sanitizer Policy", icon: ShieldCheck },
 ];
 
@@ -358,7 +355,6 @@ function ShellContent() {
                   }}
                 />
               )}
-              {activeTab === "diff" && <DiffReport />}
               {activeTab === "policy" && <PolicyConfig />}
             </motion.div>
           </AnimatePresence>

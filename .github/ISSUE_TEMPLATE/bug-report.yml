@@ -39,7 +39,7 @@ body:
     attributes:
       label: Current DAWG version
       description: Include the application/artifact, Desktop, and extension versions when relevant.
-      placeholder: "0.4.2-omega; Desktop 0.4.2; Extension 0.3.5_middlechild"
+      placeholder: "0.4.3-omega; Desktop 0.4.3; Extension 0.3.5_middlechild (install 0.3.5)"
     validations:
       required: true
 

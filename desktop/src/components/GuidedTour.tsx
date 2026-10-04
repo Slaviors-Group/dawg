@@ -110,7 +110,7 @@ const clamp = (value: number, min: number, max: number) => Math.min(Math.max(val
 
 interface GuidedTourProps {
   step: number;
-  activeTab: GuideTab | "diff" | "policy";
+  activeTab: GuideTab | "policy";
   onStepChange: (step: number) => void;
   onNavigate: (tab: GuideTab) => void;
   onFinish: () => void;

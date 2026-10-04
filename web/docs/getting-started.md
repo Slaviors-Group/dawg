@@ -6,26 +6,26 @@ description: "Capture, sanitize, inspect, export, import, and replay your first 
 
 DAWG records one browser tab, sanitizes the captured data, and packages the session as a portable OCI artifact. The recommended workflow uses the desktop app together with the DAWG Browser Extension.
 
-> **Current release:** [`0.4.2-omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega-2) — desktop `0.4.2`; extension display version `0.3.5_middlechild` (unchanged).
+> **Current release:** [`0.4.3-omega`](https://github.com/Slaviors-Group/dawg/releases/tag/omega-3) — desktop `0.4.3`; extension display version `0.3.5_middlechild` (unchanged).
 
 ## Quick Start: Desktop App
 
 ### 1. Install DAWG
 
-Download the `omega-2` release directly:
+Download the `omega-3` release directly:
 
-- [Windows x64 installer](https://github.com/Slaviors-Group/dawg/releases/download/omega-2/DAWG_0.4.2_x64-setup.exe)
-- [Linux x86_64 AppImage](https://github.com/Slaviors-Group/dawg/releases/download/omega-2/DAWG_0.4.2_amd64.AppImage)
+- [Windows x64 installer](https://github.com/Slaviors-Group/dawg/releases/download/omega-3/DAWG_0.4.3_x64-setup.exe)
+- [Linux x86_64 AppImage](https://github.com/Slaviors-Group/dawg/releases/download/omega-3/DAWG_0.4.3_amd64.AppImage)
 
 See [Installation](/docs/installation) for Linux AppImage launch steps and the
-[GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/omega-2) for
+[GitHub release](https://github.com/Slaviors-Group/dawg/releases/tag/omega-3) for
 checksums and release notes.
 
 The packaged desktop app includes the engine, Node.js, mitmdump, Playwright, Chromium for replay, schemas, policies, and an installable copy of the extension. You do not need to install those runtimes separately.
 
 ### 2. Install the Browser Extension
 
-Capture is extension-driven and currently supports only Chromium-based desktop browsers **116 or newer**, such as Chrome or Edge. Firefox and Safari recording are not supported in `0.4.2-omega`.
+Capture is extension-driven and currently supports only Chromium-based desktop browsers **116 or newer**, such as Chrome or Edge. Firefox and Safari recording are not supported in `0.4.3-omega`.
 
 Install the [DAWG Browser Extension from the Chrome Web Store](https://chromewebstore.google.com/detail/peiigoeakholhhbbbbfkeojomekmmokj?utm_source=item-share-cb). This is the recommended installation method.
 
@@ -41,7 +41,16 @@ The extension cannot start a capture by itself. Start from the desktop app or CL
 
 ### 3. Check the Runtime
 
-Launch DAWG and check the engine status on the dashboard. The bundled installation should report the engine as **Ready** and **bundled**. The diagnostics view checks the engine, Node.js, mitmdump, Playwright Chromium, replay script, schema, policy, and bundled extension manifest.
+On the first ordinary launch, DAWG presents **four welcome slides** about
+capture, DOM-and-mouse replay, sharing artifacts from QA to Dev, and entering the
+workspace. Finish onboarding to open the Dashboard and begin the **14-step
+guided tour** through **Dashboard**, **Capture**, **Artifacts**, **Replay**, and
+**Editor**. Use **Next**, **Previous**, and **Finish**, or skip with **Stop**, the close button,
+or **Escape**. Onboarding completion and tour completion (including skipping)
+are saved locally in the desktop WebView's local storage when available, so
+subsequent launches go straight to the workspace.
+
+After completing or skipping the tour, check the engine status on the dashboard. The bundled installation should report the engine as **Ready** and **bundled**. The diagnostics view checks the engine, Node.js, mitmdump, Playwright Chromium, replay script, schema, policy, and bundled extension manifest.
 
 If you are using the CLI directly, run:
 
@@ -85,11 +94,15 @@ artifact before sharing it.
 After capture, the **Dashboard** highlights the most recently added local
 artifact instance and its imported, flagged, or revision state. Its summaries
 cover local captures, flagged artifacts, diagnostic totals, and Doctor
-compatibility. Select **View all artifacts** to open **Artifacts**.
+compatibility. Use the latest artifact's **Replay** and **Edit review** shortcuts, or
+select **View all artifacts** to open **Artifacts**. The Dashboard also offers
+**Import .dawg file** to bring a shared archive into the local catalog.
 
 The **Artifacts** page searches by title, ID, URL, path, or flag title; filters
 by origin and review state; sorts the catalog; and groups review revisions by
-lineage. For every local instance, you can:
+lineage. With a non-empty search, press **Enter** to inspect the first match.
+Artifact rows and the inspector show readable metadata, including creation and
+added times and the local instance ID. For every local instance, you can:
 
 - select **Inspect** to read the manifest;
 - select **Replay** to preselect it in Replay;
@@ -123,7 +136,10 @@ and its captured rrweb and diagnostic evidence are not modified.
 
 ### 7. Replay
 
-Open **Replay Engine**, search or filter the catalog, and select an artifact.
+Open **Replay**, search or filter the catalog, and select an artifact. Search
+matches the title, digest, `instanceId`, URL, or path. With a non-empty search,
+press **Enter** to select the first match; this does **not** run replay. Select
+**Run Replay** separately when you are ready.
 The Replay Diagnostics workspace shows packaged console, network, and error
 evidence, including evidence states. After review confirmation, it can export a
 sanitized HAR or copy cURL for a selected request; copied cURL can mutate a live
