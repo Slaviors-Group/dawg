@@ -1,6 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" role="img" aria-labelledby="title desc">
   <title id="title">Share a DAWG artifact from QA to development</title>
   <desc id="desc">A reviewed QA session and an imported development session share one portable DAWG archive.</desc>
+  <rect x="57" y="39" width="504" height="340" rx="20" fill="#7650cc" opacity=".13"/>
   <rect x="48" y="30" width="504" height="340" rx="20" fill="#fff" stroke="#cbbbef" stroke-width="2"/>
   <path d="M48 50c0-11 9-20 20-20h464c11 0 20 9 20 20v30H48V50Z" fill="#f3effd"/>
   <path d="M48 80h504" stroke="#d7caf3" stroke-width="2"/>

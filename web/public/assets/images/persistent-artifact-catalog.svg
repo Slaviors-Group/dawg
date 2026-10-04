@@ -1,43 +1,54 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" fill="none">
-  <title>Persistent artifact catalog</title>
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="640" y2="360" gradientUnits="userSpaceOnUse"><stop stop-color="#F8F6FF"/><stop offset="1" stop-color="#EDE7FF"/></linearGradient>
-    <filter id="shadow" x="62" y="28" width="522" height="308" filterUnits="userSpaceOnUse"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#392B81" flood-opacity=".12"/></filter>
-  </defs>
-  <rect width="640" height="360" fill="url(#bg)"/>
-  <circle cx="86" cy="301" r="102" fill="#DED5FF" opacity=".55"/>
-  <circle cx="550" cy="50" r="110" fill="#E2DBFF" opacity=".55"/>
-  <g filter="url(#shadow)">
-    <rect x="77" y="45" width="486" height="269" rx="20" fill="white" stroke="#DCD6F2" stroke-width="2"/>
-    <rect x="96" y="64" width="447" height="43" rx="12" fill="#F5F2FF"/>
-    <circle cx="119" cy="85" r="8" stroke="#7D68D4" stroke-width="2.5"/>
-    <path d="m125 91 7 7" stroke="#7D68D4" stroke-width="2.5" stroke-linecap="round"/>
-    <rect x="145" y="81" width="130" height="8" rx="4" fill="#C8BDEC"/>
-    <rect x="465" y="75" width="58" height="21" rx="10.5" fill="#E5DFFF"/>
-    <path d="M482 82h24m-18 5h12" stroke="#8068DD" stroke-width="2" stroke-linecap="round"/>
-    <rect x="97" y="121" width="446" height="50" rx="12" fill="#F8F6FF" stroke="#E9E4F7"/>
-    <rect x="110" y="129" width="35" height="35" rx="9" fill="#DED6FF"/>
-    <path d="M121 139h11l4 4v12h-15v-16Zm11 0v4h4" fill="white" stroke="#6952D5" stroke-width="2" stroke-linejoin="round"/>
-    <rect x="160" y="134" width="166" height="7" rx="3.5" fill="#9F8BE3"/>
-    <rect x="160" y="149" width="101" height="5" rx="2.5" fill="#D0C7EC"/>
-    <rect x="451" y="135" width="72" height="21" rx="10.5" fill="#DCF6EA"/>
-    <text x="487" y="149" text-anchor="middle" fill="#278767" font-family="Arial,sans-serif" font-size="10" font-weight="700">CAPTURED</text>
-    <rect x="97" y="180" width="446" height="50" rx="12" fill="#F8F6FF" stroke="#E9E4F7"/>
-    <rect x="110" y="188" width="35" height="35" rx="9" fill="#DDEBFF"/>
-    <path d="M121 198h11l4 4v12h-15v-16Zm11 0v4h4" fill="white" stroke="#4F87CE" stroke-width="2" stroke-linejoin="round"/>
-    <rect x="160" y="193" width="130" height="7" rx="3.5" fill="#9F8BE3"/>
-    <rect x="160" y="208" width="112" height="5" rx="2.5" fill="#D0C7EC"/>
-    <rect x="451" y="194" width="72" height="21" rx="10.5" fill="#E4EFFF"/>
-    <text x="487" y="208" text-anchor="middle" fill="#4A77BB" font-family="Arial,sans-serif" font-size="10" font-weight="700">IMPORTED</text>
-    <rect x="97" y="239" width="446" height="50" rx="12" fill="#F8F6FF" stroke="#E9E4F7"/>
-    <rect x="110" y="247" width="35" height="35" rx="9" fill="#FCEACC"/>
-    <path d="M121 257h11l4 4v12h-15v-16Zm11 0v4h4" fill="white" stroke="#C48A3C" stroke-width="2" stroke-linejoin="round"/>
-    <rect x="160" y="252" width="152" height="7" rx="3.5" fill="#9F8BE3"/>
-    <rect x="160" y="267" width="89" height="5" rx="2.5" fill="#D0C7EC"/>
-    <rect x="451" y="253" width="72" height="21" rx="10.5" fill="#FFF0D8"/>
-    <text x="487" y="267" text-anchor="middle" fill="#AC792F" font-family="Arial,sans-serif" font-size="10" font-weight="700">LEGACY</text>
-  </g>
-  <circle cx="552" cy="304" r="28" fill="#5B43D1" stroke="white" stroke-width="5"/>
-  <path d="M543 300h18m-15-6v14m12-14v14" stroke="white" stroke-width="3" stroke-linecap="round"/>
-  <path d="M541 313h22" stroke="white" stroke-width="3" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" role="img" aria-labelledby="title desc">
+  <title id="title">Persistent artifact catalog</title>
+  <desc id="desc">A local catalog shows saved captured, imported, and legacy artifacts in a searchable list.</desc>
+  <rect x="44" y="38" width="520" height="338" rx="20" fill="#7650cc" opacity=".13"/>
+  <rect x="35" y="28" width="520" height="338" rx="20" fill="#fff" stroke="#cbbbef" stroke-width="2"/>
+  <path d="M35 48c0-11 9-20 20-20h480c11 0 20 9 20 20v36H35V48Z" fill="#f3effd"/>
+  <path d="M35 84h520" stroke="#d7caf3" stroke-width="2"/>
+  <circle cx="60" cy="56" r="5" fill="#aa91e3"/>
+  <circle cx="78" cy="56" r="5" fill="#cbbbef"/>
+  <circle cx="96" cy="56" r="5" fill="#cbbbef"/>
+  <text x="119" y="62" fill="#6040a9" font-family="Arial,sans-serif" font-size="14" font-weight="700">ARTIFACT CATALOG</text>
+
+  <rect x="56" y="102" width="478" height="32" rx="10" fill="#fff" stroke="#ded5f4"/>
+  <circle cx="75" cy="117" r="6" fill="none" stroke="#a58cde" stroke-width="2"/>
+  <path d="m80 122 5 5" stroke="#a58cde" stroke-width="2" stroke-linecap="round"/>
+  <rect x="96" y="114" width="115" height="6" rx="3" fill="#d3c9e8"/>
+
+  <rect x="56" y="151" width="122" height="194" rx="12" fill="#f8f6fd" stroke="#e3d9f5"/>
+  <rect x="73" y="169" width="88" height="104" rx="12" fill="#e8dffa"/>
+  <path d="M94 209h43a8 8 0 0 1 8 8v36a8 8 0 0 1-8 8H90a8 8 0 0 1-8-8v-37a8 8 0 0 1 8-8h4Z" fill="#aa91e3"/>
+  <path d="M96 191h30l13 13v42a7 7 0 0 1-7 7H96a7 7 0 0 1-7-7v-48a7 7 0 0 1 7-7Z" fill="#7650cc"/>
+  <path d="M126 191v13h13Z" fill="#fff"/>
+  <path d="M126 191v13h13" fill="none" stroke="#cbb8ee" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M101 222h26m-26 10h20" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+  <rect x="78" y="291" width="77" height="7" rx="3.5" fill="#aa91e3"/>
+  <rect x="88" y="309" width="57" height="6" rx="3" fill="#d9cfed"/>
+
+  <rect x="191" y="151" width="343" height="58" rx="11" fill="#f8f6fd" stroke="#e3d9f5"/>
+  <rect x="204" y="162" width="36" height="36" rx="9" fill="#e5dbf8"/>
+  <path d="M215 170h11l6 6v14a3 3 0 0 1-3 3h-14a3 3 0 0 1-3-3v-17a3 3 0 0 1 3-3Z" fill="#7650cc"/>
+  <path d="M226 170v6h6Z" fill="#fff"/>
+  <rect x="253" y="166" width="112" height="8" rx="4" fill="#a58cde"/>
+  <rect x="253" y="184" width="76" height="6" rx="3" fill="#d3c9e8"/>
+  <rect x="426" y="168" width="92" height="23" rx="8" fill="#e5dbf8"/>
+  <text x="472" y="184" text-anchor="middle" fill="#6040a9" font-family="Arial,sans-serif" font-size="10" font-weight="700">CAPTURED</text>
+
+  <rect x="191" y="219" width="343" height="58" rx="11" fill="#f8f6fd" stroke="#e3d9f5"/>
+  <rect x="204" y="230" width="36" height="36" rx="9" fill="#e5dbf8"/>
+  <path d="M215 238h11l6 6v14a3 3 0 0 1-3 3h-14a3 3 0 0 1-3-3v-17a3 3 0 0 1 3-3Z" fill="#7650cc"/>
+  <path d="M226 238v6h6Z" fill="#fff"/>
+  <rect x="253" y="234" width="96" height="8" rx="4" fill="#a58cde"/>
+  <rect x="253" y="252" width="89" height="6" rx="3" fill="#d3c9e8"/>
+  <rect x="426" y="236" width="92" height="23" rx="8" fill="#e5dbf8"/>
+  <text x="472" y="252" text-anchor="middle" fill="#6040a9" font-family="Arial,sans-serif" font-size="10" font-weight="700">IMPORTED</text>
+
+  <rect x="191" y="287" width="343" height="58" rx="11" fill="#f8f6fd" stroke="#e3d9f5"/>
+  <rect x="204" y="298" width="36" height="36" rx="9" fill="#e5dbf8"/>
+  <path d="M215 306h11l6 6v14a3 3 0 0 1-3 3h-14a3 3 0 0 1-3-3v-17a3 3 0 0 1 3-3Z" fill="#7650cc"/>
+  <path d="M226 306v6h6Z" fill="#fff"/>
+  <rect x="253" y="302" width="105" height="8" rx="4" fill="#a58cde"/>
+  <rect x="253" y="320" width="68" height="6" rx="3" fill="#d3c9e8"/>
+  <rect x="426" y="304" width="92" height="23" rx="8" fill="#e5dbf8"/>
+  <text x="472" y="320" text-anchor="middle" fill="#6040a9" font-family="Arial,sans-serif" font-size="10" font-weight="700">LEGACY</text>
 </svg>

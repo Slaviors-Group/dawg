@@ -9,10 +9,10 @@ const features = [
     size: 'large',
     title: 'Capture from the browser you already use',
     desc: 'The desktop app and Chromium extension record rrweb events, user actions, and frontend request metadata from the tab where the bug occurs.',
-    image: '/assets/images/capture-browser.svg',
-    imageAlt: 'Browser tab sending recorded events, actions, and requests to DAWG',
-    imageWidth: 640,
-    imageHeight: 360
+    image: '/onboarding-workflow.svg',
+    imageAlt: 'Browser capture workflow leading to a DAWG artifact',
+    imageWidth: 550,
+    imageHeight: 370
   },
   {
     size: 'large',
@@ -20,8 +20,8 @@ const features = [
     desc: 'Built-in heuristics replace common PII and secrets, then an OPA policy gates the sanitized capture before DAWG creates the artifact.',
     image: '/assets/images/sanitize-before-packaging.svg',
     imageAlt: 'Sensitive data passing through a sanitizer and policy check into an artifact',
-    imageWidth: 640,
-    imageHeight: 360
+    imageWidth: 600,
+    imageHeight: 400
   },
   // Three small features for the bottom row
   {
@@ -30,8 +30,8 @@ const features = [
     desc: 'Render the captured rrweb timeline in Chromium and inspect replay diagnostics without needing the original application.',
     image: '/assets/images/replay-recorded-context.svg',
     imageAlt: 'Recorded browser timeline with playback controls and diagnostics',
-    imageWidth: 640,
-    imageHeight: 360
+    imageWidth: 600,
+    imageHeight: 400
   },
   {
     size: 'small',
@@ -39,8 +39,8 @@ const features = [
     desc: 'Keep captured, imported, and discovered legacy artifacts available across desktop restarts.',
     image: '/assets/images/persistent-artifact-catalog.svg',
     imageAlt: 'Searchable catalog containing captured, imported, and legacy artifacts',
-    imageWidth: 640,
-    imageHeight: 360
+    imageWidth: 600,
+    imageHeight: 400
   },
   {
     size: 'small',
