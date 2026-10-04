@@ -9,7 +9,7 @@ const features = [
     size: 'large',
     title: 'Capture from the browser you already use',
     desc: 'The desktop app and Chromium extension record rrweb events, user actions, and frontend request metadata from the tab where the bug occurs.',
-    image: '/onboarding-workflow.svg',
+    image: '/assets/images/capture-browser-workflow.svg',
     imageAlt: 'Browser capture workflow leading to a DAWG artifact',
     imageWidth: 550,
     imageHeight: 370
@@ -46,7 +46,7 @@ const features = [
     size: 'small',
     title: 'Portable .dawg Archives',
     desc: 'Export validated OCI layouts as .dawg files, import them safely, or exchange artifacts through an OCI registry.',
-    image: '/onboarding-share.svg',
+    image: '/assets/images/portable-dawg-archives.svg',
     imageAlt: 'A portable DAWG archive shared from QA to development',
     imageWidth: 600,
     imageHeight: 400
