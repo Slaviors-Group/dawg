@@ -67,6 +67,8 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 		replayContext, cancel = context.WithTimeout(ctx, timeout)
 	}
 	defer cancel()
+	replayContext, cancelProcess := context.WithCancel(replayContext)
+	defer cancelProcess()
 
 	arguments := []string{
 		scriptPath,
@@ -114,6 +116,13 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 	var stdoutBuf bytes.Buffer
 	var stderrBuf bytes.Buffer
 	readerErrors := make(chan error, 2)
+	reportReaderError := func(err error) {
+		readerErrors <- err
+		if err != nil {
+			// A failed reader must stop the child so the other pipe can reach EOF.
+			cancelProcess()
+		}
+	}
 	var readers sync.WaitGroup
 	readers.Add(2)
 	go func() {
@@ -124,11 +133,11 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 			line := append([]byte(nil), scanner.Bytes()...)
 			if player.Interactive && player.ReplayEventSink != nil {
 				if !json.Valid(line) {
-					readerErrors <- fmt.Errorf("replay: invalid browser event: %q", line)
+					reportReaderError(fmt.Errorf("replay: invalid browser event: %q", line))
 					return
 				}
 				if err := player.ReplayEventSink(json.RawMessage(line)); err != nil {
-					readerErrors <- fmt.Errorf("replay: forward browser event: %w", err)
+					reportReaderError(fmt.Errorf("replay: forward browser event: %w", err))
 					return
 				}
 				continue
@@ -136,7 +145,7 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 			stdoutBuf.Write(line)
 			stdoutBuf.WriteByte('\n')
 		}
-		readerErrors <- scanner.Err()
+		reportReaderError(scanner.Err())
 	}()
 	go func() {
 		defer readers.Done()
@@ -146,7 +155,7 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 			stderrBuf.Write(scanner.Bytes())
 			stderrBuf.WriteByte('\n')
 		}
-		readerErrors <- scanner.Err()
+		reportReaderError(scanner.Err())
 	}()
 
 	job, jobErr := NewReplayJob()
@@ -155,8 +164,9 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 		defer job.Close()
 	}
 
-	err = cmd.Wait()
+	// Wait closes StdoutPipe/StderrPipe; drain both before reaping the child.
 	readers.Wait()
+	err = cmd.Wait()
 	var readerErr error
 	for range 2 {
 		if current := <-readerErrors; current != nil && readerErr == nil {
@@ -164,7 +174,7 @@ func (player *EventPlayer) Replay(ctx context.Context, sessionDirectory string) 
 		}
 	}
 	output := append(stderrBuf.Bytes(), stdoutBuf.Bytes()...)
-	if readerErr != nil && err == nil {
+	if readerErr != nil {
 		err = readerErr
 	}
 

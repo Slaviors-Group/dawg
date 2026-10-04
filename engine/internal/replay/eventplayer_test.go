@@ -3,11 +3,15 @@ package replay
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestEventPlayerStreamsInteractiveEventsAndKeepsDiagnostics(t *testing.T) {
@@ -42,6 +46,97 @@ process.stderr.write('replay diagnostic\n');`
 	}
 	if outcome.Output != "replay diagnostic\n" {
 		t.Fatalf("unexpected replay diagnostics: %q", outcome.Output)
+	}
+}
+
+func TestEventPlayerDrainsOutputBeforeWaiting(t *testing.T) {
+	nodeBinary, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node is required to execute replay scripts")
+	}
+	directory := t.TempDir()
+	scriptPath := filepath.Join(directory, "buffered-events.cjs")
+	script := `const fs = require("node:fs");
+for (let sequence = 0; sequence < 256; sequence++) {
+  fs.writeSync(1, JSON.stringify({sequence, payload: "x".repeat(1024)}) + "\n");
+}
+fs.writeSync(2, "final diagnostic\n");`
+	if err := os.WriteFile(scriptPath, []byte(script), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	count := 0
+	player := EventPlayer{
+		NodeBinary:  nodeBinary,
+		ScriptPath:  scriptPath,
+		Interactive: true,
+		ReplayEventSink: func(event json.RawMessage) error {
+			var got struct {
+				Sequence int `json:"sequence"`
+			}
+			if err := json.Unmarshal(event, &got); err != nil {
+				return err
+			}
+			if got.Sequence != count {
+				return fmt.Errorf("unexpected sequence: got %d, want %d", got.Sequence, count)
+			}
+			count++
+			// Keep events buffered when the child exits to exercise pipe draining.
+			time.Sleep(time.Millisecond)
+			return nil
+		},
+	}
+	outcome, err := player.Replay(ctx, directory)
+	if err != nil {
+		t.Fatalf("replay: %v", err)
+	}
+	if count != 256 || outcome.Output != "final diagnostic\n" {
+		t.Fatalf("incomplete output: events=%d, diagnostics=%q", count, outcome.Output)
+	}
+}
+
+func TestEventPlayerStopsChildWhenEventReaderFails(t *testing.T) {
+	nodeBinary, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node is required to execute replay scripts")
+	}
+	for _, scenario := range []struct {
+		name      string
+		event     string
+		sinkError error
+		wantError string
+	}{
+		{name: "invalid-event", event: "not-json", wantError: "invalid browser event"},
+		{name: "sink-error", event: `{}`, sinkError: errors.New("sink unavailable"), wantError: "forward browser event: sink unavailable"},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			directory := t.TempDir()
+			scriptPath := filepath.Join(directory, "reader-error.cjs")
+			event, err := json.Marshal(scenario.event + "\n")
+			if err != nil {
+				t.Fatal(err)
+			}
+			script := "process.stdout.write(" + string(event) + "); setInterval(() => {}, 1000);"
+			if err := os.WriteFile(scriptPath, []byte(script), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			player := EventPlayer{
+				NodeBinary:      nodeBinary,
+				ScriptPath:      scriptPath,
+				Interactive:     true,
+				ReplayEventSink: func(json.RawMessage) error { return scenario.sinkError },
+			}
+			_, err = player.Replay(ctx, directory)
+			if err == nil || !strings.Contains(err.Error(), scenario.wantError) {
+				t.Fatalf("expected %q, got %v", scenario.wantError, err)
+			}
+			if ctx.Err() != nil {
+				t.Fatalf("reader failure did not stop child before deadline: %v", ctx.Err())
+			}
+		})
 	}
 }
 
