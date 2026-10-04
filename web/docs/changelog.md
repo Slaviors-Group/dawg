@@ -29,6 +29,10 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 - Simplified Replay search handling and refined Dashboard illustrations and active Editor controls. ([`fbe31df`](https://github.com/Slaviors-Group/dawg/commit/fbe31df))
 - Current website metadata, navigation, download links, and documentation identify `0.4.3-omega`, Desktop `0.4.3`, and tag `omega-3`. The capture extension remains `0.3.5_middlechild`.
 
+### Fixed
+
+- Fixed an intermittent replay subprocess-output handling error that could report a failure after the browser process exited successfully. Replay now drains stdout and stderr before completing process cleanup.
+
 ### Removed
 
 - Removed the placeholder **Diff & Verify** page from Desktop navigation. CLI verification remains available through `dawg verify`.
