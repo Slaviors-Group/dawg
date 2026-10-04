@@ -194,7 +194,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   return (
     <PageShell title="Editor" subtitle="Add review flags in Chromium.">
       <Card data-tour="editor-selection">
-        {artifacts.length === 0 ? (
+        {artifacts.length === 0 && activeEditorRun.current === null ? (
           <EmptyState
             icon={<PencilSimple size={32} weight="light" />}
             title="Nothing to edit yet"
@@ -220,7 +220,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 value={selectedIdentity}
                 onChange={setSelectedIdentity}
                 placeholder="Select an artifact…"
-                disabled={isLaunching || isStopping}
+                disabled={artifacts.length === 0 || isLaunching || isStopping}
                 options={artifacts.map((artifact) => ({
                   value: artifactIdentity(artifact),
                   label: `${artifact.title || artifact.id}${artifact.flagged ? ` · ${artifact.flagCount ?? 0} flags` : ""}`,

@@ -353,10 +353,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
               label="Search artifacts"
               placeholder="Name, URL, digest, or path..."
               value={artifactSearch}
-              onChange={(event) => {
-                setArtifactSearch(event.target.value);
-                setSelectedArtifact("");
-              }}
+              onChange={(event) => setArtifactSearch(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key !== "Enter" || !artifactSearch.trim()) return;
                 event.preventDefault();

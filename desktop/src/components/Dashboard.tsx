@@ -5,11 +5,11 @@ import {
   ArrowUpRight,
   BookOpen,
   Cpu,
+  FileMagnifyingGlass,
   Flag,
   PencilSimple,
   Record,
   ShieldCheck,
-  StarFour,
   UploadSimple,
 } from "@phosphor-icons/react";
 import type React from "react";
@@ -131,16 +131,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
             className="pointer-events-none absolute -right-28 -top-44 size-[28rem] rounded-full border border-white/10"
             aria-hidden="true"
           />
-          <StarFour
+          <FileMagnifyingGlass
             size={70}
-            weight="thin"
-            className="pointer-events-none absolute right-[19%] top-[16%] text-white/45"
+            weight="duotone"
+            className="pointer-events-none absolute right-[19%] top-[16%] text-white/50"
             aria-hidden="true"
           />
-          <StarFour
+          <Archive
             size={35}
-            weight="thin"
-            className="pointer-events-none absolute right-[8%] bottom-[15%] text-white/30"
+            weight="fill"
+            className="pointer-events-none absolute right-[8%] bottom-[15%] text-white/35"
             aria-hidden="true"
           />
           <div className="relative z-10">
