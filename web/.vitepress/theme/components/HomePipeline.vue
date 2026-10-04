@@ -9,47 +9,47 @@ const features = [
     size: 'large',
     title: 'Capture from the browser you already use',
     desc: 'The desktop app and Chromium extension record rrweb events, user actions, and frontend request metadata from the tab where the bug occurs.',
-    placeholderType: 'window',
-    image: '/assets/images/capture-browser.png',
-    imageWidth: 1907,
-    imageHeight: 967
+    image: '/assets/images/capture-browser.svg',
+    imageAlt: 'Browser tab sending recorded events, actions, and requests to DAWG',
+    imageWidth: 640,
+    imageHeight: 360
   },
   {
     size: 'large',
     title: 'Sanitize before packaging',
     desc: 'Built-in heuristics replace common PII and secrets, then an OPA policy gates the sanitized capture before DAWG creates the artifact.',
-    placeholderType: 'code',
-    image: '/assets/images/sanitize-before-packaging.png',
-    imageWidth: 1536,
-    imageHeight: 1024
+    image: '/assets/images/sanitize-before-packaging.svg',
+    imageAlt: 'Sensitive data passing through a sanitizer and policy check into an artifact',
+    imageWidth: 640,
+    imageHeight: 360
   },
   // Three small features for the bottom row
   {
     size: 'small',
     title: 'Replay with recorded context',
     desc: 'Render the captured rrweb timeline in Chromium and inspect replay diagnostics without needing the original application.',
-    placeholderType: 'chart',
-    image: '/assets/images/replay-recorded-context.png',
-    imageWidth: 1536,
-    imageHeight: 1024
+    image: '/assets/images/replay-recorded-context.svg',
+    imageAlt: 'Recorded browser timeline with playback controls and diagnostics',
+    imageWidth: 640,
+    imageHeight: 360
   },
   {
     size: 'small',
     title: 'Persistent Artifact Catalog',
     desc: 'Keep captured, imported, and discovered legacy artifacts available across desktop restarts.',
-    placeholderType: 'network',
-    image: '/assets/images/persistent-artifact-catalog.png',
-    imageWidth: 1536,
-    imageHeight: 1024
+    image: '/assets/images/persistent-artifact-catalog.svg',
+    imageAlt: 'Searchable catalog containing captured, imported, and legacy artifacts',
+    imageWidth: 640,
+    imageHeight: 360
   },
   {
     size: 'small',
     title: 'Portable .dawg Archives',
     desc: 'Export validated OCI layouts as .dawg files, import them safely, or exchange artifacts through an OCI registry.',
-    placeholderType: 'devices',
-    image: '/assets/images/portable-dawg-archives.png',
-    imageWidth: 1536,
-    imageHeight: 1024
+    image: '/onboarding-share.svg',
+    imageAlt: 'A portable DAWG archive shared from QA to development',
+    imageWidth: 600,
+    imageHeight: 400
   }
 ]
 </script>
@@ -72,27 +72,15 @@ const features = [
           :class="p.size === 'large' ? 'dh-bento-large' : 'dh-bento-small'"
           :style="{ transitionDelay: `${0.1 + idx * 0.25}s` }"
         >
-          <!-- Placeholder Graphic Area -->
           <div class="dh-bento-img">
-             <div class="dh-placeholder-content" :class="`dh-type-${p.placeholderType}`">
-               <!-- Mock UI shapes for placeholder -->
-               <div class="dh-mock-header">
-                 <div class="dh-mock-dot"></div>
-                 <div class="dh-mock-dot"></div>
-                 <div class="dh-mock-dot"></div>
-               </div>
-               <div class="dh-mock-body" :class="{ 'dh-mock-body--img': p.image }">
-                 <img
-                   v-if="p.image"
-                   :src="p.image"
-                   :alt="p.title"
-                   :width="p.imageWidth"
-                   :height="p.imageHeight"
-                   loading="lazy"
-                   decoding="async"
-                 />
-               </div>
-             </div>
+            <img
+              :src="p.image"
+              :alt="p.imageAlt"
+              :width="p.imageWidth"
+              :height="p.imageHeight"
+              loading="lazy"
+              decoding="async"
+            />
           </div>
           
           <!-- Text Content -->
@@ -177,15 +165,23 @@ const features = [
 }
 
 .dh-bento-img {
-  background: #f8f9fa;
+  background: #f5f1ff;
   height: 280px;
-  padding: 32px 32px 0 32px;
   display: flex;
   justify-content: center;
-  align-items: flex-end;
+  align-items: center;
   border-bottom: 1px solid var(--color-border);
+  overflow: hidden;
 }
-:global(:root.dark) .dh-bento-img { background: var(--color-surface-hover); }
+.dh-bento-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
 
 .dh-bento-text {
   padding: 32px;
@@ -201,64 +197,4 @@ const features = [
   line-height: 1.6; margin: 0; font-weight: 400;
 }
 
-/* ── Dummy Graphic Placeholders ── */
-.dh-placeholder-content {
-  width: 100%;
-  height: 100%;
-  background: #ffffff;
-  border-radius: 16px 16px 0 0;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.04);
-  border: 1px solid var(--color-border);
-  border-bottom: none;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-:global(:root.dark) .dh-placeholder-content { background: var(--color-surface); }
-
-.dh-mock-header {
-  height: 36px;
-  border-bottom: 1px solid var(--color-border-subtle);
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-  gap: 6px;
-  background: rgba(0,0,0,0.02);
-}
-.dh-mock-dot { width: 10px; height: 10px; border-radius: 50%; }
-/* macOS traffic-light colors */
-.dh-mock-dot:nth-child(1) { background: #ff5f57; }
-.dh-mock-dot:nth-child(2) { background: #febc2e; }
-.dh-mock-dot:nth-child(3) { background: #28c840; }
-
-.dh-mock-body {
-  flex: 1;
-  padding: 24px;
-  background: repeating-linear-gradient(
-    180deg,
-    transparent,
-    transparent 16px,
-    var(--color-border-subtle) 16px,
-    var(--color-border-subtle) 17px
-  );
-  opacity: 0.5;
-}
-
-/* When a card provides a real screenshot, fill the body instead of showing stripes */
-.dh-mock-body--img {
-  padding: 0;
-  background: none;
-  opacity: 1;
-  overflow: hidden;
-}
-.dh-mock-body--img img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  /* Deter right-click menu, drag-to-new-tab, and selection */
-  pointer-events: none;
-  -webkit-user-drag: none;
-  user-select: none;
-}
 </style>

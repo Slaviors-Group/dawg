@@ -967,23 +967,14 @@ func (s *ExtensionServer) handleWebSocket(w http.ResponseWriter, r *http.Request
 	client := &webSocketClient{conn: conn, writer: buf}
 	defer conn.Close()
 
-	hash := sha1.Sum([]byte(secKey + webSocketGUID))
-	response := "HTTP/1.1 101 Switching Protocols\r\n" +
-		"Upgrade: websocket\r\n" +
-		"Connection: Upgrade\r\n" +
-		"Sec-WebSocket-Accept: " + base64.StdEncoding.EncodeToString(hash[:]) + "\r\n\r\n"
-	if _, err := buf.WriteString(response); err != nil {
-		return
-	}
-	if err := buf.Flush(); err != nil {
-		return
-	}
-
+	// Register before publishing the upgrade response so Stop cannot miss a
+	// client whose WebSocket handshake has already completed on the peer.
 	s.mu.Lock()
 	if s.active.Load() == 0 || s.stopping {
 		s.mu.Unlock()
 		return
 	}
+	client.writeMu.Lock()
 	s.connections[client] = struct{}{}
 	s.handlers.Add(1)
 	s.mu.Unlock()
@@ -1001,6 +992,21 @@ func (s *ExtensionServer) handleWebSocket(w http.ResponseWriter, r *http.Request
 		nonBlockingSignal(drained)
 		s.handlers.Done()
 	}()
+
+	hash := sha1.Sum([]byte(secKey + webSocketGUID))
+	response := "HTTP/1.1 101 Switching Protocols\r\n" +
+		"Upgrade: websocket\r\n" +
+		"Connection: Upgrade\r\n" +
+		"Sec-WebSocket-Accept: " + base64.StdEncoding.EncodeToString(hash[:]) + "\r\n\r\n"
+	if _, err := buf.WriteString(response); err != nil {
+		client.writeMu.Unlock()
+		return
+	}
+	if err := buf.Flush(); err != nil {
+		client.writeMu.Unlock()
+		return
+	}
+	client.writeMu.Unlock()
 
 	log.Printf("[debug] ExtensionServer: WebSocket client connected from %s", r.RemoteAddr)
 	s.readWebSocketFrames(buf, client)

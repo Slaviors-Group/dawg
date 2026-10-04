@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" fill="none">
+  <title>Replay a recorded browser timeline</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="640" y2="360" gradientUnits="userSpaceOnUse"><stop stop-color="#F8F6FF"/><stop offset="1" stop-color="#EDE7FF"/></linearGradient>
+    <linearGradient id="scene" x1="102" y1="95" x2="401" y2="253" gradientUnits="userSpaceOnUse"><stop stop-color="#EEE8FF"/><stop offset="1" stop-color="#D9D0FC"/></linearGradient>
+    <filter id="shadow" x="37" y="25" width="567" height="324" filterUnits="userSpaceOnUse"><feDropShadow dx="0" dy="11" stdDeviation="11" flood-color="#392B81" flood-opacity=".12"/></filter>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <circle cx="543" cy="64" r="100" fill="#E3DCFF" opacity=".65"/>
+  <g filter="url(#shadow)">
+    <rect x="50" y="42" width="540" height="277" rx="20" fill="white" stroke="#DCD6F2" stroke-width="2"/>
+    <path d="M50 62a20 20 0 0 1 20-20h500a20 20 0 0 1 20 20v26H50V62Z" fill="#F5F2FF"/>
+    <path d="M50 88h540" stroke="#DED8F4" stroke-width="2"/>
+    <circle cx="75" cy="65" r="5" fill="#EEA6AF"/><circle cx="93" cy="65" r="5" fill="#F1C878"/><circle cx="111" cy="65" r="5" fill="#8BD4BA"/>
+    <rect x="173" y="57" width="266" height="17" rx="8.5" fill="white" stroke="#E1DCF3"/>
+    <rect x="191" y="63" width="126" height="5" rx="2.5" fill="#D3CBEA"/>
+    <rect x="71" y="103" width="316" height="151" rx="14" fill="url(#scene)"/>
+    <rect x="90" y="121" width="76" height="111" rx="9" fill="white" fill-opacity=".75"/>
+    <rect x="103" y="136" width="49" height="7" rx="3.5" fill="#B6A8EB"/>
+    <rect x="103" y="153" width="38" height="5" rx="2.5" fill="#D4CCF0"/>
+    <rect x="103" y="174" width="50" height="42" rx="6" fill="#E6E0FA"/>
+    <rect x="180" y="121" width="187" height="47" rx="9" fill="white" fill-opacity=".78"/>
+    <rect x="194" y="135" width="94" height="7" rx="3.5" fill="#B6A8EB"/>
+    <rect x="194" y="150" width="143" height="5" rx="2.5" fill="#D4CCF0"/>
+    <rect x="180" y="180" width="187" height="52" rx="9" fill="white" fill-opacity=".78"/>
+    <path d="M194 216h157" stroke="#C9BEED" stroke-width="4" stroke-linecap="round"/>
+    <path d="M194 216c26-20 45-13 64-7 18 7 36-24 57-16 12 4 22 9 36 2" stroke="#7659DF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="226" cy="176" r="29" fill="#5B43D1" stroke="white" stroke-width="4"/>
+    <path d="m218 163 21 13-21 13v-26Z" fill="white"/>
+    <rect x="402" y="103" width="167" height="151" rx="14" fill="#F5F2FF"/>
+    <rect x="419" y="120" width="81" height="7" rx="3.5" fill="#B2A3E7"/>
+    <path d="M419 160h132M419 191h132M419 222h132" stroke="#E0DAF5" stroke-width="2"/>
+    <path d="M423 148h14l8 10 11-19 13 15 15-11 14 14 12-17 12 9h23" stroke="#6750D5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="420" y="174" width="13" height="12" rx="3" fill="#8B77E8"/><rect x="439" y="170" width="13" height="16" rx="3" fill="#B4A5F0"/><rect x="458" y="177" width="13" height="9" rx="3" fill="#8B77E8"/>
+    <circle cx="425" cy="212" r="5" fill="#32B687"/><rect x="441" y="209" width="92" height="6" rx="3" fill="#C3B9E8"/>
+    <rect x="72" y="272" width="498" height="9" rx="4.5" fill="#E1DCF2"/>
+    <rect x="72" y="272" width="262" height="9" rx="4.5" fill="#7359DF"/>
+    <circle cx="334" cy="276.5" r="11" fill="white" stroke="#7359DF" stroke-width="4"/>
+    <circle cx="178" cy="276.5" r="4" fill="white"/><circle cx="429" cy="276.5" r="4" fill="#A896EA"/>
+  </g>
+</svg>
