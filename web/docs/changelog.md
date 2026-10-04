@@ -8,6 +8,38 @@ Notable changes to DAWG are grouped by release family and listed in descending r
 
 ## Omega family — `0.4.x`
 
+### [0.4.3-omega](https://github.com/Slaviors-Group/dawg/releases/tag/omega-3) - 2026-10-04
+
+**Tag:** [`omega-3`](https://github.com/Slaviors-Group/dawg/releases/tag/omega-3) · **Desktop:** `0.4.3` · **Extension display version:** `0.3.5_middlechild` (unchanged)
+
+**Downloads:** [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/omega-3/DAWG_0.4.3_x64-setup.exe) · [Linux AppImage](https://github.com/Slaviors-Group/dawg/releases/download/omega-3/DAWG_0.4.3_amd64.AppImage)
+
+### Added
+
+- First-run onboarding with four welcome slides covering capture, DOM-and-mouse replay, QA-to-Dev artifact sharing, and entering the workspace. Completion is remembered locally. ([`c04847c`](https://github.com/Slaviors-Group/dawg/commit/c04847c))
+- A 14-step guided workspace tour across **Dashboard**, **Capture**, **Artifacts**, **Replay**, and **Editor**. Users can skip with **Stop**, the close button, or **Escape**; completion and skipping are saved locally. ([`d6f714d`](https://github.com/Slaviors-Group/dawg/commit/d6f714d))
+- Dashboard `.dawg` archive import and latest-artifact shortcuts for **Replay** and **Edit review**. ([`d6f714d`](https://github.com/Slaviors-Group/dawg/commit/d6f714d))
+
+### Changed
+
+- Artifacts search supports **Enter** to inspect the first match, with more readable catalog metadata and inspector details for added time and instance ID. ([`d6f714d`](https://github.com/Slaviors-Group/dawg/commit/d6f714d))
+- Replay search includes `instanceId`; **Enter** selects the first match without running replay. **Run Replay** remains a separate action. ([`d6f714d`](https://github.com/Slaviors-Group/dawg/commit/d6f714d))
+- Refreshed controls, cards, dialogs, page layouts, settings, logs, and empty states provide a more consistent workspace. This is a UI refresh, not a change to engine capture or replay algorithms. ([`224bddf`](https://github.com/Slaviors-Group/dawg/commit/224bddf))
+- Improved onboarding keyboard focus and Editor artifact-selection layout. ([`d6f714d`](https://github.com/Slaviors-Group/dawg/commit/d6f714d))
+- Simplified Replay search handling and refined Dashboard illustrations and active Editor controls. ([`fbe31df`](https://github.com/Slaviors-Group/dawg/commit/fbe31df))
+- Current website metadata, navigation, download links, and documentation identify `0.4.3-omega`, Desktop `0.4.3`, and tag `omega-3`. The capture extension remains `0.3.5_middlechild`.
+
+### Removed
+
+- Removed the placeholder **Diff & Verify** page from Desktop navigation. CLI verification remains available through `dawg verify`.
+
+### Compatibility
+
+- Capture still requires a Chromium-based desktop browser version 116 or newer; Firefox and Safari recording are not supported.
+- Replay and review continue to use the bundled Playwright Chromium runtime.
+
+---
+
 ### [0.4.2-omega](https://github.com/Slaviors-Group/dawg/releases/tag/omega-2) - 2026-10-01
 
 **Tag:** [`omega-2`](https://github.com/Slaviors-Group/dawg/releases/tag/omega-2) · **Desktop:** `0.4.2` · **Extension display version:** `0.3.5_middlechild` (unchanged)

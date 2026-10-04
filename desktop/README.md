@@ -3,11 +3,11 @@
 DAWG Desktop is the Tauri v2 interface for the Go engine. It uses Rust, React 19,
 Vite 7, Tailwind CSS 4, Framer Motion, and Phosphor icons.
 
-> Application package: `0.4.2-omega` · Tauri/Cargo package: `0.4.2`
+> Application/engine and artifact schema: `0.4.3-omega` · Desktop/npm/Cargo/Tauri: `0.4.3`
 >
 > Extension display version: `0.3.5_middlechild` (unchanged) · Bundled Node.js: `22.14.0` · Bundled mitmproxy: `12.2.3`
 >
-> Download the [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/omega-2/DAWG_0.4.2_x64-setup.exe) or [Linux AppImage](https://github.com/Slaviors-Group/dawg/releases/download/omega-2/DAWG_0.4.2_amd64.AppImage) from the [Omega 2 release](https://github.com/Slaviors-Group/dawg/releases/tag/omega-2).
+> Download the [Windows installer](https://github.com/Slaviors-Group/dawg/releases/download/omega-3/DAWG_0.4.3_x64-setup.exe) or [Linux AppImage](https://github.com/Slaviors-Group/dawg/releases/download/omega-3/DAWG_0.4.3_amd64.AppImage) from the [Omega 3 release](https://github.com/Slaviors-Group/dawg/releases/tag/omega-3).
 
 ## 🧭 Current Desktop Scope
 
@@ -22,20 +22,25 @@ import/export, replay controls, logs, and runtime diagnostics.
   troubleshooting evidence and requires confirmation.
 - **Dashboard:** presents one latest-added local artifact instance with its
   import, flag, and revision state; summary cards cover local captures, flagged
-  artifacts, diagnostics, and Doctor compatibility.
+  artifacts, diagnostics, and Doctor compatibility. Import a `.dawg` archive,
+  open the latest artifact with **Replay** or **Edit**, or reopen the guided
+  tour with **Guide**.
 - **Artifacts:** loads validated local instances at startup and refreshes after
   capture, import, and review publication. Search and filter by origin, review
   state, text, and sort order; inspect, replay, edit, import/export, or confirm
   deletion. Revision families are grouped by review root, while duplicate local
   instances remain independently manageable. The page accepts dropped `.dawg`
-  archives.
+  archives. Enter in a nonempty search inspects the first matching artifact.
 - **Chromium Editor:** adds, edits, moves, resizes, renames, or deletes point
   and range review flags. **Save draft** stores a validated local draft for the
   selected source artifact; **Save artifact** publishes a new immutable flagged
   revision and clears that draft. The source artifact and captured evidence are
-  never changed.
+  never changed. The selection layout groups the artifact picker and Editor
+  controls, keeping active-session controls visible even if the catalog is empty.
 - **Replay and evidence review:** Dashboard **Replay** opens Replay with the
-  selected artifact but does not start it. The Replay workspace reads packaged
+  selected artifact but does not start it. Artifact search includes `instanceId`;
+  Enter in a nonempty search selects the first match without running it. Choose
+  **Run Replay** explicitly. The Replay workspace reads packaged
   console, network, error, device, and body evidence; filters evidence states;
   exports sanitized HAR; copies reviewed cURL for a selected request; and can
   create a reviewed OCI copy with selected categories or individual retained
@@ -51,11 +56,23 @@ import/export, replay controls, logs, and runtime diagnostics.
   uses `taskkill /T /F`; application exit attempts to terminate tracked work.
 - **Doctor:** displays `dawg doctor --output json` component status.
 - **Preferences:** stores theme and motion settings in browser local storage.
+- **Welcome and guided tour:** when local welcome completion is absent, shows
+  four slides for recording, DOM-and-mouse replay, QA-to-Dev artifact sharing,
+  and project support. The final slide links to Slaviors Group, Buy Me a Coffee,
+  and GitHub Sponsors. Skipping or finishing opens the Dashboard and a 14-step
+  guided tour across Dashboard, Capture, Artifacts, Replay, and Editor. **Stop**,
+  close, or Escape ends the tour; Dashboard **Guide** reopens it. Welcome and
+  tour completion are stored in local storage, not inferred from installation
+  age. Opening a `.dawg` file through file association bypasses welcome for
+  that launch without marking it complete; welcome appears on the
+  next ordinary launch if completion has not been stored.
+- **Consistent UI:** controls, cards, modals, pages, settings, logs, and empty
+  states share refined styling and layouts. These are interface changes, not
+  changes to engine capture, sanitization, or replay algorithms.
 
 The Sanitizer Policy screen currently displays built-in policy examples; it does
-not edit the engine policy. The Diff & Verify screen is currently a UI preview
-and does not execute verification. Use `dawg verify` from the CLI for the current
-engine implementation.
+not edit the engine policy. Verification is available through `dawg verify` in
+the CLI, not as a Desktop page.
 
 ## 🧱 Architecture
 
@@ -220,9 +237,12 @@ npm run sync:versions
 npm run check:versions
 ```
 
-The desktop npm package uses the labeled application version
-`0.4.2-omega`; Cargo and Tauri use numeric version `0.4.2`. The extension
-remains numeric version `0.3.5` with display label `0.3.5_middlechild`.
+Desktop/npm/Cargo/Tauri use numeric version `0.4.3`; the application/engine
+and artifact schema use labeled version `0.4.3-omega`. New artifacts use
+`v0.4.3-omega.json`, which retains the `0.4.2-omega` schema structure. Historical
+supported schemas remain readable without migration. The extension remains
+numeric install version `0.3.5` with display label `0.3.5_middlechild`.
+Bundled runtime versions are unchanged.
 
 ## ✅ Validation
 

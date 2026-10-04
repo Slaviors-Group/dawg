@@ -95,7 +95,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 exit={{ opacity: 0, x: 24, scale: 0.95 }}
                 transition={{ type: "spring", duration: 0.35, bounce: 0.25 }}
                 className={[
-                  "flex items-start gap-2.5 p-3.5 rounded-lg",
+                  "flex items-start gap-3 p-4 rounded-2xl",
                   "border shadow-modal",
                   classes,
                 ].join(" ")}

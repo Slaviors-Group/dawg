@@ -1,8 +1,22 @@
-import { Archive, ArrowRight, Cpu, Flag, Record, ShieldCheck } from "@phosphor-icons/react";
+import {
+  Archive,
+  ArrowCounterClockwise,
+  ArrowRight,
+  ArrowUpRight,
+  BookOpen,
+  Cpu,
+  FileMagnifyingGlass,
+  Flag,
+  PencilSimple,
+  Record,
+  ShieldCheck,
+  UploadSimple,
+} from "@phosphor-icons/react";
 import type React from "react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { type ArtifactItem, useEngine } from "../context/EngineContext";
+import { chooseArtifactArchive } from "../lib/artifactDialogs";
 import { EngineHelpBanner } from "./EngineHelpBanner";
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
@@ -10,11 +24,17 @@ import { Card, CardHeader, CardTitle } from "./ui/Card";
 import { EmptyState } from "./ui/EmptyState";
 import { PageShell } from "./ui/PageShell";
 import { StatCard } from "./ui/StatCard";
+import { useToast } from "./ui/Toast";
 
 interface DashboardProps {
   onReplayArtifact: (artifact: ArtifactItem) => void;
   onEditArtifact: (artifact: ArtifactItem) => void;
   onViewArtifacts: () => void;
+  onStartCapture: () => void;
+  onOpenReplay: () => void;
+  onOpenEditor: () => void;
+  onOpenPolicy: () => void;
+  onOpenGuide: () => void;
 }
 
 const addedTimestamp = (artifact: ArtifactItem) => {
@@ -26,8 +46,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onReplayArtifact,
   onEditArtifact,
   onViewArtifacts,
+  onStartCapture,
+  onOpenReplay,
+  onOpenEditor,
+  onOpenPolicy,
+  onOpenGuide,
 }) => {
-  const { engineStatus, artifacts, doctorReport, isCapturing } = useEngine();
+  const { engineStatus, artifacts, doctorReport, isCapturing, importArtifact } = useEngine();
+  const { error: showToastError } = useToast();
+  const [isImporting, setIsImporting] = useState(false);
   const latestArtifact = useMemo(
     () => [...artifacts].sort((left, right) => addedTimestamp(right) - addedTimestamp(left))[0],
     [artifacts],
@@ -44,208 +71,367 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }, [artifacts]);
 
   const compatibility = doctorReport?.compatibility;
+  const otherArtifacts = Math.max(0, artifacts.length - summaries.captured - summaries.imported);
+  const highestSourceCount = Math.max(1, summaries.captured, summaries.imported, otherArtifacts);
+
+  const handleImport = async () => {
+    if (isImporting) return;
+    setIsImporting(true);
+    try {
+      const archive = await chooseArtifactArchive();
+      if (!archive) return;
+      if (!archive.toLowerCase().endsWith(".dawg")) {
+        showToastError("Choose a .dawg archive");
+        return;
+      }
+      await importArtifact(archive);
+      onViewArtifacts();
+    } catch (error) {
+      showToastError("Could not import artifact", String(error));
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   return (
     <PageShell
       eyebrow={new Date().toLocaleDateString("en-US", {
-        weekday: "short",
+        weekday: "long",
         month: "long",
         day: "numeric",
       })}
-      title="DAWG Workspace"
+      title="Dashboard"
+      subtitle="Capture, inspect, and replay browser issues."
+      actions={
+        <Button
+          variant="secondary"
+          size="sm"
+          iconLeft={<BookOpen size={15} />}
+          onClick={onOpenGuide}
+        >
+          Guide
+        </Button>
+      }
     >
       <EngineHelpBanner />
       {isCapturing && (
-        <div className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-error-border bg-error-bg/50 p-4 shadow-sm backdrop-blur-md">
-          <div className="absolute top-0 left-0 h-full w-1 bg-error-text" />
-          <Record size={18} weight="fill" className="shrink-0 animate-pulse text-error-text" />
-          <p className="text-sm font-semibold text-text-primary">
-            Capture session is live — recording telemetry
-          </p>
+        <div className="flex items-center gap-3 rounded-2xl border border-error-border bg-error-bg px-4 py-3 text-sm font-medium text-error-text">
+          <Record size={17} weight="fill" className="shrink-0 animate-pulse" />
+          Capture is live. Stop it from the Capture page when finished.
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div className="flex flex-col gap-4 xl:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle
-                title="Latest artifact"
-                subtitle="Most recently added local artifact instance"
-              />
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={onViewArtifacts}
-                iconRight={<ArrowRight size={13} />}
-              >
-                View all artifacts
-              </Button>
-            </CardHeader>
-            {latestArtifact ? (
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="min-w-0 truncate text-base font-bold text-text-primary">
-                    {latestArtifact.title || latestArtifact.id}
-                  </h3>
-                  {latestArtifact.origin === "imported" && (
-                    <Badge variant="info" size="sm">
-                      Imported
-                    </Badge>
-                  )}
-                  {latestArtifact.flagged && (
-                    <Badge variant="warning" size="sm">
-                      Flagged{latestArtifact.flagCount ? ` · ${latestArtifact.flagCount}` : ""}
-                    </Badge>
-                  )}
-                  {latestArtifact.revision && (
-                    <Badge variant="brand" size="sm">
-                      Revision {latestArtifact.revision}
-                    </Badge>
-                  )}
-                </div>
-                <div className="grid grid-cols-1 gap-3 rounded-md border border-border bg-canvas-subtle p-3 text-xs sm:grid-cols-2">
-                  <div>
-                    <span className="block text-text-tertiary">Target URL</span>
-                    <span className="font-medium text-text-primary wrap-anywhere">
-                      {latestArtifact.targetUrl || "Not recorded"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-text-tertiary">Added</span>
-                    <span className="font-medium text-text-primary">
-                      {new Date(
-                        latestArtifact.addedAt || latestArtifact.createdAt,
-                      ).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" onClick={() => onReplayArtifact(latestArtifact)}>
-                    Replay
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => onEditArtifact(latestArtifact)}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.8fr)_minmax(280px,1fr)]">
+        <section className="relative flex min-h-[270px] flex-col justify-between overflow-hidden rounded-[26px] bg-brand-500 p-6 text-white sm:p-8">
+          <div
+            className="pointer-events-none absolute -right-10 -top-28 size-80 rounded-full border border-white/15"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute -right-28 -top-44 size-[28rem] rounded-full border border-white/10"
+            aria-hidden="true"
+          />
+          <FileMagnifyingGlass
+            size={70}
+            weight="duotone"
+            className="pointer-events-none absolute right-[19%] top-[16%] text-white/50"
+            aria-hidden="true"
+          />
+          <Archive
+            size={35}
+            weight="fill"
+            className="pointer-events-none absolute right-[8%] bottom-[15%] text-white/35"
+            aria-hidden="true"
+          />
+          <div className="relative z-10">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80">
+              DAWG workspace
+            </span>
+            <h2 className="mt-4 max-w-xl text-[2rem] font-semibold leading-[1.1] tracking-tight sm:text-[2.5rem]">
+              Find the issue. Keep the evidence.
+            </h2>
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-white/85">
+              Turn browser sessions into artifacts your team can inspect and replay.
+            </p>
+          </div>
+          <div className="relative z-10 mt-6 flex flex-wrap items-center gap-2">
+            <Button
+              data-tour="dashboard-start"
+              onClick={onStartCapture}
+              iconRight={<ArrowUpRight size={16} weight="bold" />}
+              className="!bg-[#1c1b2b] !text-white hover:!bg-[#33314a]"
+            >
+              Start capture
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={onViewArtifacts}
+              className="!text-white hover:!bg-white/15"
+            >
+              Browse artifacts
+            </Button>
+          </div>
+        </section>
+
+        <Card data-tour="dashboard-status" className="flex flex-col">
+          <CardHeader>
+            <CardTitle title="Workspace status" />
+            <span className="grid size-9 place-items-center rounded-full bg-brand-100 text-brand-600">
+              <Cpu size={18} weight="duotone" />
+            </span>
+          </CardHeader>
+          <div className="flex items-center justify-between rounded-xl bg-canvas-subtle px-4 py-3">
+            <div>
+              <p className="text-xs text-text-tertiary">Engine</p>
+              <p className="mt-0.5 text-sm font-semibold text-text-primary">
+                {engineStatus.installed ? "Ready to capture" : "Setup needed"}
+              </p>
+            </div>
+            <Badge variant={engineStatus.installed ? "success" : "warning"} dot size="sm">
+              {engineStatus.installed ? "Ready" : "Missing"}
+            </Badge>
+          </div>
+          <div className="mt-5">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-xs font-semibold text-text-secondary">Artifact sources</span>
+              <span className="text-xs text-text-tertiary">{artifacts.length} total</span>
+            </div>
+            <div className="space-y-3">
+              <SourceRow label="Captured" count={summaries.captured} max={highestSourceCount} />
+              <SourceRow label="Imported" count={summaries.imported} max={highestSourceCount} />
+              <SourceRow label="Other" count={otherArtifacts} max={highestSourceCount} />
+            </div>
+          </div>
+          <div className="mt-auto flex items-center justify-between border-t border-border/70 pt-4 text-xs">
+            <span className="text-text-tertiary">Doctor check</span>
+            <span className="font-semibold text-text-primary">
+              {compatibility?.status === "compatible"
+                ? "Compatible"
+                : compatibility?.status === "mismatch"
+                  ? "Mismatch"
+                  : "Not checked"}
+            </span>
+          </div>
+        </Card>
+      </div>
+
+      <div data-tour="dashboard-summary" className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Local artifacts"
+          icon={<Archive size={20} weight="duotone" />}
+          value={artifacts.length}
+          badge={
+            <Badge variant="brand" size="sm">
+              {summaries.imported} imported
+            </Badge>
+          }
+        />
+        <StatCard
+          label="Review flags"
+          icon={<Flag size={20} weight="duotone" />}
+          value={summaries.flagged}
+          badge={<span className="text-xs text-text-tertiary">Needs review</span>}
+        />
+        <StatCard
+          label="Diagnostics"
+          icon={<ShieldCheck size={20} weight="duotone" />}
+          value={summaries.diagnostics}
+          badge={<span className="text-xs text-text-tertiary">Recorded evidence</span>}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.8fr)_minmax(280px,1fr)]">
+        <Card data-tour="dashboard-latest">
+          <CardHeader>
+            <CardTitle title="Latest artifact" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onViewArtifacts}
+              iconRight={<ArrowRight size={14} />}
+            >
+              View all
+            </Button>
+          </CardHeader>
+          {latestArtifact ? (
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="min-w-0 truncate text-lg font-semibold text-text-primary">
+                  {latestArtifact.title || latestArtifact.id}
+                </h3>
+                {latestArtifact.origin === "imported" && (
+                  <Badge variant="info" size="sm">
+                    Imported
+                  </Badge>
+                )}
+                {latestArtifact.flagged && (
+                  <Badge variant="warning" size="sm">
+                    Flagged
+                  </Badge>
+                )}
+                {latestArtifact.revision && (
+                  <Badge variant="brand" size="sm">
+                    Rev {latestArtifact.revision}
+                  </Badge>
+                )}
+              </div>
+              <div className="grid grid-cols-1 gap-3 rounded-xl bg-canvas-subtle p-4 text-sm sm:grid-cols-2">
+                <div className="min-w-0">
+                  <span className="block text-xs text-text-tertiary">Target</span>
+                  <span
+                    className="mt-1 block truncate font-medium text-text-primary"
+                    title={latestArtifact.targetUrl}
                   >
-                    Edit review
-                  </Button>
+                    {latestArtifact.targetUrl || "Not recorded"}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-xs text-text-tertiary">Added</span>
+                  <span className="mt-1 block font-medium text-text-primary">
+                    {new Date(latestArtifact.addedAt || latestArtifact.createdAt).toLocaleString()}
+                  </span>
                 </div>
               </div>
-            ) : (
-              <EmptyState
-                icon={<Archive size={28} weight="light" />}
-                title="No artifacts yet"
-                description="Capture a session or import a .dawg archive from the Artifacts page."
-              />
-            )}
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle
-                title="Recent activity"
-                subtitle="Catalog information available without opening every artifact"
-              />
-            </CardHeader>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Summary
-                label="Recent captures"
-                value={summaries.captured}
-                detail="Local acquisition instances"
-              />
-              <Summary
-                label="Review flags"
-                value={summaries.flagged}
-                detail="Flagged artifact instances"
-              />
-              <Summary
-                label="Diagnostics"
-                value={summaries.diagnostics}
-                detail="Recorded summary total"
-              />
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => onReplayArtifact(latestArtifact)}>
+                  Replay
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => onEditArtifact(latestArtifact)}
+                >
+                  Edit review
+                </Button>
+              </div>
             </div>
-          </Card>
-        </div>
+          ) : (
+            <EmptyState
+              icon={<Archive size={28} weight="regular" />}
+              title="No artifacts yet"
+              description="Capture a session or import a DAWG archive."
+            />
+          )}
+        </Card>
 
-        <div className="flex flex-col gap-4">
-          <h3 className="text-base font-bold text-text-primary">System overview</h3>
-          <StatCard
-            label="Engine status"
-            icon={<Cpu size={18} weight="fill" />}
-            value={
-              <span className={engineStatus.installed ? "text-success-text" : "text-warning-text"}>
-                {engineStatus.installed ? "Ready" : "Missing"}
+        <Card>
+          <CardHeader>
+            <CardTitle title="Quick actions" />
+          </CardHeader>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={onStartCapture}
+              className="flex w-full items-center gap-3 rounded-xl border border-border/70 bg-canvas-subtle px-4 py-3 text-left transition-colors hover:border-brand-300 hover:bg-brand-50"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-600">
+                <Record size={19} />
               </span>
-            }
-            badge={
-              <Badge variant={engineStatus.installed ? "success" : "warning"} dot size="sm">
-                {engineStatus.installed
-                  ? engineStatus.bundled
-                    ? "bundled"
-                    : "path"
-                  : "CLI not found"}
-              </Badge>
-            }
-          />
-          <StatCard
-            label="Local artifacts"
-            icon={<Archive size={18} weight="fill" />}
-            value={artifacts.length}
-            badge={
-              <Badge variant="brand" size="sm">
-                {summaries.imported} imported
-              </Badge>
-            }
-          />
-          <StatCard
-            label="Doctor compatibility"
-            icon={<ShieldCheck size={18} weight="fill" />}
-            value={
-              <span
-                className={
-                  compatibility?.status === "compatible" ? "text-success-text" : "text-warning-text"
-                }
-              >
-                {compatibility?.status === "compatible"
-                  ? "Compatible"
-                  : compatibility?.status === "mismatch"
-                    ? "Mismatch"
-                    : "Unknown"}
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-text-primary">
+                  Capture a session
+                </span>
+                <span className="block text-xs text-text-tertiary">Record a browser issue</span>
               </span>
-            }
-            badge={
-              <Badge
-                variant={compatibility?.status === "compatible" ? "success" : "warning"}
-                size="sm"
-              >
-                {compatibility?.expectedApplicationVersion || "Run Doctor"}
-              </Badge>
-            }
-          />
-          <StatCard
-            label="Flagged artifacts"
-            icon={<Flag size={18} weight="fill" />}
-            value={summaries.flagged}
-            badge={
-              <Badge variant="info" size="sm">
-                Portable review
-              </Badge>
-            }
-          />
-        </div>
+              <ArrowUpRight size={16} className="shrink-0 text-text-tertiary" />
+            </button>
+            <button
+              type="button"
+              onClick={onViewArtifacts}
+              className="flex w-full items-center gap-3 rounded-xl border border-border/70 bg-canvas-subtle px-4 py-3 text-left transition-colors hover:border-brand-300 hover:bg-brand-50"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-600">
+                <Archive size={19} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-text-primary">Open catalog</span>
+                <span className="block text-xs text-text-tertiary">
+                  Inspect and export artifacts
+                </span>
+              </span>
+              <ArrowUpRight size={16} className="shrink-0 text-text-tertiary" />
+            </button>
+            <button
+              type="button"
+              onClick={() => (latestArtifact ? onReplayArtifact(latestArtifact) : onOpenReplay())}
+              className="flex w-full items-center gap-3 rounded-xl border border-border/70 bg-canvas-subtle px-4 py-3 text-left transition-colors hover:border-brand-300 hover:bg-brand-50"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-600">
+                <ArrowCounterClockwise size={19} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-text-primary">
+                  Replay a session
+                </span>
+                <span className="block text-xs text-text-tertiary">Review recorded steps</span>
+              </span>
+              <ArrowUpRight size={16} className="shrink-0 text-text-tertiary" />
+            </button>
+            <button
+              type="button"
+              onClick={() => (latestArtifact ? onEditArtifact(latestArtifact) : onOpenEditor())}
+              className="flex w-full items-center gap-3 rounded-xl border border-border/70 bg-canvas-subtle px-4 py-3 text-left transition-colors hover:border-brand-300 hover:bg-brand-50"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-600">
+                <PencilSimple size={19} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-text-primary">Open Editor</span>
+                <span className="block text-xs text-text-tertiary">Add review flags</span>
+              </span>
+              <ArrowUpRight size={16} className="shrink-0 text-text-tertiary" />
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleImport()}
+              disabled={isImporting}
+              className="flex w-full items-center gap-3 rounded-xl border border-border/70 bg-canvas-subtle px-4 py-3 text-left transition-colors hover:border-brand-300 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-600">
+                <UploadSimple size={19} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-text-primary">
+                  {isImporting ? "Importing..." : "Import .dawg file"}
+                </span>
+                <span className="block text-xs text-text-tertiary">Add a shared artifact</span>
+              </span>
+              <ArrowUpRight size={16} className="shrink-0 text-text-tertiary" />
+            </button>
+            <button
+              type="button"
+              onClick={onOpenPolicy}
+              className="flex w-full items-center gap-3 rounded-xl border border-border/70 bg-canvas-subtle px-4 py-3 text-left transition-colors hover:border-brand-300 hover:bg-brand-50"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-600">
+                <ShieldCheck size={19} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-text-primary">
+                  Sanitizer policy
+                </span>
+                <span className="block text-xs text-text-tertiary">Review data rules</span>
+              </span>
+              <ArrowUpRight size={16} className="shrink-0 text-text-tertiary" />
+            </button>
+          </div>
+        </Card>
       </div>
     </PageShell>
   );
 };
 
-function Summary({ label, value, detail }: { label: string; value: number; detail: string }) {
+function SourceRow({ label, count, max }: { label: string; count: number; max: number }) {
   return (
-    <div className="rounded-md border border-border bg-canvas-subtle p-3">
-      <span className="block text-xs text-text-tertiary">{label}</span>
-      <strong className="mt-1 block text-xl text-text-primary">{value}</strong>
-      <span className="text-[11px] text-text-tertiary">{detail}</span>
+    <div className="grid grid-cols-[72px_minmax(0,1fr)_24px] items-center gap-3 text-xs">
+      <span className="text-text-secondary">{label}</span>
+      <span className="h-2 overflow-hidden rounded-full bg-brand-100 dark:bg-surface-hover">
+        <span
+          className="block h-full rounded-full bg-brand-500"
+          style={{ width: `${(count / max) * 100}%` }}
+        />
+      </span>
+      <span className="text-right font-semibold text-text-primary">{count}</span>
     </div>
   );
 }

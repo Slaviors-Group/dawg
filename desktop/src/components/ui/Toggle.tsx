@@ -23,7 +23,7 @@ export function Toggle({ checked, onChange, label, hint, disabled = false, id }:
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={[
-          "relative inline-flex items-center w-9 h-5 rounded-full",
+          "relative inline-flex items-center w-10 h-6 rounded-full",
           "transition-colors duration-[--duration-base] shrink-0",
           "focus-visible:outline-2 focus-visible:outline-[--color-brand-500] focus-visible:outline-offset-2",
           "disabled:opacity-50 disabled:cursor-not-allowed",
@@ -32,7 +32,7 @@ export function Toggle({ checked, onChange, label, hint, disabled = false, id }:
       >
         <span
           className={[
-            "absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm",
+            "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm",
             "transition-transform duration-[--duration-base]",
             checked ? "translate-x-4" : "translate-x-0",
           ].join(" ")}

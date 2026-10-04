@@ -32,15 +32,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputId = id ?? generatedId;
 
     return (
-      <div className={["flex flex-col gap-1", wrapperClassName].join(" ")}>
+      <div className={["flex flex-col gap-1.5", wrapperClassName].join(" ")}>
         {label && (
-          <label htmlFor={inputId} className="text-xs font-medium text-text-secondary">
+          <label htmlFor={inputId} className="text-xs font-semibold text-text-secondary">
             {label}
           </label>
         )}
         <div className="relative flex items-center">
           {iconLeft && (
-            <span className="absolute left-2.5 text-text-tertiary pointer-events-none" aria-hidden>
+            <span className="absolute left-3.5 text-text-tertiary pointer-events-none" aria-hidden>
               {iconLeft}
             </span>
           )}
@@ -49,23 +49,23 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             disabled={disabled}
             className={[
-              "w-full h-9 px-3 text-sm rounded-md font-[--font-sans]",
-              "bg-canvas-subtle text-text-primary",
+              "w-full h-11 px-4 text-sm rounded-xl font-[--font-sans]",
+              "bg-surface text-text-primary shadow-[0_1px_2px_hsl(240_20%_20%_/_0.02)]",
               "border transition-colors duration-[--duration-fast]",
               "placeholder:text-text-disabled",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50",
+              "focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-500/10",
               "disabled:opacity-50 disabled:cursor-not-allowed",
               error
                 ? "border-error-border focus:border-error-border"
                 : "border-border focus:border-brand-400",
-              iconLeft && "pl-9",
-              iconRight && "pr-9",
+              iconLeft && "pl-10",
+              iconRight && "pr-10",
               className,
             ].join(" ")}
             {...props}
           />
           {iconRight && (
-            <span className="absolute right-2.5 text-text-tertiary" aria-hidden>
+            <span className="absolute right-3.5 text-text-tertiary" aria-hidden>
               {iconRight}
             </span>
           )}

@@ -19,18 +19,18 @@ interface DiagnosticRemovalModalProps {
 }
 
 const categories: Array<{ id: DiagnosticCategory; label: string; description: string }> = [
-  { id: "console", label: "Console", description: "Remove retained console records." },
+  { id: "console", label: "Console", description: "Console records" },
   {
     id: "network",
     label: "Network",
-    description: "Remove network records and their retained bodies.",
+    description: "Network records and bodies",
   },
-  { id: "errors", label: "Errors", description: "Remove retained error records." },
-  { id: "device", label: "Device", description: "Remove the captured browser device profile." },
+  { id: "errors", label: "Errors", description: "Error records" },
+  { id: "device", label: "Device", description: "Browser profile" },
   {
     id: "bodies",
     label: "All bodies",
-    description: "Remove all retained request and response bodies.",
+    description: "Request and response bodies",
   },
 ];
 
@@ -105,8 +105,8 @@ export function DiagnosticRemovalModal({
     <Modal
       open={open}
       onClose={close}
-      title="Create reviewed diagnostic copy"
-      subtitle="The original artifact stays unchanged. Removed evidence cannot be restored in the new copy."
+      title="Remove evidence"
+      subtitle="Create a new copy. The original stays unchanged."
       footer={
         <div className="flex justify-end gap-2">
           <Button variant="secondary" size="sm" onClick={close} disabled={submitting}>
@@ -119,20 +119,18 @@ export function DiagnosticRemovalModal({
             disabled={!canSubmit}
             loading={submitting}
           >
-            Create reviewed copy
+            Create copy
           </Button>
         </div>
       }
     >
       <div className="flex flex-col gap-4 text-sm">
         <fieldset className="flex flex-col gap-2">
-          <legend className="text-xs font-medium text-text-primary">
-            Remove complete evidence categories
-          </legend>
+          <legend className="text-xs font-medium text-text-primary">Remove categories</legend>
           {categories.map((category) => (
             <label
               key={category.id}
-              className="flex cursor-pointer items-start gap-2 rounded-md border border-border px-3 py-2 text-xs"
+              className="flex cursor-pointer items-start gap-3 rounded-xl border border-border px-3 py-3 text-xs"
             >
               <input
                 type="checkbox"
@@ -151,9 +149,9 @@ export function DiagnosticRemovalModal({
         {bodyRefs.length > 0 && !removesAllBodies ? (
           <fieldset className="flex flex-col gap-2">
             <legend className="text-xs font-medium text-text-primary">
-              Or remove selected retained bodies
+              Remove selected bodies
             </legend>
-            <div className="max-h-36 overflow-y-auto rounded-md border border-border divide-y divide-border">
+            <div className="max-h-36 overflow-y-auto rounded-xl border border-border divide-y divide-border">
               {bodyRefs.map((ref) => (
                 <label
                   key={ref}
@@ -181,12 +179,10 @@ export function DiagnosticRemovalModal({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
           <Input
             id="reviewed-artifact-name"
-            label="New artifact directory name"
+            label="New copy name"
             value={directoryName}
             onChange={(event) => setDirectoryName(event.target.value)}
-            error={
-              !validDirectoryName ? "Use a non-empty name without path separators." : undefined
-            }
+            error={!validDirectoryName ? "Enter a name without / or \\." : undefined}
           />
           <Button
             variant="secondary"
@@ -194,25 +190,22 @@ export function DiagnosticRemovalModal({
             onClick={() => void chooseParent()}
             disabled={submitting}
           >
-            Choose parent folder
+            Choose folder
           </Button>
         </div>
-        <p className="break-all rounded-md border border-border bg-canvas-subtle p-2 text-xs text-text-secondary">
+        <p className="break-all rounded-xl bg-canvas-subtle p-3 text-xs text-text-secondary">
           {parentDirectory
             ? `New copy: ${parentDirectory} / ${directoryName || "…"}`
-            : "Choose an existing parent folder for the new artifact directory."}
+            : "Choose where to save the new copy."}
         </p>
-        <label className="flex cursor-pointer items-start gap-2 text-xs text-text-primary">
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-3 text-xs text-text-primary">
           <input
             type="checkbox"
             checked={confirmed}
             onChange={(event) => setConfirmed(event.target.checked)}
             className="mt-0.5 accent-[--color-brand-500]"
           />
-          <span>
-            I reviewed the selected evidence removal and understand this creates a new artifact with
-            new digests and no inherited provenance.
-          </span>
+          <span>I understand the new copy removes this evidence and has new digests.</span>
         </label>
       </div>
     </Modal>

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" role="img" aria-labelledby="title desc">
+  <title id="title">Share a DAWG artifact from QA to development</title>
+  <desc id="desc">A reviewed QA session and an imported development session share one portable DAWG archive.</desc>
+  <rect x="48" y="30" width="504" height="340" rx="20" fill="#fff" stroke="#cbbbef" stroke-width="2"/>
+  <path d="M48 50c0-11 9-20 20-20h464c11 0 20 9 20 20v30H48V50Z" fill="#f3effd"/>
+  <path d="M48 80h504" stroke="#d7caf3" stroke-width="2"/>
+  <text x="72" y="61" fill="#6040a9" font-family="Arial,sans-serif" font-size="13" font-weight="700">TEAM HANDOFF</text>
+  <rect x="70" y="104" width="211" height="225" rx="12" fill="#f8f6fd" stroke="#e3d9f5"/>
+  <rect x="319" y="104" width="211" height="225" rx="12" fill="#f8f6fd" stroke="#e3d9f5"/>
+  <rect x="88" y="121" width="54" height="25" rx="8" fill="#e5dbf8"/>
+  <text x="103" y="138" fill="#6040a9" font-family="Arial,sans-serif" font-size="12" font-weight="700">QA</text>
+  <rect x="337" y="121" width="61" height="25" rx="8" fill="#e5dbf8"/>
+  <text x="351" y="138" fill="#6040a9" font-family="Arial,sans-serif" font-size="12" font-weight="700">DEV</text>
+  <rect x="89" y="165" width="172" height="78" rx="9" fill="#e8dffa"/>
+  <rect x="103" y="180" width="69" height="48" rx="6" fill="#c6b2ed"/>
+  <rect x="184" y="181" width="60" height="7" rx="3.5" fill="#aa91e3"/>
+  <rect x="184" y="199" width="50" height="6" rx="3" fill="#c7b6e9"/>
+  <rect x="184" y="216" width="57" height="6" rx="3" fill="#c7b6e9"/>
+  <rect x="338" y="165" width="172" height="78" rx="9" fill="#e8dffa"/>
+  <rect x="352" y="180" width="69" height="48" rx="6" fill="#c6b2ed"/>
+  <rect x="433" y="181" width="60" height="7" rx="3.5" fill="#aa91e3"/>
+  <rect x="433" y="199" width="50" height="6" rx="3" fill="#c7b6e9"/>
+  <rect x="433" y="216" width="57" height="6" rx="3" fill="#c7b6e9"/>
+  <rect x="89" y="264" width="172" height="7" rx="3.5" fill="#b7a5df"/>
+  <rect x="89" y="284" width="130" height="6" rx="3" fill="#d9cfed"/>
+  <rect x="338" y="264" width="172" height="7" rx="3.5" fill="#b7a5df"/>
+  <rect x="338" y="284" width="130" height="6" rx="3" fill="#d9cfed"/>
+  <rect x="244" y="141" width="112" height="160" rx="13" fill="#7650cc"/>
+  <path d="M323 141v31h33" fill="#9b7cdd"/>
+  <path d="M323 141v31h33" fill="none" stroke="#cbb8ee" stroke-width="2"/>
+  <rect x="262" y="190" width="75" height="61" rx="9" fill="#fff" opacity=".16"/>
+  <path d="M275 217h49M275 229h40" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".85"/>
+  <text x="263" y="277" fill="#fff" font-family="Arial,sans-serif" font-size="18" font-weight="700">.dawg</text>
+</svg>

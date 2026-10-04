@@ -39,7 +39,7 @@ function tiltStyle() {
 
         <div class="dh-hero-ctas">
           <a class="dh-cta dh-cta-lg" href="/docs/getting-started">Get Started</a>
-          <a class="dh-ghost dh-ghost-lg" href="https://github.com/Slaviors-Group/dawg/releases/download/omega-2/DAWG_0.4.2_x64-setup.exe">Download for Windows</a>
+          <a class="dh-ghost dh-ghost-lg" href="https://github.com/Slaviors-Group/dawg/releases/download/omega-3/DAWG_0.4.3_x64-setup.exe">Download for Windows</a>
           <a class="dh-options" href="/docs/installation">Installation options &rarr;</a>
         </div>
       </div>

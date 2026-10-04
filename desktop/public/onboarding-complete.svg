@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" role="img" aria-labelledby="title desc">
+  <title id="title">Celebrate completing DAWG onboarding</title>
+  <desc id="desc">Colorful confetti surrounding the DAWG logo.</desc>
+
+  <path d="m112 77 7 18 18 7-18 7-7 18-7-18-18-7 18-7Z" fill="#b18fe4"/>
+  <path d="m490 84 6 15 15 6-15 6-6 15-6-15-15-6 15-6Z" fill="#e7ad52"/>
+  <path d="m486 283 5 13 13 5-13 5-5 13-5-13-13-5 13-5Z" fill="#a98add"/>
+  <path d="m125 283 5 12 12 5-12 5-5 12-5-12-12-5 12-5Z" fill="#54b984"/>
+
+  <rect x="176" y="50" width="11" height="23" rx="3" transform="rotate(-28 176 50)" fill="#7650cc"/>
+  <rect x="405" y="51" width="11" height="23" rx="3" transform="rotate(25 405 51)" fill="#54b984"/>
+  <rect x="75" y="193" width="11" height="23" rx="3" transform="rotate(64 75 193)" fill="#e7ad52"/>
+  <rect x="517" y="191" width="11" height="23" rx="3" transform="rotate(-64 517 191)" fill="#7650cc"/>
+  <rect x="177" y="333" width="11" height="23" rx="3" transform="rotate(27 177 333)" fill="#e7ad52"/>
+  <rect x="420" y="332" width="11" height="23" rx="3" transform="rotate(-29 420 332)" fill="#7650cc"/>
+</svg>

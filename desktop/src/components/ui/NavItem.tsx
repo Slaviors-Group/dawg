@@ -14,10 +14,10 @@ export function NavItem({ icon, label, active = false, badge, onClick }: NavItem
       type="button"
       onClick={onClick}
       className={[
-        "w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium",
+        "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium",
         "transition-all duration-[--duration-fast] group",
         active
-          ? "bg-brand-100 text-brand-700"
+          ? "bg-brand-100 text-brand-700 font-semibold"
           : "text-text-secondary hover:bg-surface-hover hover:text-text-primary",
       ].join(" ")}
       aria-current={active ? "page" : undefined}

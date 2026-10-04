@@ -181,7 +181,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
     return artifacts.filter((artifact) => {
       if (originFilter !== "all" && artifact.origin !== originFilter) return false;
       if (!query) return true;
-      return [artifact.title, artifact.id, artifact.targetUrl, artifact.path]
+      return [artifact.title, artifact.id, artifact.instanceId, artifact.targetUrl, artifact.path]
         .join(" ")
         .toLowerCase()
         .includes(query);
@@ -329,7 +329,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
   const handleCancelReplay = async () => {
     if (!isReplaying || isCancelling) return;
     setIsCancelling(true);
-    addLogLine("Stopping replay — terminating browser and engine process...");
+    addLogLine("Stopping replay. Closing browser and engine process...");
     try {
       await engine.cancelReplay();
     } catch (err) {
@@ -340,13 +340,10 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
   };
 
   return (
-    <PageShell title="Replay Engine" subtitle="Execute deterministic sandboxed artifact replay">
-      <Card>
+    <PageShell title="Replay" subtitle="Inspect a captured browser session.">
+      <Card data-tour="replay-choose">
         <CardHeader>
-          <CardTitle
-            title="Artifact Selection"
-            subtitle="Choose a captured session to replay in the sandbox"
-          />
+          <CardTitle title="Choose artifact" />
         </CardHeader>
 
         <div className="flex flex-col gap-4">
@@ -357,6 +354,12 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
               placeholder="Name, URL, digest, or path..."
               value={artifactSearch}
               onChange={(event) => setArtifactSearch(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" || !artifactSearch.trim()) return;
+                event.preventDefault();
+                const firstMatch = visibleArtifacts[0];
+                if (firstMatch) setSelectedArtifact(artifactIdentity(firstMatch));
+              }}
               iconLeft={<MagnifyingGlass size={14} />}
             />
             <Select
@@ -373,6 +376,12 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
               ]}
             />
           </div>
+          {artifactSearch.trim() && (
+            <output className="text-xs text-text-tertiary">
+              {visibleArtifacts.length} {visibleArtifacts.length === 1 ? "match" : "matches"}. Enter
+              to select the first.
+            </output>
+          )}
 
           <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
             <Select
@@ -389,7 +398,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
               disabled={visibleArtifacts.length === 0}
               options={visibleArtifacts.map((art) => ({
                 value: artifactIdentity(art),
-                label: `${art.title || art.id}${art.targetUrl ? ` — ${art.targetUrl}` : ""} (${new Date(art.createdAt).toLocaleString()})`,
+                label: `${art.title || art.id}${art.targetUrl ? ` | ${art.targetUrl}` : ""} (${new Date(art.createdAt).toLocaleString()})`,
               }))}
             />
 
@@ -448,12 +457,9 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
         </div>
       </Card>
 
-      <Card>
+      <Card data-tour="replay-controls">
         <CardHeader>
-          <CardTitle
-            title="Replay Player"
-            subtitle="Synchronized with the controls in replay Chromium"
-          />
+          <CardTitle title="Replay controls" />
           <Badge
             variant={replayReady ? (replayPlaying ? "success" : "info") : "default"}
             size="sm"
@@ -591,7 +597,7 @@ export const ReplayViewer: React.FC<ReplayViewerProps> = ({ selectedArtifactIden
       />
 
       <div className="flex flex-col gap-4 mt-2">
-        <h3 className="text-base font-bold text-text-primary">Execution Logs</h3>
+        <h3 className="text-base font-semibold text-text-primary">Logs</h3>
         <LogStreamer />
       </div>
     </PageShell>

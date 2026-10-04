@@ -7,6 +7,7 @@ interface BadgeProps {
   dot?: boolean;
   children: React.ReactNode;
   className?: string;
+  title?: string;
 }
 
 const variantClasses: Record<Variant, string> = {
@@ -28,8 +29,8 @@ const dotClasses: Record<Variant, string> = {
 };
 
 const sizeClasses: Record<Size, string> = {
-  sm: "px-1.5 py-0.5 text-[10px] gap-1 rounded-sm",
-  md: "px-2 py-0.5 text-xs gap-1.5 rounded-sm",
+  sm: "px-2.5 py-1 text-[10px] gap-1 rounded-full",
+  md: "px-3 py-1 text-xs gap-1.5 rounded-full",
 };
 
 export function Badge({
@@ -38,9 +39,11 @@ export function Badge({
   dot = false,
   children,
   className = "",
+  title,
 }: BadgeProps) {
   return (
     <span
+      title={title}
       className={[
         "inline-flex items-center font-medium border",
         variantClasses[variant],

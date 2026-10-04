@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 20 550 370" role="img" aria-labelledby="title desc">
+  <title id="title">From browser capture to DAWG artifact</title>
+  <desc id="desc">A browser window shows a recorded interaction beside a saved DAWG artifact card.</desc>
+  <rect x="49" y="51" width="423" height="286" rx="20" fill="#7650cc" opacity=".13"/>
+  <rect x="39" y="40" width="423" height="286" rx="20" fill="#fff" stroke="#cbbbef" stroke-width="2"/>
+  <path d="M39 60c0-11 9-20 20-20h383c11 0 20 9 20 20v31H39V60Z" fill="#f3effd"/>
+  <path d="M39 91h423" stroke="#d7caf3" stroke-width="2"/>
+  <circle cx="65" cy="66" r="5" fill="#aa91e3"/>
+  <circle cx="83" cy="66" r="5" fill="#cbbbef"/>
+  <circle cx="101" cy="66" r="5" fill="#cbbbef"/>
+  <rect x="133" y="56" width="238" height="20" rx="10" fill="#fff" stroke="#ded5f4"/>
+  <path d="M150 66h108" stroke="#b6a8d5" stroke-width="4" stroke-linecap="round"/>
+  <rect x="63" y="114" width="111" height="188" rx="10" fill="#f5f2fc"/>
+  <rect x="79" y="132" width="78" height="9" rx="4.5" fill="#a58cde"/>
+  <rect x="79" y="158" width="54" height="6" rx="3" fill="#d4c7ef"/>
+  <rect x="79" y="177" width="69" height="6" rx="3" fill="#d4c7ef"/>
+  <rect x="79" y="196" width="57" height="6" rx="3" fill="#d4c7ef"/>
+  <rect x="79" y="260" width="79" height="25" rx="7" fill="#7650cc"/>
+  <rect x="194" y="114" width="241" height="104" rx="11" fill="#e7def9"/>
+  <rect x="207" y="129" width="106" height="74" rx="8" fill="#ccb9ef"/>
+  <path d="m218 191 27-31 18 16 19-25 20 40Z" fill="#a688df"/>
+  <circle cx="229" cy="146" r="8" fill="#fff" opacity=".85"/>
+  <rect x="327" y="131" width="85" height="8" rx="4" fill="#a58cde"/>
+  <rect x="327" y="152" width="69" height="6" rx="3" fill="#c2afe9"/>
+  <rect x="327" y="169" width="78" height="6" rx="3" fill="#c2afe9"/>
+  <rect x="327" y="186" width="53" height="6" rx="3" fill="#c2afe9"/>
+  <rect x="194" y="237" width="241" height="65" rx="10" fill="#f8f6fd" stroke="#e4dcf4"/>
+  <rect x="211" y="254" width="33" height="31" rx="7" fill="#e7def9"/>
+  <circle cx="227" cy="269" r="6" fill="#8059d7"/>
+  <rect x="257" y="254" width="104" height="7" rx="3.5" fill="#ab98d7"/>
+  <rect x="257" y="273" width="149" height="6" rx="3" fill="#d3c9e8"/>
+  <g transform="rotate(-7 455 329)">
+    <rect x="348" y="268" width="205" height="86" rx="17" fill="#6540b8" opacity=".15"/>
+    <rect x="341" y="260" width="205" height="86" rx="17" fill="#fff" stroke="#a98ce2" stroke-width="2"/>
+    <rect x="359" y="280" width="42" height="42" rx="11" fill="#7650cc"/>
+    <path d="M371 299h18m-9-9v18" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+    <text x="414" y="297" fill="#33264f" font-family="Arial,sans-serif" font-size="16" font-weight="700">Artifact saved</text>
+    <text x="414" y="317" fill="#77698f" font-family="Arial,sans-serif" font-size="11">Portable .dawg archive</text>
+  </g>
+</svg>

@@ -7,7 +7,7 @@ interface ProgressBarProps {
   variant?: "brand" | "success" | "warning" | "error";
 }
 
-const trackHeight = { sm: "h-1", md: "h-2" };
+const trackHeight = { sm: "h-1.5", md: "h-2.5" };
 
 const fillColor = {
   brand: "bg-brand-500",
@@ -28,7 +28,7 @@ export function ProgressBar({
   return (
     <div className="flex flex-col gap-1">
       {label && (
-        <div className="flex items-center justify-between text-xs text-text-tertiary">
+        <div className="flex items-center justify-between text-xs font-medium text-text-secondary">
           <span>{label}</span>
           <span className="font-mono">{clampedValue}%</span>
         </div>

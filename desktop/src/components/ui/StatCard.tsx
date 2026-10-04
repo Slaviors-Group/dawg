@@ -20,19 +20,23 @@ export function StatCard({ label, value, icon, badge, trend, className = "" }: S
   return (
     <div
       className={[
-        "bg-surface border border-border rounded-lg",
-        "p-4 flex flex-col gap-3 shadow-card",
+        "bg-surface border border-border/70 rounded-2xl",
+        "p-5 flex flex-col gap-4 shadow-card",
         className,
       ].join(" ")}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium text-text-secondary uppercase tracking-wide">
-          {label}
-        </span>
-        {icon && <span className="text-text-tertiary shrink-0">{icon}</span>}
+        <span className="text-xs font-semibold text-text-secondary">{label}</span>
+        {icon && (
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-700">
+            {icon}
+          </span>
+        )}
       </div>
       <div className="flex items-end justify-between gap-2">
-        <span className="text-2xl font-semibold text-text-primary leading-none">{value}</span>
+        <span className="text-[1.75rem] font-semibold text-text-primary leading-none tracking-tight">
+          {value}
+        </span>
         {badge}
       </div>
       {trend && <p className={`text-xs font-medium ${trendColor}`}>{trend.label}</p>}

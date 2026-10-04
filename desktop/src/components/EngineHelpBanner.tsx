@@ -12,14 +12,12 @@ export const EngineHelpBanner: React.FC = () => {
   }
 
   return (
-    <Card className="!bg-warning-bg !border-warning-border">
-      <div className="flex flex-col gap-4">
+    <Card className="!border-warning-border !bg-warning-bg">
+      <div className="flex flex-col gap-3">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-2">
-            <WarningCircle size={24} weight="fill" className="text-warning-text" />
-            <h3 className="text-sm font-semibold text-warning-text">
-              DAWG Engine CLI Binary Not Found on PATH
-            </h3>
+            <WarningCircle size={21} weight="fill" className="text-warning-text" />
+            <h3 className="text-sm font-semibold text-warning-text">DAWG engine not found</h3>
           </div>
           <Button
             variant="secondary"
@@ -27,34 +25,34 @@ export const EngineHelpBanner: React.FC = () => {
             onClick={refetchEngineStatus}
             loading={isCheckingEngine}
             iconLeft={!isCheckingEngine && <ArrowsClockwise size={14} />}
-            className="!bg-surface !text-warning-text !border-warning-border hover:!bg-warning-border hover:!text-white shrink-0"
+            className="shrink-0 !border-warning-border !bg-surface !text-warning-text hover:!bg-warning-border hover:!text-white"
           >
-            {isCheckingEngine ? "Probing..." : "Re-probe PATH"}
+            {isCheckingEngine ? "Checking..." : "Check again"}
           </Button>
         </div>
 
-        <p className="text-xs text-warning-text/80 leading-relaxed">
-          The Desktop Shell uses Tauri IPC to spawn `dawg` CLI subprocesses. To build and install
-          the engine binary locally:
-        </p>
+        <p className="text-xs text-warning-text">Install the DAWG CLI to capture and replay.</p>
 
-        <div className="bg-warning-border/30 border border-warning-border/50 p-3 rounded-md font-mono text-xs text-warning-text overflow-x-auto space-y-1">
-          <div>
-            <span className="opacity-60"># 1. Navigate to engine directory</span>
+        <details className="text-xs text-warning-text">
+          <summary className="w-fit cursor-pointer font-semibold">Show setup steps</summary>
+          <div className="mt-3 space-y-1 overflow-x-auto rounded-xl border border-warning-border/50 bg-surface p-3 font-mono">
+            <div>
+              <span className="opacity-60"># 1. Navigate to engine directory</span>
+            </div>
+            <div>
+              <span className="font-semibold">cd</span> dawg/engine
+            </div>
+            <div className="mt-2">
+              <span className="opacity-60"># 2. Build the CLI binary</span>
+            </div>
+            <div>
+              <span className="font-semibold">go build</span> -o dawg ./cmd/dawg
+            </div>
+            <div className="mt-2">
+              <span className="opacity-60"># 3. Add to system PATH or execute dawg init</span>
+            </div>
           </div>
-          <div>
-            <span className="font-semibold">cd</span> dawg/engine
-          </div>
-          <div className="mt-2">
-            <span className="opacity-60"># 2. Build the CLI binary</span>
-          </div>
-          <div>
-            <span className="font-semibold">go build</span> -o dawg ./cmd/dawg
-          </div>
-          <div className="mt-2">
-            <span className="opacity-60"># 3. Add to system PATH or execute dawg init</span>
-          </div>
-        </div>
+        </details>
       </div>
     </Card>
   );
