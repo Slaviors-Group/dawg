@@ -1,4 +1,5 @@
 import { defineConfig, type HeadConfig } from "vitepress";
+import { withMermaid } from "vitepress-plugin-mermaid";
 import tailwindcss from "@tailwindcss/vite";
 
 const siteUrl = "https://dawg.slaviors.id";
@@ -40,7 +41,7 @@ const softwareApplicationSchema = {
 };
 
 // https://vitepress.dev/reference/site-config
-export default defineConfig({
+export default withMermaid(defineConfig({
   lang: "en-US",
   title: "DAWG",
   titleTemplate: ":title | DAWG",
@@ -143,6 +144,9 @@ export default defineConfig({
 
   vite: {
     plugins: [tailwindcss()],
+    optimizeDeps: {
+      include: ["mermaid", "vitepress-plugin-mermaid"],
+    },
   },
 
   themeConfig: {
@@ -249,4 +253,4 @@ export default defineConfig({
       text: "Edit this page on GitHub",
     },
   },
-});
+}));
