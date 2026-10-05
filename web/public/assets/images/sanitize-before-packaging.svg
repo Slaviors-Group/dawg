@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" role="img" aria-labelledby="title desc">
+  <title id="title">Sanitize a capture before packaging</title>
+  <desc id="desc">Capture data passes through a sanitizing step and an OPA policy check.</desc>
+  <rect x="39" y="35" width="530" height="340" rx="20" fill="#7650cc" opacity=".13"/>
+  <rect x="30" y="25" width="530" height="340" rx="20" fill="#fff" stroke="#cbbbef" stroke-width="2"/>
+  <path d="M30 45c0-11 9-20 20-20h490c11 0 20 9 20 20v40H30V45Z" fill="#f3effd"/>
+  <path d="M30 85h530" stroke="#d7caf3" stroke-width="2"/>
+  <circle cx="54" cy="55" r="5" fill="#aa91e3"/>
+  <circle cx="72" cy="55" r="5" fill="#cbbbef"/>
+  <circle cx="90" cy="55" r="5" fill="#cbbbef"/>
+  <text x="116" y="61" fill="#6040a9" font-family="Arial,sans-serif" font-size="14" font-weight="700">SANITIZE BEFORE PACKAGING</text>
+
+  <rect x="50" y="105" width="145" height="237" rx="12" fill="#f8f6fd" stroke="#e3d9f5"/>
+  <rect x="64" y="120" width="81" height="25" rx="8" fill="#e5dbf8"/>
+  <text x="75" y="137" fill="#6040a9" font-family="Arial,sans-serif" font-size="12" font-weight="700">CAPTURE</text>
+  <rect x="65" y="163" width="115" height="54" rx="8" fill="#e8dffa"/>
+  <rect x="77" y="176" width="70" height="7" rx="3.5" fill="#aa91e3"/>
+  <rect x="77" y="193" width="91" height="6" rx="3" fill="#c7b6e9"/>
+  <rect x="65" y="229" width="115" height="54" rx="8" fill="#e8dffa"/>
+  <rect x="77" y="242" width="83" height="7" rx="3.5" fill="#aa91e3"/>
+  <rect x="77" y="259" width="61" height="6" rx="3" fill="#c7b6e9"/>
+  <rect x="65" y="300" width="86" height="6" rx="3" fill="#d9cfed"/>
+  <path d="M201 223h21m-8-8 8 8-8 8" fill="none" stroke="#7650cc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="227" y="105" width="145" height="237" rx="12" fill="#f8f6fd" stroke="#e3d9f5"/>
+  <rect x="241" y="120" width="91" height="25" rx="8" fill="#e5dbf8"/>
+  <text x="251" y="137" fill="#6040a9" font-family="Arial,sans-serif" font-size="12" font-weight="700">SANITIZE</text>
+  <path d="M299 163c-18 11-38 15-48 17v38c0 31 17 54 48 70 31-16 48-39 48-70v-38c-10-2-30-6-48-17Z" fill="#7650cc"/>
+  <path d="m279 224 14 14 27-30" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M378 223h21m-8-8 8 8-8 8" fill="none" stroke="#7650cc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="404" y="105" width="136" height="237" rx="12" fill="#f8f6fd" stroke="#e3d9f5"/>
+  <rect x="418" y="120" width="97" height="25" rx="8" fill="#e5dbf8"/>
+  <text x="430" y="137" fill="#6040a9" font-family="Arial,sans-serif" font-size="12" font-weight="700">OPA POLICY</text>
+  <circle cx="472" cy="188" r="28" fill="#e8dffa"/>
+  <circle cx="472" cy="188" r="20" fill="#7650cc"/>
+  <path d="m462 188 7 7 13-15" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="422" y="223" width="100" height="7" rx="3.5" fill="#aa91e3"/>
+  <rect x="432" y="240" width="80" height="6" rx="3" fill="#d9cfed"/>
+</svg>

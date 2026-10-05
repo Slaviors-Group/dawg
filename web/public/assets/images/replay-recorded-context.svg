@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" role="img" aria-labelledby="title desc">
+  <title id="title">Replay a recorded browser session</title>
+  <desc id="desc">A captured page plays inside a browser window with a timeline of recorded actions and replay diagnostics.</desc>
+  <rect x="48" y="39" width="512" height="333" rx="20" fill="#7650cc" opacity=".13"/>
+  <rect x="39" y="30" width="512" height="333" rx="20" fill="#fff" stroke="#cbbbef" stroke-width="2"/>
+  <path d="M39 50c0-11 9-20 20-20h472c11 0 20 9 20 20v36H39V50Z" fill="#f3effd"/>
+  <path d="M39 86h512" stroke="#d7caf3" stroke-width="2"/>
+  <circle cx="62" cy="58" r="5" fill="#aa91e3"/>
+  <circle cx="80" cy="58" r="5" fill="#cbbbef"/>
+  <circle cx="98" cy="58" r="5" fill="#cbbbef"/>
+  <text x="128" y="64" fill="#6040a9" font-family="Arial,sans-serif" font-size="14" font-weight="700">REPLAY SESSION</text>
+
+  <rect x="59" y="104" width="313" height="182" rx="12" fill="#f8f6fd" stroke="#e3d9f5"/>
+  <rect x="76" y="120" width="79" height="150" rx="8" fill="#e8dffa"/>
+  <rect x="88" y="134" width="50" height="7" rx="3.5" fill="#a58cde"/>
+  <rect x="88" y="154" width="57" height="5" rx="2.5" fill="#c7b6e9"/>
+  <rect x="88" y="169" width="43" height="5" rx="2.5" fill="#c7b6e9"/>
+  <rect x="88" y="184" width="53" height="5" rx="2.5" fill="#c7b6e9"/>
+  <rect x="88" y="237" width="54" height="19" rx="6" fill="#7650cc"/>
+  <rect x="170" y="120" width="183" height="67" rx="8" fill="#e8dffa"/>
+  <rect x="183" y="133" width="69" height="42" rx="6" fill="#c6b2ed"/>
+  <path d="m192 166 17-17 12 11 13-15 10 21Z" fill="#a688df"/>
+  <circle cx="198" cy="144" r="5" fill="#fff" opacity=".85"/>
+  <rect x="265" y="134" width="72" height="7" rx="3.5" fill="#aa91e3"/>
+  <rect x="265" y="151" width="60" height="5" rx="2.5" fill="#c7b6e9"/>
+  <rect x="265" y="165" width="65" height="5" rx="2.5" fill="#c7b6e9"/>
+  <rect x="170" y="199" width="183" height="71" rx="8" fill="#fff" stroke="#e3d9f5"/>
+  <rect x="184" y="215" width="96" height="7" rx="3.5" fill="#ab98d7"/>
+  <rect x="184" y="233" width="149" height="5" rx="2.5" fill="#d3c9e8"/>
+  <rect x="184" y="248" width="112" height="5" rx="2.5" fill="#d3c9e8"/>
+  <rect x="386" y="104" width="145" height="182" rx="12" fill="#f8f6fd" stroke="#e3d9f5"/>
+  <rect x="400" y="120" width="109" height="25" rx="8" fill="#e5dbf8"/>
+  <text x="412" y="137" fill="#6040a9" font-family="Arial,sans-serif" font-size="11" font-weight="700">DIAGNOSTICS</text>
+  <circle cx="409" cy="169" r="5" fill="#7650cc"/>
+  <rect x="424" y="165" width="83" height="7" rx="3.5" fill="#aa91e3"/>
+  <rect x="424" y="181" width="63" height="5" rx="2.5" fill="#d9cfed"/>
+  <circle cx="409" cy="210" r="5" fill="#a58cde"/>
+  <rect x="424" y="206" width="71" height="7" rx="3.5" fill="#aa91e3"/>
+  <rect x="424" y="222" width="82" height="5" rx="2.5" fill="#d9cfed"/>
+  <circle cx="409" cy="251" r="5" fill="#cbbbef"/>
+  <rect x="424" y="247" width="74" height="7" rx="3.5" fill="#aa91e3"/>
+  <rect x="424" y="263" width="52" height="5" rx="2.5" fill="#d9cfed"/>
+
+  <circle cx="79" cy="320" r="16" fill="#7650cc"/>
+  <path d="m75 312 12 8-12 8v-16Z" fill="#fff"/>
+  <rect x="111" y="316" width="407" height="8" rx="4" fill="#e5dbf8"/>
+  <rect x="111" y="316" width="230" height="8" rx="4" fill="#7650cc"/>
+  <circle cx="193" cy="320" r="5" fill="#fff" stroke="#7650cc" stroke-width="2"/>
+  <circle cx="273" cy="320" r="5" fill="#fff" stroke="#7650cc" stroke-width="2"/>
+  <circle cx="341" cy="320" r="10" fill="#fff" stroke="#7650cc" stroke-width="3"/>
+  <circle cx="456" cy="320" r="5" fill="#cbbbef"/>
+</svg>

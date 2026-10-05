@@ -2,6 +2,20 @@
 import { useScrollReveal } from '../composables/useScrollReveal'
 
 const { isRevealed, sectionRef } = useScrollReveal()
+
+// Phosphor Icons PawPrint, fill weight: https://github.com/phosphor-icons/core/blob/main/assets/fill/paw-print-fill.svg
+const pawPath = 'M240,108a28,28,0,1,1-28-28A28,28,0,0,1,240,108ZM72,108a28,28,0,1,0-28,28A28,28,0,0,0,72,108ZM92,88A28,28,0,1,0,64,60,28,28,0,0,0,92,88Zm72,0a28,28,0,1,0-28-28A28,28,0,0,0,164,88Zm23.12,60.86a35.3,35.3,0,0,1-16.87-21.14,44,44,0,0,0-84.5,0A35.25,35.25,0,0,1,69,148.82,40,40,0,0,0,88,224a39.48,39.48,0,0,0,15.52-3.13,64.09,64.09,0,0,1,48.87,0,40,40,0,0,0,34.73-72Z'
+
+const pawSteps = [
+  { x: 18, y: 82, tilt: -20 },
+  { x: 33, y: 76, tilt: 19 },
+  { x: 32, y: 64, tilt: -18 },
+  { x: 47, y: 58, tilt: 18 },
+  { x: 47, y: 46, tilt: -17 },
+  { x: 62, y: 40, tilt: 17 },
+  { x: 62, y: 28, tilt: -16 },
+  { x: 77, y: 22, tilt: 16 }
+]
 </script>
 
 <template>
@@ -32,24 +46,27 @@ const { isRevealed, sectionRef } = useScrollReveal()
 
         <!-- Center Column -->
         <div class="dh-masonry-col" style="transition-delay: 0.35s">
-          <div class="dh-res-graphic-card">
-            <!-- CSS Mock Phone/Dashboard -->
-            <div class="dh-mock-phone">
-              <div class="dh-phone-notch"></div>
-              <div class="dh-phone-screen">
-                <div class="dh-phone-header">
-                  <div class="dh-avatar"></div>
-                  <div class="dh-header-text"></div>
-                </div>
-                <div class="dh-phone-title"></div>
-                <div class="dh-phone-subtitle"></div>
-                <div class="dh-phone-pills">
-                  <div class="dh-pill-active"></div>
-                  <div class="dh-pill"></div>
-                  <div class="dh-pill"></div>
-                </div>
-                <div class="dh-phone-card"></div>
-              </div>
+          <div class="dh-res-graphic-card" role="img" aria-label="DAWG paw prints lead to a captured artifact ready for replay">
+            <div class="dh-paw-trail" aria-hidden="true">
+              <span
+                v-for="(step, index) in pawSteps"
+                :key="index"
+                class="dh-paw-step"
+                :class="index % 2 === 0 ? 'dh-paw-step--left' : 'dh-paw-step--right'"
+                :style="{
+                  left: `${step.x}%`,
+                  top: `${step.y}%`,
+                  '--paw-tilt': `${step.tilt}deg`,
+                  '--paw-delay': `${index * 0.38}s`
+                }"
+              >
+                <svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" focusable="false">
+                  <path :d="pawPath" />
+                </svg>
+              </span>
+            </div>
+            <div class="dh-artifact-reveal" aria-hidden="true">
+              <img src="/assets/images/resources-artifact.svg" alt="" width="360" height="400" loading="lazy" decoding="async" />
             </div>
           </div>
           <a href="/docs/architecture" class="dh-res-card">
@@ -186,63 +203,93 @@ const { isRevealed, sectionRef } = useScrollReveal()
   background: var(--color-brand);
   border-radius: 20px;
   height: 400px;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
   overflow: hidden;
   position: relative;
 }
 
-/* CSS Mock Phone */
-.dh-mock-phone {
-  width: 220px;
-  height: 340px; /* Cut off at bottom */
-  background: #ffffff;
-  border-radius: 36px 36px 0 0;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-  border: 6px solid #111111;
-  border-bottom: none;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-:global(:root.dark) .dh-mock-phone { background: var(--color-canvas); }
-
-.dh-phone-notch {
+.dh-paw-trail {
   position: absolute;
-  top: 0; left: 50%;
-  transform: translateX(-50%);
-  width: 80px; height: 24px;
-  background: #111;
-  border-radius: 0 0 12px 12px;
-  z-index: 2;
+  inset: 0;
+  animation: dh-paw-trail-phase 8s linear infinite;
 }
 
-.dh-phone-screen {
-  padding: 40px 16px 16px;
-  flex: 1;
-  background: linear-gradient(to bottom, rgba(213, 196, 250, 0.1), transparent);
+.dh-paw-step {
+  position: absolute;
+  width: clamp(38px, 4.5vw, 54px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%) rotate(var(--paw-tilt));
 }
 
-.dh-phone-header { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
-.dh-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.08); }
-.dh-header-text { width: 60px; height: 8px; border-radius: 4px; background: rgba(0,0,0,0.08); }
+.dh-paw-step--left { color: #5036b9; }
+.dh-paw-step--right { color: #7656dc; }
 
-.dh-phone-title { width: 80%; height: 16px; border-radius: 4px; background: rgba(0,0,0,0.8); margin-bottom: 8px; }
-.dh-phone-subtitle { width: 50%; height: 16px; border-radius: 4px; background: rgba(0,0,0,0.8); margin-bottom: 24px; }
-:global(:root.dark) .dh-phone-title, :global(:root.dark) .dh-phone-subtitle { background: rgba(255,255,255,0.8); }
-
-.dh-phone-pills { display: flex; gap: 6px; margin-bottom: 24px; }
-.dh-pill-active { width: 60px; height: 24px; border-radius: 12px; background: var(--color-brand); }
-.dh-pill { width: 40px; height: 24px; border-radius: 12px; background: rgba(0,0,0,0.05); }
-:global(:root.dark) .dh-pill { background: rgba(255,255,255,0.1); }
-
-.dh-phone-card {
+.dh-paw-step svg {
+  display: block;
   width: 100%;
-  height: 120px;
-  border-radius: 16px;
-  background: rgba(213, 196, 250, 0.3);
+  height: 100%;
+  opacity: 0;
+  filter: drop-shadow(0 5px 4px rgb(65 42 136 / 14%));
+  animation: dh-paw-walk 8s ease-in-out var(--paw-delay) infinite;
+}
+
+@keyframes dh-paw-walk {
+  0%, 3% { opacity: 0; transform: translateY(12px) scale(.72); }
+  7%, 47% { opacity: .95; transform: translateY(0) scale(1); }
+  55%, 100% { opacity: 0; transform: translateY(-6px) scale(.93); }
+}
+
+@keyframes dh-paw-trail-phase {
+  0%, 49% { opacity: 1; }
+  56%, 97% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.dh-artifact-reveal {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  animation: dh-artifact-reveal 8s ease-in-out infinite;
+}
+
+.dh-artifact-reveal img {
+  display: block;
+  width: min(90%, 360px);
+  height: 100%;
+  object-fit: contain;
+}
+
+@keyframes dh-artifact-reveal {
+  0%, 51% {
+    opacity: 0;
+    transform: translateY(18px) scale(.9);
+    clip-path: inset(100% 0 0 0);
+  }
+  60%, 88% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    clip-path: inset(0 0 0 0);
+  }
+  97%, 100% {
+    opacity: 0;
+    transform: translateY(-8px) scale(1.02);
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+:global(:root.dark) .dh-res-graphic-card {
+  background: #4d3a82;
+}
+:global(:root.dark) .dh-paw-step--left { color: #d5c4fa; }
+:global(:root.dark) .dh-paw-step--right { color: #ac91ec; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dh-paw-trail { display: none; }
+  .dh-artifact-reveal {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 </style>
